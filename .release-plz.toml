@@ -1,0 +1,3 @@
+[[package]]
+name = "cryl"
+changelog_path = "./CHANGELOG.md"

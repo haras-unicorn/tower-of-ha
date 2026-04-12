@@ -1,0 +1,20 @@
+name: release-pr
+on:
+  push:
+    branches:
+      - main
+jobs:
+  release-pr:
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: googleapis/release-please-action@v4
+        with:
+          command: manifest
+          config-file: .release-please-config.json
+          default-branch: main
+          manifest-file: .release-please-manifest.json
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
