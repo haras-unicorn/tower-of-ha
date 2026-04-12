@@ -64,6 +64,7 @@ PC's, mobile phones, etc. Steps to connect include:
 
 [WireGuard]: https://www.wireguard.com/
 [Headscale]: https://headscale.net/
+[ddns-updater]: https://github.com/qdm12/ddns-updater
 [Tailscale]: https://tailscale.com/
 [OpenSSH]: https://www.openssh.com/
 [CephFS]: https://docs.ceph.com/
