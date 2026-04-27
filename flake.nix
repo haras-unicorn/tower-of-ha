@@ -12,6 +12,18 @@
     nix-unit.url = "github:nix-community/nix-unit";
     nix-unit.inputs.nixpkgs.follows = "nixpkgs";
     nix-unit.inputs.flake-parts.follows = "flake-parts";
+
+    sops-nix.url = "github:Mic92/sops-nix";
+    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
+
+    cryl.url = "github:haras-unicorn/cryl";
+    cryl.inputs.nixpkgs.follows = "nixpkgs";
+    cryl.inputs.flake-parts.follows = "flake-parts";
+    cryl.inputs.import-tree.follows = "import-tree";
+    cryl.inputs.sops-nix.follows = "sops-nix";
+
+    comin.url = "github:nlewo/comin/refs/tags/v0.8.0";
+    comin.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
@@ -36,121 +48,25 @@
         systems = [
           "x86_64-linux"
           "aarch64-linux"
-          "aarch64-darwin"
-          "x86_64-darwin"
         ];
+
         perSystem =
-          {
-            pkgs,
-            lib,
-            ...
-          }:
+          { system, ... }:
           let
-            flake-root = pkgs.writeShellApplication {
-              name = "flake-root";
-              text = ''
-                current="$PWD"
-                while [[ "$current" != "/" ]]; do
-                  if [[ -f "$current/flake.nix" ]]; then
-                    echo "$current"
-                    exit 0
-                  fi
-                  current="$(dirname "$current")"
-                done
-                echo "no flake.nix found" >&2
-                exit 1
-              '';
+            originalPkgs = import inputs.nixpkgs {
+              inherit system;
             };
 
-            externalPackages = with pkgs; [
-              nil
-              nixfmt-rfc-style
-
-              markdownlint-cli
-              nodePackages.markdown-link-check
-              marksman
-
-              nodePackages.cspell
-
-              mdbook
-              nodePackages.prettier
-              nodePackages.vscode-langservers-extracted
-              nodePackages.prettier
-              nodePackages.yaml-language-server
-              taplo
-
-              fd
-              delta
-              cachix
-            ];
-
-            scripts = {
-              format = ''
-                cd "$(flake-root)"
-
-                prettier --write .
-
-                # shellcheck disable=SC2046
-                nixfmt $(fd '.*.nix$' .)
-              '';
-              lint = ''
-                cd "$(flake-root)"
-
-                prettier --check .
-
-                cspell lint . --no-progress
-
-                # shellcheck disable=SC2046
-                nixfmt --check $(fd '.*.nix$' .)
-
-                markdownlint --ignore-path .markdownignore .
-                if [[ -z "''${NIX_BUILD_TOP:-}" ]]; then
-                  # shellcheck disable=SC2046
-                  markdown-link-check \
-                    --config .markdown-link-check.json \
-                    --quiet \
-                    $(fd '.*.md' .)
-                fi
-              '';
-            };
-
-            scriptPackages = builtins.map (
-              { name, value }:
-              pkgs.writeShellApplication {
-                name = "dev-${name}";
-                runtimeInputs = externalPackages ++ [ flake-root ];
-                text = value;
-              }
-            ) (lib.attrsToList scripts);
+            nixpkgs = self.lib.nixpkgs.patch originalPkgs;
           in
           {
-            nix-unit.inputs = inputs;
-
-            packages.docs =
-              pkgs.runCommand "docs"
-                {
-                  src = self;
-                  nativeBuildInputs = [ pkgs.mdbook ];
-                }
-                ''
-                  mdbook build -d "$out" "$src/docs"
-                '';
-
-            devShells.default = pkgs.mkShell {
-              packages = externalPackages ++ scriptPackages;
+            _module.args.pkgs = import nixpkgs {
+              system = originalPkgs.stdenv.hostPlatform.system;
+              overlays = [ self.overlays.default ];
+              config = {
+                allowUnfree = true;
+              };
             };
-
-            checks.default =
-              pkgs.runCommand "checks-default"
-                {
-                  src = self;
-                  nativeBuildInputs = externalPackages ++ [ flake-root ];
-                }
-                ''
-                  cd "$src"
-                  ${scripts.lint}
-                  touch "$out"
-                '';
           };
       };
 
