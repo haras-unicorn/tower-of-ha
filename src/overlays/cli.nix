@@ -1,53 +1,11 @@
-{ lib, ... }:
+{ tohLib, ... }:
 
 {
-  libAttrs.cli.makeOverlay =
-    {
-      extraRuntimeInputs ? (_: [ ]),
-      extraText ? "",
-    }:
-    final: prev: {
-      tohPackages = (prev.tohPackages or { }) // {
-        cli = prev.tohPackages.cli.override (prev: {
-          extraRuntimeInputs = prev.extraRuntimeInputs ++ (extraRuntimeInputs final);
-          extraText = prev.extraText + extraText;
-        });
-      };
-    };
+  toh.overlays.cli-package = tohLib.cli.makeBaseOverlay "cli";
 
-  overlayList = lib.mkBefore [
-    {
-      name = "cli";
-      value = final: prev: {
-        tohPackages = (prev.tohPackages or { }) // {
-          cli =
-            final.callPackage
-              (
-                {
-                  name,
-                  extraRuntimeInputs,
-                  extraText,
-                  tohPackages,
-                }:
-                tohPackages.writeNushellApplication {
-                  inherit name;
-                  runtimeInputs = [ final.nushell ] ++ extraRuntimeInputs;
-                  text = ''
-                    def main [] {
-                      exec nu -c $"($env.FILE_PWD)/${name} --help"
-                    }
+  toh.overlays.cli-name = tohLib.cli.makeOverrideOverlay "cli" {
+    name = "toh";
+  };
 
-                    ${extraText}
-                  '';
-                }
-              )
-              {
-                name = "toh";
-                extraRuntimeInputs = [ ];
-                extraText = "";
-              };
-        };
-      };
-    }
-  ];
+  toh.overlays.cli = tohLib.cli.makeFinalOverlay "cli";
 }

@@ -15,4 +15,4 @@ jobs:
       # because some of the tests are purposefully not functional
       # because of migrating to FOSS services
       # - run: nix flake check --show-trace
-      - run: nix develop . --command bash -c "NIX_BUILD_TOP='' dev-lint"
+      - run: nix develop . --command bash -c "NIX_BUILD_TOP='' dev-toh lint"

@@ -1,28 +1,55 @@
-{ lib, config, ... }:
-
 {
-  options.overlayList = lib.mkOption {
-    default = [ ];
-    description = "List of overlays with names and values";
-    type = lib.types.listOf (
-      lib.types.submodule {
-        options = {
-          name = lib.mkOption {
-            type = lib.types.str;
-            description = "Overlay name";
-          };
-          value = lib.mkOption {
-            type = lib.types.functionTo (lib.types.functionTo lib.types.raw);
-            description = "Overlay value";
-          };
-        };
-      }
-    );
+  lib,
+  config,
+  tohLib,
+  ...
+}:
+
+let
+  allOverlays = config.toh.overlays;
+
+  flakeOverlays = lib.filterAttrs (_: { flake, ... }: flake) allOverlays;
+
+  composedAllOverlays = tohLib.overlay.composeOverlayAttrs allOverlays allOverlays;
+
+  composedDefaultAllOverlay = tohLib.overlay.composeOverlay allOverlays allOverlays;
+
+  composedFlakeOverlays = tohLib.overlay.composeOverlayAttrs allOverlays flakeOverlays;
+
+  composedDefaultFlakeOverlay = tohLib.overlay.composeOverlay allOverlays flakeOverlays;
+in
+{
+  options.toh = {
+    overlays = lib.mkOption {
+      default = { };
+      description = "Attrset of ToH overlays with dependencies";
+      type = lib.types.attrsOf (tohLib.types.overlay);
+    };
   };
 
   config = {
-    flake.overlays = (builtins.listToAttrs config.overlayList) // {
-      default = lib.composeManyExtensions (builtins.map ({ value, ... }: value) config.overlayList);
-    };
+    toh.lib.overlays =
+      let
+        noUndefinedDepsAssertion = tohLib.overlay.makeUndefinedDepsAssertion allOverlays;
+      in
+      assert lib.assertMsg noUndefinedDepsAssertion.assertion noUndefinedDepsAssertion.message;
+      (
+        composedAllOverlays
+        // {
+          default = composedDefaultAllOverlay;
+        }
+      );
+
+    flake.overlays =
+      let
+        noUndefinedDepsAssertion = tohLib.overlay.makeUndefinedDepsAssertion allOverlays;
+      in
+      assert lib.assertMsg noUndefinedDepsAssertion.assertion noUndefinedDepsAssertion.message;
+      (
+        composedFlakeOverlays
+        // {
+          default = composedDefaultFlakeOverlay;
+        }
+      );
   };
 }

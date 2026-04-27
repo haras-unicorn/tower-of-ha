@@ -4,6 +4,8 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/release-25.11";
 
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
 
@@ -22,53 +24,11 @@
     cryl.inputs.import-tree.follows = "import-tree";
     cryl.inputs.sops-nix.follows = "sops-nix";
 
-    comin.url = "github:nlewo/comin/refs/tags/v0.8.0";
-    comin.inputs.nixpkgs.follows = "nixpkgs";
+    deploy-rs.url = "github:serokell/deploy-rs";
+    deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs =
-    {
-      self,
-      flake-parts,
-      ...
-    }@inputs:
-    flake-parts.lib.mkFlake
-      {
-        inherit inputs;
-        specialArgs = {
-          root = ./.;
-        };
-      }
-      {
-        imports = [
-          inputs.nix-unit.modules.flake.default
-          (inputs.import-tree ./src)
-        ];
-
-        systems = [
-          "x86_64-linux"
-          "aarch64-linux"
-        ];
-
-        perSystem =
-          { system, ... }:
-          let
-            originalPkgs = import inputs.nixpkgs {
-              inherit system;
-            };
-
-            nixpkgs = self.lib.nixpkgs.patch originalPkgs;
-          in
-          {
-            _module.args.pkgs = import nixpkgs {
-              system = originalPkgs.stdenv.hostPlatform.system;
-              overlays = [ self.overlays.default ];
-              config = {
-                allowUnfree = true;
-              };
-            };
-          };
-      };
+  outputs = inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; } (inputs.import-tree ./src);
 
   nixConfig = {
     extra-substituters = [

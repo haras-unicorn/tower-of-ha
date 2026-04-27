@@ -1,6 +1,10 @@
 { config, lib, ... }:
 
 let
+  tohLib = config.toh.lib;
+
+  flakeLib = lib.filterAttrsRecursive (_: value: value ? _tohFlakeLib && value._tohFlakeLib) tohLib;
+
   recursiveAttrsOf =
     elemType:
     lib.types.mkOptionType {
@@ -12,15 +16,20 @@ let
     };
 in
 {
-  options.libAttrs = lib.mkOption {
-    type = recursiveAttrsOf lib.types.raw;
-    description = "Flake library that is merged across flake modules";
-    default = { };
+  options.toh = {
+    lib = lib.mkOption {
+      type = recursiveAttrsOf lib.types.raw;
+      description = "ToH library merged attrset";
+      default = { };
+    };
   };
 
   config = {
-    flake.lib = config.libAttrs;
+    _module.args.tohLib = tohLib;
+    perSystem._module.args.tohLib = tohLib;
 
-    libAttrs.types.recursiveAttrsOf = recursiveAttrsOf;
+    flake.lib = flakeLib;
+
+    toh.lib.types.recursiveAttrsOf = recursiveAttrsOf;
   };
 }

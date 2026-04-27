@@ -13,7 +13,7 @@ the core principles are:
 
 ## Services
 
-- VPN: [WireGuard] + [Headscale] + [Tailscale] + [ddns-updater]
+- VPN: [EasyTier] + [ddns-updater]
 - SSH: [OpenSSH]
 - FS: [CephFS] + [Samba] + [CTDB] + [FUSE]
 - DB: [PostgreSQL] + [Patroni] + [etcd] + [HAProxy]
@@ -25,7 +25,7 @@ the core principles are:
 - Passwords: [Vaultwarden]
 - Email: [Postfix] + [Dovecot]
 - Git: [Forgejo]
-- Observability: [Prometheus] + [AlertManager]
+- Observability: [Fluentd] + [OpenSearch]
 
 ## CLI
 
@@ -62,10 +62,8 @@ PC's, mobile phones, etc. Steps to connect include:
 - Add vaultwarden to your Bitwarden client
 - Configure email client with your tower's mail server
 
-[WireGuard]: https://www.wireguard.com/
-[Headscale]: https://headscale.net/
+[EasyTier]: https://easytier.rs
 [ddns-updater]: https://github.com/qdm12/ddns-updater
-[Tailscale]: https://tailscale.com/
 [OpenSSH]: https://www.openssh.com/
 [CephFS]: https://docs.ceph.com/
 [Samba]: https://www.samba.org/
@@ -83,8 +81,8 @@ PC's, mobile phones, etc. Steps to connect include:
 [Postfix]: http://www.postfix.org/
 [Dovecot]: https://www.dovecot.org/
 [Forgejo]: https://forgejo.org/
-[Prometheus]: https://prometheus.io/
-[AlertManager]: https://prometheus.io/docs/alerting/latest/alertmanager/
+[Fluentd]: https://www.fluentd.org/
+[OpenSearch]: https://opensearch.org/
 [Cloudflare DNS]: https://www.cloudflare.com/dns/
 [GoDaddy DNS]: https://www.google.com/search?q=godaddy
 [Cloudflare R2]: https://www.cloudflare.com/products/r2/
