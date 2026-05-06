@@ -1,5 +1,5 @@
 {
-  libAttrs.services.protocols = [
+  toh.lib.services.protocols = [
     "tcp://"
     "http://"
     "https://"

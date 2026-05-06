@@ -181,3 +181,7 @@ ignoreWords:
   - datname
   - kvmclock
   - clocksource
+  - attrset
+  - machinea
+  - toposort
+  - easytier

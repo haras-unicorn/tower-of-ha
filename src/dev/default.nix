@@ -1,6 +1,10 @@
 { inputs, self, ... }:
 
 {
+  imports = [
+    inputs.nix-unit.modules.flake.default
+  ];
+
   perSystem =
     {
       pkgs,
@@ -45,60 +49,6 @@
             )
           ));
       });
-
-      scripts = {
-        format = ''
-          cd "$(flake-root)"
-
-          prettier --write .
-
-          # shellcheck disable=SC2046
-          nixfmt $(fd '.*.nix$' .)
-        '';
-        lint = ''
-          cd "$(flake-root)"
-
-          prettier --check .
-
-          cspell lint . --no-progress
-
-          # shellcheck disable=SC2046
-          nixfmt --check $(fd '.*.nix$' .)
-
-          markdownlint --ignore-path .markdownignore .
-          if [[ -z "''${NIX_BUILD_TOP:-}" ]]; then
-            # shellcheck disable=SC2046
-            markdown-link-check \
-              --config .markdown-link-check.json \
-              --quiet \
-              $(fd '.*.md' .)
-          fi
-        '';
-        nixos-test = ''
-          test="$1"
-          shift
-          nix build \
-            ".#checks.$(uname -m)-linux.test-''${test}.withSshBackdoor" \
-            --option sandbox-paths /dev/vhost-vsock \
-            "$@"
-        '';
-        nixos-test-interactive = ''
-          test="$1"
-          shift
-          nix run \
-            ".#checks.$(uname -m)-linux.test-''${test}.withSshBackdoor.driverInteractive" \
-            "$@"
-        '';
-      };
-
-      scriptPackages = builtins.map (
-        { name, value }:
-        pkgs.writeShellApplication {
-          name = "dev-${name}";
-          runtimeInputs = externalPackages;
-          text = value;
-        }
-      ) (lib.attrsToList scripts);
     in
     {
       nix-unit.inputs = inputs;
@@ -114,18 +64,18 @@
           '';
 
       devShells.default = pkgs.mkShell {
-        packages = externalPackages ++ scriptPackages ++ [ cli ];
+        packages = externalPackages ++ [ cli ];
       };
 
       checks.default =
         pkgs.runCommand "checks-default"
           {
             src = self;
-            nativeBuildInputs = externalPackages;
+            nativeBuildInputs = externalPackages ++ [ cli ];
           }
           ''
             cd "$src"
-            ${scripts.lint}
+            dev-toh lint
             touch "$out"
           '';
     };

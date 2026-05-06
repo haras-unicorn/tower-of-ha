@@ -1,7 +1,7 @@
-{ lib, self, ... }:
+{ lib, tohLib, ... }:
 
 {
-  libAttrs.dns.routeToIp =
+  toh.lib.dns.unbound.routeToIp =
     domains: ip:
     builtins.mapAttrs
       (
@@ -24,7 +24,7 @@
 
   flake.tests.dns =
     let
-      routeToIp = self.lib.dns.routeToIp;
+      routeToIp = tohLib.dns.unbound.routeToIp;
     in
     {
       test-empty-domains = {

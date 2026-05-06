@@ -1,5 +1,5 @@
 {
-  libAttrs.database.protocols = [
+  toh.lib.database.protocols = [
     "postgresql://"
   ];
 }
