@@ -171,35 +171,12 @@
         };
 
         toh.cryl.machine.nebula = {
-          imports = [
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/nebula-ca-private";
-                to = "nebula-ca-private";
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/nebula-ca-public";
-                to = "nebula-ca-public";
-              };
-            }
-          ]
-          ++ (builtins.map (machine: {
-            importer = "copy";
-            arguments = {
-              from = "${tohLib.secrets.directories.external}/${machine.meta.domains.machineSecret}";
-              to = "nebula-${machine.name}-domain";
-            };
-          }) machinesWithDomain);
           generations = [
             {
               generator = "nebula-cert";
               arguments = {
-                ca_private = "nebula-ca-private";
-                ca_public = "nebula-ca-public";
+                ca_private = "cluster/nebula-ca-private";
+                ca_public = "cluster/nebula-ca-public";
                 name = config.toh.meta.machine.name;
                 ip = "${config.toh.meta.network.ip}/${builtins.toString config.toh.meta.network.subnet.bits}";
                 private = "nebula-private";
@@ -216,7 +193,7 @@
                   value = builtins.listToAttrs (
                     builtins.map (machine: {
                       name = "NEBULA_${lib.toUpper machine.name}_DOMAIN";
-                      value = "nebula-${machine.name}-domain";
+                      value = "external/${machine.meta.domains.machineSecret}";
                     }) machinesWithDomain
                   );
                 };
@@ -238,25 +215,19 @@
           ];
         };
 
-        toh.cryl.cluster.nebula = {
-          imports = [
+        toh.cryl.machine.nebula-ca = {
+          generations = [
             {
-              importer = "copy";
+              generator = "copy";
               arguments = {
-                from = "${tohLib.secrets.directories.cluster}/nebula-ca-private";
-                to = "nebula-ca-private";
-                allow_fail = true;
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/nebula-ca-public";
+                from = "cluster/nebula-ca-public";
                 to = "nebula-ca-public";
-                allow_fail = true;
               };
             }
           ];
+        };
+
+        toh.cryl.cluster.nebula-ca = {
           generations = [
             {
               generator = "nebula-ca";
@@ -264,22 +235,6 @@
                 name = "toh";
                 private = "nebula-ca-private";
                 public = "nebula-ca-public";
-              };
-            }
-          ];
-          exports = [
-            {
-              exporter = "copy";
-              arguments = {
-                from = "nebula-ca-private";
-                to = "${tohLib.secrets.directories.cluster}/nebula-ca-private";
-              };
-            }
-            {
-              exporter = "copy";
-              arguments = {
-                from = "nebula-ca-public";
-                to = "${tohLib.secrets.directories.cluster}/nebula-ca-public";
               };
             }
           ];

@@ -1,7 +1,6 @@
 {
   lib,
   tohLib,
-  config,
   ...
 }:
 
@@ -14,6 +13,7 @@
       # NOTE: this allows us to not hit infinite recursion on certain evaluations
       enable ? true,
       name ? null,
+      deps ? [ ],
       extraRuntimeInputs ? [ ],
       extraText ? "",
       loadExtraTextFromFile ? null,
@@ -37,7 +37,8 @@
       deps = [
         "packages"
         "${attr}-package"
-      ];
+      ]
+      ++ deps;
       value =
         final: prev:
         if (!enable) then
@@ -126,8 +127,8 @@
     };
   };
 
-  toh.lib.cli.makeFinalOverlay = atr: {
-    deps = builtins.filter (lib.hasPrefix "${atr}-") (builtins.attrNames config.toh.overlays);
+  toh.lib.cli.makeFinalOverlay = attr: {
+    deps = [ "${attr}-.*" ];
     flake = true;
     nixos = true;
     value = final: prev: { };

@@ -90,41 +90,11 @@
         };
 
         toh.cryl.machine.openssh = {
-          imports = builtins.concatMap (machine: [
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/${machine.name}-ssh-public";
-                to = "${machine.name}-ssh-public";
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/${machine.name}-ssh-private";
-                to = "${machine.name}-ssh-private";
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/${machine.name}-ssh-server-public";
-                to = "${machine.name}-ssh-server-public";
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/${machine.name}-ssh-server-private";
-                to = "${machine.name}-ssh-server-private";
-              };
-            }
-          ]) machines;
           generations = [
             {
               generator = "copy";
               arguments = {
-                from = "${machineName}-ssh-public";
+                from = "cluster/${machineName}-ssh-public";
                 to = "ssh-public";
                 renew = true;
               };
@@ -132,7 +102,7 @@
             {
               generator = "copy";
               arguments = {
-                from = "${machineName}-ssh-private";
+                from = "cluster/${machineName}-ssh-private";
                 to = "ssh-private";
                 renew = true;
               };
@@ -140,7 +110,7 @@
             {
               generator = "copy";
               arguments = {
-                from = "${machineName}-ssh-server-public";
+                from = "cluster/${machineName}-ssh-server-public";
                 to = "ssh-server-public";
                 renew = true;
               };
@@ -148,7 +118,7 @@
             {
               generator = "copy";
               arguments = {
-                from = "${machineName}-ssh-server-private";
+                from = "cluster/${machineName}-ssh-server-private";
                 to = "ssh-server-private";
                 renew = true;
               };
@@ -162,7 +132,7 @@
                   value = builtins.listToAttrs (
                     builtins.map (machine: {
                       name = "${lib.toUpper machine.name}_SSH_PUBLIC";
-                      value = "${machine.name}-ssh-public";
+                      value = "cluster/${machine.name}-ssh-public";
                     }) machines
                   );
                 };
@@ -181,7 +151,7 @@
                   value = builtins.listToAttrs (
                     builtins.map (machine: {
                       name = "${lib.toUpper machine.name}_SSH_SERVER_PUBLIC";
-                      value = "${machine.name}-ssh-server-public";
+                      value = "cluster/${machine.name}-ssh-server-public";
                     }) machines
                   );
                 };
@@ -199,40 +169,6 @@
         };
 
         toh.cryl.cluster.openssh = {
-          imports = builtins.concatMap (machine: [
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/${machine.name}-ssh-public";
-                to = "${machine.name}-ssh-public";
-                allow_fail = true;
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/${machine.name}-ssh-private";
-                to = "${machine.name}-ssh-private";
-                allow_fail = true;
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/${machine.name}-ssh-server-public";
-                to = "${machine.name}-ssh-server-public";
-                allow_fail = true;
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/${machine.name}-ssh-server-private";
-                to = "${machine.name}-ssh-server-private";
-                allow_fail = true;
-              };
-            }
-          ]) machines;
           generations = builtins.concatMap (machine: [
             {
               generator = "ssh-key";
@@ -248,36 +184,6 @@
                 name = machine.name;
                 public = "${machine.name}-ssh-server-public";
                 private = "${machine.name}-ssh-server-private";
-              };
-            }
-          ]) machines;
-          exports = builtins.concatMap (machine: [
-            {
-              exporter = "copy";
-              arguments = {
-                from = "${machine.name}-ssh-public";
-                to = "${tohLib.secrets.directories.cluster}/${machine.name}-ssh-public";
-              };
-            }
-            {
-              exporter = "copy";
-              arguments = {
-                from = "${machine.name}-ssh-private";
-                to = "${tohLib.secrets.directories.cluster}/${machine.name}-ssh-private";
-              };
-            }
-            {
-              exporter = "copy";
-              arguments = {
-                from = "${machine.name}-ssh-server-public";
-                to = "${tohLib.secrets.directories.cluster}/${machine.name}-ssh-server-public";
-              };
-            }
-            {
-              exporter = "copy";
-              arguments = {
-                from = "${machine.name}-ssh-server-private";
-                to = "${tohLib.secrets.directories.cluster}/${machine.name}-ssh-server-private";
               };
             }
           ]) machines;

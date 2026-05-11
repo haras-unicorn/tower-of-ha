@@ -55,7 +55,7 @@
               };
             in
             {
-              toh.pki.enable = true;
+              toh.ssl.installCa = true;
               toh.services.traefik.enable = true;
               toh.services.consul.enable = true;
 

@@ -42,22 +42,6 @@
               };
         }
         (lib.mkIf cfg.enable {
-          systemd.services.consul.wantedBy = [
-            "toh-network-online.target"
-            "toh-time-synchronized.target"
-          ];
-          systemd.services.consul.after = [
-            "toh-network-online.target"
-            "toh-time-synchronized.target"
-          ];
-          systemd.services.consul.requires = [
-            "toh-network-online.target"
-            "toh-time-synchronized.target"
-          ];
-          systemd.services.consul.serviceConfig = {
-            Restart = lib.mkForce "always";
-          };
-
           services.consul.enable = true;
           services.consul.webUi = true;
           services.consul.dropPrivileges = false;
@@ -152,6 +136,22 @@
             config.sops.secrets."consul-config".path
           ];
 
+          systemd.services.consul.wantedBy = [
+            "toh-network-online.target"
+            "toh-time-synchronized.target"
+          ];
+          systemd.services.consul.after = [
+            "toh-network-online.target"
+            "toh-time-synchronized.target"
+          ];
+          systemd.services.consul.requires = [
+            "toh-network-online.target"
+            "toh-time-synchronized.target"
+          ];
+          systemd.services.consul.serviceConfig = {
+            Restart = lib.mkForce "always";
+          };
+
           networking.firewall.allowedTCPPorts = [
             port
             rpcPort
@@ -209,22 +209,6 @@
           ];
 
           toh.cryl.machine.consul = {
-            imports = [
-              {
-                importer = "copy";
-                arguments = {
-                  from = "${tohLib.secrets.directories.cluster}/consul-gossip-key";
-                  to = "consul-gossip-key";
-                };
-              }
-              {
-                importer = "copy";
-                arguments = {
-                  from = "${tohLib.secrets.directories.cluster}/consul-bootstrap-token";
-                  to = "consul-bootstrap-token";
-                };
-              }
-            ];
             generations = [
               {
                 generator = "tls-leaf";
@@ -242,9 +226,9 @@
                   request_config = "consul-cert-request-config";
                   private = "consul-private";
                   request = "consul-cert-request";
-                  ca_private = "openssl-ca-private";
-                  ca_public = "openssl-ca-public";
-                  serial = "openssl-ca-serial";
+                  ca_private = "cluster/openssl-ca-private";
+                  ca_public = "cluster/openssl-ca-public";
+                  serial = "cluster/openssl-ca-serial";
                   public = "consul-public";
                   renew = true;
                 };
@@ -257,8 +241,8 @@
                   listing = {
                     type = "map";
                     value = {
-                      CONSUL_GOSSIP_KEY = "consul-gossip-key";
-                      CONSUL_BOOTSTRAP_TOKEN = "consul-bootstrap-token";
+                      CONSUL_GOSSIP_KEY = "cluster/consul-gossip-key";
+                      CONSUL_BOOTSTRAP_TOKEN = "cluster/consul-bootstrap-token";
                     };
                   };
                   template = ''
@@ -276,51 +260,7 @@
             ];
           };
 
-          toh.cryl.machine.openssl-ca = {
-            imports = [
-              {
-                importer = "copy";
-                arguments = {
-                  from = "${tohLib.secrets.directories.cluster}/openssl-ca-public";
-                  to = "openssl-ca-public";
-                };
-              }
-              {
-                importer = "copy";
-                arguments = {
-                  from = "${tohLib.secrets.directories.cluster}/openssl-ca-private";
-                  to = "openssl-ca-private";
-                };
-              }
-              {
-                importer = "copy";
-                arguments = {
-                  from = "${tohLib.secrets.directories.cluster}/openssl-ca-serial";
-                  to = "openssl-ca-serial";
-                };
-              }
-            ];
-          };
-
           toh.cryl.cluster.consul = {
-            imports = [
-              {
-                importer = "copy";
-                arguments = {
-                  from = "${tohLib.secrets.directories.cluster}/consul-gossip-key";
-                  to = "consul-gossip-key";
-                  allow_fail = true;
-                };
-              }
-              {
-                importer = "copy";
-                arguments = {
-                  from = "${tohLib.secrets.directories.cluster}/consul-bootstrap-token";
-                  to = "consul-bootstrap-token";
-                  allow_fail = true;
-                };
-              }
-            ];
             generations = [
               {
                 generator = "key";
@@ -335,23 +275,9 @@
                 };
               }
             ];
-            exports = [
-              {
-                exporter = "copy";
-                arguments = {
-                  from = "consul-gossip-key";
-                  to = "${tohLib.secrets.directories.cluster}/consul-gossip-key";
-                };
-              }
-              {
-                exporter = "copy";
-                arguments = {
-                  from = "consul-bootstrap-token";
-                  to = "${tohLib.secrets.directories.cluster}/consul-bootstrap-token";
-                };
-              }
-            ];
           };
+
+          toh.ssl.generateCa = true;
         })
       ];
     };

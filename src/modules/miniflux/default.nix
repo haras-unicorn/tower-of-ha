@@ -126,17 +126,14 @@
         };
 
         toh.cryl.machine.miniflux = {
-          imports = [
+          generations = [
             {
-              importer = "copy";
+              generator = "copy";
               arguments = {
-                from = "${tohLib.secrets.directories.cluster}/${user}-password";
+                from = "cluster/${user}-password";
                 to = "${user}-password";
-                allow_fail = false;
               };
             }
-          ];
-          generations = [
             {
               generator = "cockroach-client";
               arguments = {

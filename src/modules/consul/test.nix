@@ -5,7 +5,7 @@
       checks.test-services-consul-enabled = pkgs.tohPackages.testers.runToHTest {
         name = "services-consul-enabled";
         nodes.machine = {
-          toh.pki.enable = true;
+          toh.ssl.installCa = true;
           toh.services.consul.enable = true;
         };
         toh.test.commands.suffix =
@@ -44,7 +44,7 @@
       checks.test-services-consul-services = pkgs.tohPackages.testers.runToHTest {
         name = "services-consul-services";
         nodes.machine = {
-          toh.pki.enable = true;
+          toh.ssl.installCa = true;
           toh.services.consul.enable = true;
 
           toh.meta.services = [
@@ -92,7 +92,7 @@
         name = "services-consul-cluster";
         toh.test.clusters.node.amount = 3;
         toh.test.clusters.node.module = {
-          toh.pki.enable = true;
+          toh.ssl.installCa = true;
           toh.services.consul.enable = true;
         };
         toh.test.commands.enable = true;

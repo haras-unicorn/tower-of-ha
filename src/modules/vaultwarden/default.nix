@@ -76,18 +76,18 @@
         };
 
         toh.cryl.machine.vaultwarden = {
-          imports = [
+          generations = [
             {
-              importer = "copy";
+              generator = "copy";
               arguments = {
-                from = "${tohLib.secrets.directories.cluster}/vaultwarden-admin-pass";
+                from = "cluster/vaultwarden-admin-pass";
                 to = "vaultwarden-admin-pass";
               };
             }
             {
-              importer = "copy";
+              generator = "copy";
               arguments = {
-                from = "${tohLib.secrets.directories.cluster}/vaultwarden-auth-key";
+                from = "cluster/vaultwarden-auth-key";
                 to = "vaultwarden-auth-key";
               };
             }
@@ -95,24 +95,6 @@
         };
 
         toh.cryl.cluster.vaultwarden = {
-          imports = [
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/vaultwarden-admin-pass";
-                to = "vaultwarden-admin-pass";
-                allow_fail = true;
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/vaultwarden-auth-key";
-                to = "vaultwarden-auth-key";
-                allow_fail = true;
-              };
-            }
-          ];
           generations = [
             {
               generator = "script";
@@ -127,22 +109,6 @@
               generator = "key";
               arguments = {
                 name = "vaultwarden-admin-pass";
-              };
-            }
-          ];
-          exports = [
-            {
-              exporter = "copy";
-              arguments = {
-                from = "vaultwarden-admin-pass";
-                to = "${tohLib.secrets.directories.cluster}/vaultwarden-admin-pass";
-              };
-            }
-            {
-              exporter = "copy";
-              arguments = {
-                from = "vaultwarden-auth-key";
-                to = "${tohLib.secrets.directories.cluster}/vaultwarden-auth-key";
               };
             }
           ];

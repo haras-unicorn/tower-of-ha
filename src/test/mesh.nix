@@ -93,15 +93,6 @@
               };
             }
           ];
-          exports = [
-            {
-              exporter = "copy";
-              arguments = {
-                from = controllerDomainSecret;
-                to = "${tohLib.secrets.directories.external}/${controllerDomainSecret}";
-              };
-            }
-          ];
         };
 
         toh.test.clusters.node.amount = amount;

@@ -41,7 +41,7 @@
         ];
 
         services.easytier.enable = true;
-        services.easytier.package = pkgs.unstableTohPackages.easytier;
+        services.easytier.package = pkgs.tohPackages.unstablePackages.easytier;
 
         services.easytier.instances.${instance} = {
           environmentFiles = [
@@ -121,86 +121,68 @@
         };
 
         toh.cryl.machine.easytier = {
-          imports = [
-            {
-              importer = "copy";
+          generations =
+            (builtins.map (machine: {
+              generator = "copy";
               arguments = {
-                from = "${tohLib.secrets.directories.cluster}/easytier-network-secret";
-                to = "easytier-network-secret";
+                from = "external/${machine.meta.domains.machineSecret}";
+                to = "easytier-${machine.name}-domain";
               };
-            }
-          ]
-          ++ (builtins.map (machine: {
-            importer = "copy";
-            arguments = {
-              from = "${tohLib.secrets.directories.external}/${machine.meta.domains.machineSecret}";
-              to = "easytier-${machine.name}-domain";
-            };
-          }) otherMachinesWithDomain);
-          generations = [
-            {
-              generator = "mustache";
-              arguments = {
-                name = envSecret;
-                renew = true;
-                listing = {
-                  type = "map";
-                  value =
+            }) otherMachinesWithDomain)
+            ++ [
+              {
+                generator = "copy";
+                arguments = {
+                  from = "cluster/easytier-network-secret";
+                  to = "easytier-network-secret";
+                };
+              }
+            ]
+            ++ [
+              {
+                generator = "mustache";
+                arguments = {
+                  name = envSecret;
+                  renew = true;
+                  listing = {
+                    type = "map";
+                    value =
+                      let
+                        peersVariables = builtins.listToAttrs (
+                          builtins.map (machine: {
+                            name = "EASYTIER_${lib.toUpper machine.name}_DOMAIN";
+                            value = "easytier-${machine.name}-domain";
+                          }) otherMachinesWithDomain
+                        );
+                      in
+                      {
+                        EASYTIER_NETWORK_SECRET = "easytier-network-secret";
+                      }
+                      // peersVariables;
+                  };
+                  template =
                     let
-                      peersVariables = builtins.listToAttrs (
-                        builtins.map (machine: {
-                          name = "EASYTIER_${lib.toUpper machine.name}_DOMAIN";
-                          value = "easytier-${machine.name}-domain";
-                        }) otherMachinesWithDomain
+                      peersTemplate = builtins.concatStringsSep "," (
+                        builtins.map (
+                          machine: "udp://{{{EASYTIER_${lib.toUpper machine.name}_DOMAIN}}}:${builtins.toString port}"
+                        ) otherMachinesWithDomain
                       );
                     in
-                    {
-                      EASYTIER_NETWORK_SECRET = "easytier-network-secret";
-                    }
-                    // peersVariables;
+                    ''
+                      ${if peersTemplate == "" then "" else ''ET_PEERS="${peersTemplate}"''}
+                      ET_NETWORK_SECRET="{{{EASYTIER_NETWORK_SECRET}}}"
+                    '';
                 };
-                template =
-                  let
-                    peersTemplate = builtins.concatStringsSep "," (
-                      builtins.map (
-                        machine: "udp://{{{EASYTIER_${lib.toUpper machine.name}_DOMAIN}}}:${builtins.toString port}"
-                      ) otherMachinesWithDomain
-                    );
-                  in
-                  ''
-                    ${if peersTemplate == "" then "" else ''ET_PEERS="${peersTemplate}"''}
-                    ET_NETWORK_SECRET="{{{EASYTIER_NETWORK_SECRET}}}"
-                  '';
-              };
-            }
-          ];
+              }
+            ];
         };
 
         toh.cryl.cluster.easytier = {
-          imports = [
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/easytier-network-secret";
-                to = "easytier-network-secret";
-                allow_fail = true;
-              };
-            }
-          ];
           generations = [
             {
               generator = "key";
               arguments = {
                 name = "easytier-network-secret";
-              };
-            }
-          ];
-          exports = [
-            {
-              exporter = "copy";
-              arguments = {
-                from = "easytier-network-secret";
-                to = "${tohLib.secrets.directories.cluster}/easytier-network-secret";
               };
             }
           ];

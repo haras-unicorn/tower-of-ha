@@ -24,7 +24,7 @@ def "toh machine pick" [--with-secrets, name?: string] {
     $machine
   }
 
-  $machine | update secrets (toh secrets machine $machine.name)
+  $machine | insert secrets (toh secrets machine $machine.name)
 }
 
 def "toh cluster machinea" [--with-secrets] {
@@ -50,7 +50,7 @@ def "toh cluster" [--with-secrets] {
 
   let secrets = toh secrets machines
   let machinea = $cluster.machinea
-    | update secrets { ($secrets | get -o $in.name) }
+    | insert secrets { ($secrets | get -o $in.name) }
 
   $cluster
     | update machinea $machinea

@@ -2,7 +2,7 @@
   toh.lib.secrets = {
     directories = {
       cluster = "$out/cluster";
-      machines = "$out";
+      machines = "$out/machines";
       external = "$out/external";
     };
 

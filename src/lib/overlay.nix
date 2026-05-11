@@ -42,10 +42,16 @@
             in
             "Cycle in overlays: ${cycle} with loop: ${current}"
           );
-          lib.unique (
-            (allOverlays.${current}.deps or [ ])
-            ++ lib.concatMap (dep: go dep (visited ++ [ current ])) (allOverlays.${current}.deps or [ ])
-          );
+          let
+            directDeps = allOverlays.${current}.deps or [ ];
+
+            deps = builtins.filter (
+              overlay:
+              (builtins.elem overlay directDeps)
+              || (builtins.any (dep: (builtins.match dep overlay) != null) directDeps)
+            ) (builtins.attrNames allOverlays);
+          in
+          lib.unique (deps ++ lib.concatMap (dep: go dep (visited ++ [ current ])) deps);
       in
       go name [ ];
 
@@ -59,7 +65,10 @@
 
         namedOverlays = builtins.map (name: { inherit name; } // allOverlays.${name}) overlayNames;
 
-        sorted = lib.toposort (a: b: builtins.elem a.name b.deps) namedOverlays;
+        sorted = lib.toposort (
+          a: b:
+          (builtins.elem a.name b.deps) || (builtins.any (dep: (builtins.match dep a.name) != null) b.deps)
+        ) namedOverlays;
       in
       assert lib.assertMsg (sorted ? result) (
         let
@@ -89,7 +98,13 @@
       let
         allOverlayNames = builtins.attrNames overlays;
         undefinedDepsPerOverlay = builtins.mapAttrs (
-          _: { deps, ... }: builtins.filter (dep: !(builtins.elem dep allOverlayNames)) deps
+          _:
+          { deps, ... }:
+          builtins.filter (
+            dep:
+            !(builtins.elem dep allOverlayNames)
+            && !(builtins.any (overlay: (builtins.match dep overlay) != null) allOverlayNames)
+          ) deps
         ) overlays;
         undefinedDepsString = builtins.concatStringsSep "; " (
           lib.mapAttrsToList (
@@ -132,6 +147,12 @@
           flake = false;
           nixos = false;
           value = final: prev: { c = prev.a + "-" + prev.b; };
+        };
+        d = {
+          deps = [ "a|b" ];
+          flake = false;
+          nixos = false;
+          value = final: prev: { d = prev.a + "-" + prev.b; };
         };
         exportOnly = {
           deps = [ ];
@@ -176,6 +197,11 @@
 
       test-diamond = {
         expr = result.c;
+        expected = "base-a-base-b";
+      };
+
+      test-regex = {
+        expr = result.d;
         expected = "base-a-base-b";
       };
 

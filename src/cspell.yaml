@@ -185,3 +185,4 @@ ignoreWords:
   - machinea
   - toposort
   - easytier
+  - coredns

@@ -52,6 +52,10 @@ in
           in
           assert lib.assertMsg noUndefinedDepsAssertion.assertion noUndefinedDepsAssertion.message;
           [ composedNixpkgsOverlay ];
+
+        nixpkgs.config = {
+          allowUnfree = true;
+        };
       };
     };
 }

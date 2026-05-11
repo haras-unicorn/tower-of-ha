@@ -9,11 +9,19 @@
     }:
     let
       cfg = config.toh.services.geoclue;
+
+      locality = config.toh.meta.locality;
     in
     {
       options.toh.services = {
         geoclue = {
-          enable = lib.mkEnableOption "Geoclue2";
+          enable = lib.mkEnableOption "Geoclue with Avahi";
+
+          staticGeolocationSecret = lib.mkOption {
+            type = lib.types.str;
+            default = "${locality.region}-${locality.dataCenter}-geoclue-static-geolocation";
+            description = "Static geoclue geolocation configuration file";
+          };
         };
       };
 
@@ -38,11 +46,11 @@
         # };
 
         toh.cryl.machine.geoclue2-avahi = {
-          imports = [
+          generations = [
             {
-              importer = "copy";
+              generator = "copy";
               arguments = {
-                from = "${tohLib.secrets.directories.cluster}/geoclue-static-geolocation";
+                from = "external/${cfg.staticGeolocationSecret}";
                 to = "geoclue-static-geolocation";
               };
             }

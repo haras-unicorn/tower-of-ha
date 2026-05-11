@@ -2,7 +2,10 @@
 
 {
   toh.overlays.unstable = {
-    deps = [ "apply-patches" ];
+    deps = [
+      "apply-patches"
+      "packages"
+    ];
     nixos = true;
     value =
       final: prev:
@@ -13,11 +16,13 @@
         };
       in
       {
-        unstableTohPackages = import unstableNixpkgs {
-          inherit (final) system;
-          overlays = final.overlays;
-          config = {
-            allowUnfree = true;
+        tohPackages = prev.tohPackages // {
+          unstablePackages = import unstableNixpkgs {
+            inherit (final) system;
+            overlays = final.overlays;
+            config = {
+              allowUnfree = true;
+            };
           };
         };
       };

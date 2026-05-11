@@ -14,7 +14,7 @@
 
           dataCenter = lib.mkOption {
             type = lib.types.str;
-            default = "biden";
+            default = "homelab";
             description = ''
               Machine data center.
             '';
