@@ -186,3 +186,5 @@ ignoreWords:
   - toposort
   - easytier
   - coredns
+  - cacrt
+  - etcdctl
