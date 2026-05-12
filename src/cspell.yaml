@@ -190,3 +190,17 @@ ignoreWords:
   - etcdctl
   - socat
   - roundrobin
+  - httpchk
+  - frontends
+  - leastconn
+  - healthcheck
+  - initdb
+  - restapi
+  - hostnossl
+  - hostssl
+  - patronictl
+  - rolname
+  - capath
+  - standbyok
+  - perfstandbyok
+  - hasattr

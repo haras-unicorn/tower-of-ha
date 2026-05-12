@@ -170,75 +170,78 @@
           mode = "0400";
         };
 
-        toh.cryl.machine.nebula = {
-          generations = [
-            {
-              generator = "nebula-cert";
-              arguments = {
-                ca_private = "cluster/nebula-ca-private";
-                ca_public = "cluster/nebula-ca-public";
-                name = config.toh.meta.machine.name;
-                ip = "${config.toh.meta.network.ip}/${builtins.toString config.toh.meta.network.subnet.bits}";
-                private = "nebula-private";
-                public = "nebula-public";
-              };
-            }
-            {
-              generator = "mustache";
-              arguments = {
-                name = "nebula-static-host-map";
-                renew = true;
-                listing = {
-                  type = "map";
-                  value = builtins.listToAttrs (
-                    builtins.map (machine: {
-                      name = "NEBULA_${lib.toUpper machine.name}_DOMAIN";
-                      value = "external/${machine.meta.domains.machineSecret}";
-                    }) machinesWithDomain
-                  );
-                };
-                template =
-                  let
-                    staticHostMap = builtins.concatStringsSep ", " (
-                      builtins.map (machine: ''
-                        "${machine.meta.network.ip}": [
-                          "{{{NEBULA_${lib.toUpper machine.name}_DOMAIN}}}:${builtins.toString port}"
-                        ]
-                      '') machinesWithDomain
-                    );
-                  in
-                  ''
-                    static_host_map: { ${staticHostMap} }
-                  '';
-              };
-            }
-          ];
-        };
+        toh.cryl.machine = [
+          {
+            nebula = {
+              generations = [
+                {
+                  generator = "copy";
+                  arguments = {
+                    from = "cluster/nebula-ca-public";
+                    to = "nebula-ca-public";
+                  };
+                }
+                {
+                  generator = "nebula-cert";
+                  arguments = {
+                    ca_private = "cluster/nebula-ca-private";
+                    ca_public = "cluster/nebula-ca-public";
+                    name = config.toh.meta.machine.name;
+                    ip = "${config.toh.meta.network.ip}/${builtins.toString config.toh.meta.network.subnet.bits}";
+                    private = "nebula-private";
+                    public = "nebula-public";
+                  };
+                }
+                {
+                  generator = "mustache";
+                  arguments = {
+                    name = "nebula-static-host-map";
+                    renew = true;
+                    listing = {
+                      type = "map";
+                      value = builtins.listToAttrs (
+                        builtins.map (machine: {
+                          name = "NEBULA_${lib.toUpper machine.name}_DOMAIN";
+                          value = "external/${machine.meta.domains.machineSecret}";
+                        }) machinesWithDomain
+                      );
+                    };
+                    template =
+                      let
+                        staticHostMap = builtins.concatStringsSep ", " (
+                          builtins.map (machine: ''
+                            "${machine.meta.network.ip}": [
+                              "{{{NEBULA_${lib.toUpper machine.name}_DOMAIN}}}:${builtins.toString port}"
+                            ]
+                          '') machinesWithDomain
+                        );
+                      in
+                      ''
+                        static_host_map: { ${staticHostMap} }
+                      '';
+                  };
+                }
+              ];
+            };
+          }
+        ];
 
-        toh.cryl.machine.nebula-ca = {
-          generations = [
-            {
-              generator = "copy";
-              arguments = {
-                from = "cluster/nebula-ca-public";
-                to = "nebula-ca-public";
-              };
-            }
-          ];
-        };
-
-        toh.cryl.cluster.nebula-ca = {
-          generations = [
-            {
-              generator = "nebula-ca";
-              arguments = {
-                name = "toh";
-                private = "nebula-ca-private";
-                public = "nebula-ca-public";
-              };
-            }
-          ];
-        };
+        toh.cryl.cluster = lib.mkBefore [
+          {
+            nebula = {
+              generations = [
+                {
+                  generator = "nebula-ca";
+                  arguments = {
+                    name = "toh";
+                    private = "nebula-ca-private";
+                    public = "nebula-ca-public";
+                  };
+                }
+              ];
+            };
+          }
+        ];
       };
     };
 }

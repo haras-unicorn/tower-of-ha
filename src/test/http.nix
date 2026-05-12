@@ -1,17 +1,26 @@
 { lib, tohLib, ... }:
 
 let
-  httpPort = 80;
-  httpsPort = 443;
-
   httpSubmodule = {
     options = {
       enable = lib.mkEnableOption "HTTP test server";
 
-      tls = lib.mkOption {
+      ssl = lib.mkOption {
         type = lib.types.bool;
         default = true;
         description = "Enable HTTPS for the HTTP server";
+      };
+
+      httpPort = lib.mkOption {
+        type = lib.types.port;
+        default = 80;
+        description = "HTTP port for this server";
+      };
+
+      httpsPort = lib.mkOption {
+        type = lib.types.port;
+        default = 443;
+        description = "HTTPS port for this server (only works with ssl = true)";
       };
 
       openFirewall = lib.mkOption {
@@ -114,26 +123,24 @@ in
       lib,
       config,
       pkgs,
+      tohLib,
       ...
     }:
     let
       cfg = config.toh.test.http;
 
-      stateDir = "http";
+      httpPort = cfg.httpPort;
+      httpsPort = cfg.httpsPort;
 
-      indentedHandler = builtins.concatStringsSep "\n" (
-        lib.imap0 (index: line: if index == 0 then line else "      ${line}") (
-          lib.splitString "\n" cfg.handler
-        )
-      );
+      stateDir = "http";
 
       script = pkgs.writeText "http.py" ''
         HTTP_PORT = ${builtins.toString httpPort}
 
-        ${lib.optionalString cfg.tls ''
+        ${lib.optionalString cfg.ssl ''
           HTTPS_PORT = ${builtins.toString httpsPort}
-          TLS_CERT = "${config.sops.secrets."http-public".path}"
-          TLS_KEY = "${config.sops.secrets."http-private".path}"
+          SSL_CERT = "${config.sops.secrets."http-public".path}"
+          SSL_KEY = "${config.sops.secrets."http-private".path}"
         ''}
 
         LOG_FILE = "/var/lib/${stateDir}/log.jsonl"
@@ -154,6 +161,8 @@ in
         import traceback
         import uuid
 
+        ThreadingTCPServer.allow_reuse_address = True
+
         store = {}
 
         def signal_handler(signum, frame):
@@ -161,7 +170,7 @@ in
 
           http_server.shutdown()
 
-          ${lib.optionalString cfg.tls ''
+          ${lib.optionalString cfg.ssl ''
             https_server.shutdown()
           ''}
 
@@ -187,7 +196,7 @@ in
             content_type = 'text/plain'
 
             try:
-              ${indentedHandler}
+              ${tohLib.strings.indentTail "      " cfg.handler}
             except Exception as e:
               print(f"[HTTP] ERROR: Handler raised exception {e}")
               traceback.print_exc()
@@ -236,6 +245,15 @@ in
           def do_PUT(self):
             self._do('PUT')
 
+          # Perform proper TLS close if the connection is SSL-wrapped
+          def finish(self):
+              if hasattr(self.request, 'unwrap'):
+                  try:
+                      self.request.unwrap()
+                  except Exception:
+                      pass
+              super().finish()
+
         try:
           signal.signal(signal.SIGTERM, signal_handler)
           signal.signal(signal.SIGINT, signal_handler)
@@ -251,20 +269,22 @@ in
           http_thread = threading.Thread(target=http_server.serve_forever, daemon=True)
           http_thread.start()
 
-          ${lib.optionalString cfg.tls ''
-            print(f"[HTTP] TLS cert: {TLS_CERT}")
-            print(f"[HTTP] TLS key: {TLS_KEY}")
-            print(f"[HTTP] HTTPS port: {HTTPS_PORT}")
+          ${lib.optionalString cfg.ssl (
+            tohLib.strings.indentTail "  " ''
+              print(f"[HTTP] SSL cert: {SSL_CERT}")
+              print(f"[HTTP] SSL key: {SSL_KEY}")
+              print(f"[HTTP] HTTPS port: {HTTPS_PORT}")
 
-            https_server = ThreadingTCPServer(("0.0.0.0", HTTPS_PORT), HTTPHandler)
+              https_server = ThreadingTCPServer(("0.0.0.0", HTTPS_PORT), HTTPHandler)
 
-            context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-            context.load_cert_chain(certfile=TLS_CERT, keyfile=TLS_KEY)
-            https_server.socket = context.wrap_socket(https_server.socket, server_side=True)
+              context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+              context.load_cert_chain(certfile=SSL_CERT, keyfile=SSL_KEY)
+              https_server.socket = context.wrap_socket(https_server.socket, server_side=True)
 
-            https_thread = threading.Thread(target=https_server.serve_forever, daemon=True)
-            https_thread.start()
-          ''}
+              https_thread = threading.Thread(target=https_server.serve_forever, daemon=True)
+              https_thread.start()
+            ''
+          )}
 
           print("[HTTP] Server started successfully")
 
@@ -308,7 +328,7 @@ in
           [
             httpPort
           ]
-          ++ lib.optional cfg.tls httpsPort
+          ++ lib.optional cfg.ssl httpsPort
         );
 
         users.users.http = {
@@ -319,46 +339,50 @@ in
 
         users.groups.http = { };
 
-        sops.secrets."http-public" = lib.mkIf cfg.tls {
+        sops.secrets."http-public" = lib.mkIf cfg.ssl {
           owner = "http";
           group = "http";
           mode = "0400";
         };
 
-        sops.secrets."http-private" = lib.mkIf cfg.tls {
+        sops.secrets."http-private" = lib.mkIf cfg.ssl {
           owner = "http";
           group = "http";
           mode = "0400";
         };
 
-        toh.cryl.machine.http = lib.mkIf cfg.tls {
-          generations = [
-            {
-              generator = "tls-leaf";
-              arguments = {
-                common_name = "toh";
-                organization = "ToH";
-                sans = [
-                  "localhost"
-                  "${config.toh.meta.network.ip}"
-                  "127.0.0.1"
-                ]
-                ++ cfg.domains;
-                config = "http-cert-config";
-                request_config = "http-cert-request-config";
-                private = "http-private";
-                request = "http-cert-request";
-                ca_private = "cluster/openssl-ca-private";
-                ca_public = "cluster/openssl-ca-public";
-                serial = "cluster/openssl-ca-serial";
-                public = "http-public";
-                renew = true;
-              };
-            }
-          ];
-        };
+        toh.cryl.machine = lib.mkIf cfg.ssl [
+          {
+            http = {
+              generations = [
+                {
+                  generator = "tls-leaf";
+                  arguments = {
+                    common_name = "toh";
+                    organization = "ToH";
+                    sans = [
+                      "localhost"
+                      "${config.toh.meta.network.ip}"
+                      "127.0.0.1"
+                    ]
+                    ++ cfg.domains;
+                    config = "http-cert-config";
+                    request_config = "http-cert-request-config";
+                    private = "http-private";
+                    request = "http-cert-request";
+                    ca_private = "cluster/openssl-ca-private";
+                    ca_public = "cluster/openssl-ca-public";
+                    serial = "cluster/openssl-ca-serial";
+                    public = "http-public";
+                    renew = true;
+                  };
+                }
+              ];
+            };
+          }
+        ];
 
-        toh.ssl.generateCa = lib.mkIf cfg.tls true;
+        toh.ssl.generateCa = lib.mkIf cfg.ssl true;
       };
     };
 }

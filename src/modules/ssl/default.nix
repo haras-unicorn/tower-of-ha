@@ -13,10 +13,7 @@
     {
       options.toh = {
         ssl = {
-          installCa = lib.mkEnableOption "ToH SSL CA installation" // {
-            default = true;
-          };
-
+          installCa = lib.mkEnableOption "ToH SSL CA installation";
           generateCa = lib.mkEnableOption "ToH SSL CA generation";
         };
       };
@@ -35,67 +32,61 @@
           };
         })
         (lib.mkIf cfg.generateCa {
-          toh.cryl.machine.openssl-ca = {
-            generations = [
-              {
-                generator = "copy";
-                arguments = {
-                  from = "cluster/openssl-ca-public";
-                  to = "openssl-ca-public";
-                };
-              }
-              {
-                generator = "copy";
-                arguments = {
-                  from = "cluster/openssl-ca-private";
-                  to = "openssl-ca-private";
-                };
-              }
-              {
-                generator = "copy";
-                arguments = {
-                  from = "cluster/openssl-ca-serial";
-                  to = "openssl-ca-serial";
-                };
-              }
-            ];
-          };
-
-          toh.cryl.cluster.openssl = {
-            generations = [
-              {
-                generator = "tls-root";
-                arguments = {
-                  common_name = "toh";
-                  organization = "ToH";
-                  config = "openssl-ca-config";
-                  private = "openssl-ca-private";
-                  public = "openssl-ca-public";
-                };
-              }
-              # TODO: with hex once in cryl
-              {
-                generator = "pin";
-                arguments = {
-                  name = "openssl-ca-serial-pin";
-                };
-              }
-              {
-                generator = "mustache";
-                arguments = {
-                  name = "openssl-ca-serial";
-                  renew = true;
-                  listing = {
-                    type = "map";
-                    value = {
-                      OPENSSL_CA_SERIAL_PIN = "openssl-ca-serial-pin";
+          toh.cryl.machine = [
+            {
+              openssl = {
+                generations = [
+                  {
+                    generator = "copy";
+                    arguments = {
+                      from = "cluster/openssl-ca-public";
+                      to = "openssl-ca-public";
                     };
-                  };
-                  template = "{{OPENSSL_CA_SERIAL_PIN}}\n";
-                };
-              }
-            ];
-          };
+                  }
+                ];
+              };
+            }
+          ];
+
+          toh.cryl.cluster = lib.mkBefore [
+            {
+              openssl = {
+                generations = [
+                  {
+                    generator = "tls-root";
+                    arguments = {
+                      common_name = "toh";
+                      organization = "ToH";
+                      config = "openssl-ca-config";
+                      private = "openssl-ca-private";
+                      public = "openssl-ca-public";
+                    };
+                  }
+                  # TODO: with hex once in cryl
+                  {
+                    generator = "pin";
+                    arguments = {
+                      name = "openssl-ca-serial-pin";
+                    };
+                  }
+                  {
+                    generator = "mustache";
+                    arguments = {
+                      name = "openssl-ca-serial";
+                      renew = true;
+                      listing = {
+                        type = "map";
+                        value = {
+                          OPENSSL_CA_SERIAL_PIN = "openssl-ca-serial-pin";
+                        };
+                      };
+                      template = "{{OPENSSL_CA_SERIAL_PIN}}\n";
+                    };
+                  }
+                ];
+              };
+            }
+          ];
         })
       ];
     };

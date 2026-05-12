@@ -1,4 +1,4 @@
-let source = "{{{TOH_SOURCE}}}" | from json
+let source = r#'{{{TOH_SOURCE}}}'# | from json
 
 def "toh flake" [] {
   if ($env.TOH_FLAKE | is-not-empty) {

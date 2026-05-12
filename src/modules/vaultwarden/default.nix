@@ -12,19 +12,15 @@
 
       port = 8222;
 
-      # TODO: remove mention of postgres here
-      package = pkgs.vaultwarden-postgresql.overrideAttrs (
-        final: prev: {
-          patches = (prev.patches or [ ]) ++ [
-            ./2020-08-02-025025-migration.patch
-            ./specify-integer-length-in-migrations.patch
-          ];
-        }
-      );
+      package = pkgs."vaultwarden-${config.toh.meta.database.protocol}";
 
       dataDir = "/var/lib/${config.systemd.services.vaultwarden.serviceConfig.StateDirectory}";
 
       vaultwardenUser = config.systemd.services.vaultwarden.serviceConfig.User;
+
+      envFilePath = "${dataDir}/toh.env";
+      owner = config.systemd.services.vaultwarden.serviceConfig.User;
+      group = config.systemd.services.vaultwarden.serviceConfig.Group;
     in
     {
       options.toh.services = {
@@ -36,87 +32,102 @@
       config = lib.mkIf cfg.enable {
         services.vaultwarden.enable = true;
         services.vaultwarden.package = package;
-        # TODO: remove mention of postgres here
-        services.vaultwarden.dbBackend = "postgresql";
+        services.vaultwarden.dbBackend = config.toh.meta.database.protocol;
         services.vaultwarden.config = {
-          ROCKET_ADDRESS = "0.0.0.0";
+          ROCKET_ADDRESS = config.toh.meta.network.ip;
           ROCKET_PORT = port;
           SIGNUPS_ALLOWED = true;
           ENABLE_WEBSOCKET = false;
           DOMAIN = "https://vaultwarden.${config.toh.meta.domains.service}";
         };
-        services.vaultwarden.environmentFile = config.sops.secrets."vaultwarden-env".path;
         systemd.services.vaultwarden.wantedBy = [ "toh-database-initialized.target" ];
         systemd.services.vaultwarden.requires = [ "toh-database-initialized.target" ];
         systemd.services.vaultwarden.after = [ "toh-database-initialized.target" ];
+        services.vaultwarden.environmentFile = envFilePath;
         systemd.services.vaultwarden.serviceConfig = {
           Restart = lib.mkForce "always";
+          ExecStartPre = ''
+            ${lib.getExe pkgs.tohPackages.mustacheRenderer} \
+              --variables '{
+                  "DATABASE_VAULTWARDEN_URL": "${config.toh.meta.database.instances.vaultwarden.url}",
+                  "ADMIN_TOKEN": "${config.sops.secrets."vaultwarden-admin-pass".path}"
+                }' \
+              --template 'DATABASE_URL="{{{DATABASE_VAULTWARDEN_URL}}}"
+            ADMIN_TOKEN="{{ADMIN_TOKEN}}"
+            ' \
+              --out "${envFilePath}" \
+              --chmod 400 \
+              --chown "${owner}:${group}"
+          '';
         };
 
         networking.firewall.allowedTCPPorts = [ port ];
 
-        toh.meta.services = [
-          {
-            name = "vaultwarden";
-            port = port;
-            health = "http:///alive";
-          }
-        ];
+        toh.meta.services.vaultwarden = {
+          endpoint.http.port = port;
+          health.endpoint.http.path = "alive";
+        };
 
-        sops.secrets."vaultwarden-env" = {
-          owner = vaultwardenUser;
-          group = vaultwardenUser;
+        sops.secrets."vaultwarden-admin-pass" = {
+          inherit owner group;
           mode = "0400";
         };
         sops.secrets."vaultwarden-auth-key" = {
+          inherit owner group;
           path = "${dataDir}/rsa_key.pem";
-          owner = vaultwardenUser;
-          group = vaultwardenUser;
           mode = "0400";
         };
 
-        toh.cryl.machine.vaultwarden = {
-          generations = [
-            {
-              generator = "copy";
-              arguments = {
-                from = "cluster/vaultwarden-admin-pass";
-                to = "vaultwarden-admin-pass";
-              };
-            }
-            {
-              generator = "copy";
-              arguments = {
-                from = "cluster/vaultwarden-auth-key";
-                to = "vaultwarden-auth-key";
-              };
-            }
-          ];
-        };
+        toh.cryl.machine = [
+          {
+            vaultwarden = {
+              generations = [
+                {
+                  generator = "copy";
+                  arguments = {
+                    from = "cluster/vaultwarden-admin-pass";
+                    to = "vaultwarden-admin-pass";
+                  };
+                }
+                {
+                  generator = "copy";
+                  arguments = {
+                    from = "cluster/vaultwarden-auth-key";
+                    to = "vaultwarden-auth-key";
+                  };
+                }
+              ];
+            };
+          }
+        ];
 
-        toh.cryl.cluster.vaultwarden = {
-          generations = [
-            {
-              generator = "script";
-              arguments = {
-                name = "vaultwarden-auth-key-script";
-                text = ''
-                  openssl genrsa -out vaultwarden-auth-key 4096
-                '';
-              };
-            }
-            {
-              generator = "key";
-              arguments = {
-                name = "vaultwarden-admin-pass";
-              };
-            }
-          ];
-        };
+        toh.cryl.cluster = [
+          {
+            vaultwarden = {
+              generations = [
+                {
+                  generator = "script";
+                  arguments = {
+                    name = "vaultwarden-auth-key-script";
+                    text = ''
+                      openssl genrsa -out vaultwarden-auth-key 4096
+                    '';
+                  };
+                }
+                {
+                  generator = "key";
+                  arguments = {
+                    name = "vaultwarden-admin-pass";
+                  };
+                }
+              ];
+            };
+          }
+        ];
 
         toh.meta.database.apps.vaultwarden = {
-          user = config.systemd.services.vaultwarden.serviceConfig.User;
-          group = config.systemd.services.vaultwarden.serviceConfig.User;
+          user = owner;
+          group = group;
           init.nushell.file = pkgs.tohPackages.renderMustacheTemplate {
             name = "vaultwarden-init";
             templateFile = ./init.nu;
@@ -128,26 +139,6 @@
               TOH_VAULTWARDEN_INIT_BASH = lib.getExe pkgs.bash;
             };
           };
-          secrets.generations = [
-            {
-              generator = "mustache";
-              arguments = {
-                name = "vaultwarden-env";
-                renew = true;
-                listing = {
-                  type = "map";
-                  value = {
-                    DATABASE_VAULTWARDEN_URL = config.toh.meta.database.instances.vaultwarden.urlSecret;
-                    ADMIN_TOKEN = "vaultwarden-admin-pass";
-                  };
-                };
-                template = ''
-                  DATABASE_URL="{{{DATABASE_VAULTWARDEN_URL}}}"
-                  ADMIN_TOKEN="{{ADMIN_TOKEN}}"
-                '';
-              };
-            }
-          ];
         };
       };
     };

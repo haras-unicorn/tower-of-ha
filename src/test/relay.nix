@@ -35,6 +35,8 @@
       config = lib.mkIf cfg.enable {
         name = "services-${cfg.name}-relay";
 
+        toh.test.network.enable = false;
+
         toh.test.dns.enable = true;
         toh.test.dns.zones = {
           ${controllerZone} = {
@@ -45,21 +47,24 @@
           };
         };
 
-        toh.test.cryl.cluster.relay = {
-          generations = [
-            {
-              generator = "text";
-              arguments = {
-                name = controllerDomainSecret;
-                text = controllerDomain;
-              };
-            }
-          ];
-        };
+        toh.test.cryl.cluster = [
+          {
+            relay = {
+              generations = [
+                {
+                  generator = "text";
+                  arguments = {
+                    name = controllerDomainSecret;
+                    text = controllerDomain;
+                  };
+                }
+              ];
+            };
+          }
+        ];
 
         nodes = {
           dns = {
-            toh.test.network.enable = false;
             virtualisation.vlans = [
               1
               2
@@ -79,8 +84,6 @@
           };
 
           relay = {
-            toh.test.network.enable = false;
-
             virtualisation.vlans = [
               1
               2
@@ -111,8 +114,6 @@
           };
 
           node1 = {
-            toh.test.network.enable = false;
-
             virtualisation.vlans = [ 1 ];
             networking.interfaces.eth1.ipv4.addresses = [
               {
@@ -130,8 +131,6 @@
           };
 
           node2 = {
-            toh.test.network.enable = false;
-
             virtualisation.vlans = [ 2 ];
             networking.interfaces.eth1.ipv4.addresses = [
               {

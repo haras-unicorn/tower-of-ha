@@ -1,4 +1,4 @@
-let cluster = "{{{TOH_CLUSTER}}}" | from json
+let cluster = r#'{{{TOH_CLUSTER}}}'# | from json
 
 def "main machine pass" [machine?: string] {
  toh machine pick --with-secrets $machine | get secrets."pass-priv"

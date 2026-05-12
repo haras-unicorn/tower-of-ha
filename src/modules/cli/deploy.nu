@@ -1,4 +1,4 @@
-let age_key_paths_per_machine = "{{{TOH_AGE_KEY_PATHS_PER_MACHINE}}}" | from json
+let age_key_paths_per_machine = r#'{{{TOH_AGE_KEY_PATHS_PER_MACHINE}}}'# | from json
 
 def "main deploy" [machine?: string] {
   let machine = toh machine pick --with-secrets $machine

@@ -7,7 +7,7 @@
 
 {
   toh.overlays.cli-toh = tohLib.cli.makeOverlay {
-    loadExtraTextFromDir = ./.;
+    extraTextDir = ./.;
     extraTextVariables = {
       TOH_VERSION = lib.trim (builtins.readFile "${self}/VERSION.txt");
     };

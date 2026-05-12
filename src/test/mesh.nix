@@ -58,6 +58,8 @@
       config = lib.mkIf cfg.enable {
         name = "services-${cfg.name}-mesh";
 
+        toh.test.network.enable = false;
+
         toh.test.dns.enable = true;
         toh.test.dns.zones = {
           ${controllerZone} = {
@@ -68,11 +70,8 @@
         nodes.dns =
           { lib, ... }:
           {
-            toh.test.network.enable = false;
-
             virtualisation.vlans = [ vlan ];
-            # NOTE: mkBefore because we want to override the default one
-            networking.interfaces.eth1.ipv4.addresses = lib.mkBefore [
+            networking.interfaces.eth1.ipv4.addresses = [
               {
                 address = dnsAddress;
                 prefixLength = 24;
@@ -83,17 +82,21 @@
             toh.meta.network.interface = "eth1";
           };
 
-        toh.test.cryl.cluster.mesh = {
-          generations = [
-            {
-              generator = "text";
-              arguments = {
-                name = controllerDomainSecret;
-                text = controllerDomain;
-              };
-            }
-          ];
-        };
+        toh.test.cryl.cluster = [
+          {
+            mesh = {
+              generations = [
+                {
+                  generator = "text";
+                  arguments = {
+                    name = controllerDomainSecret;
+                    text = controllerDomain;
+                  };
+                }
+              ];
+            };
+          }
+        ];
 
         toh.test.clusters.node.amount = amount;
         toh.test.clusters.node.module =
@@ -108,11 +111,8 @@
             meshAddress = "${subnetConfig.prefix}.${meshAddressNumberString}";
           in
           {
-            toh.test.network.enable = false;
-
             virtualisation.vlans = [ vlan ];
-            # NOTE: mkBefore because we want to override the default one
-            networking.interfaces.eth1.ipv4.addresses = lib.mkBefore [
+            networking.interfaces.eth1.ipv4.addresses = [
               {
                 inherit address;
                 prefixLength = 24;
