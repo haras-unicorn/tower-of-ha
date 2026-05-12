@@ -188,3 +188,5 @@ ignoreWords:
   - coredns
   - cacrt
   - etcdctl
+  - socat
+  - roundrobin
