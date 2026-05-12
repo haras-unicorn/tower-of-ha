@@ -10,6 +10,11 @@
       wantedBy = [ "multi-user.target" ];
     };
 
+    systemd.targets.toh-config-initialized = {
+      description = "ToH configuration store initialized";
+      wantedBy = [ "multi-user.target" ];
+    };
+
     systemd.targets.toh-database-initialized = {
       description = "ToH database initialized";
       wantedBy = [ "multi-user.target" ];

@@ -20,6 +20,16 @@
         "nss-lookup.target"
       ];
     };
+    systemd.targets.toh-config-initialized = {
+      requires = [
+        "network-online.target"
+        "nss-lookup.target"
+      ];
+      after = [
+        "network-online.target"
+        "nss-lookup.target"
+      ];
+    };
     systemd.targets.toh-database-initialized = {
       requires = [
         "network-online.target"

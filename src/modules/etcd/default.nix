@@ -1,0 +1,159 @@
+{
+  toh.lib.nixosModules.services-etcd =
+    {
+      lib,
+      tohLib,
+      config,
+      pkgs,
+      ...
+    }:
+    let
+      cfg = config.toh.services.etcd;
+
+      machines = tohLib.serviceMachines "etcd";
+
+      peerPort = 2380;
+      peerPortString = builtins.toString peerPort;
+      clientPort = 2379;
+      clientPortString = builtins.toString clientPort;
+
+      initialCluster = builtins.map (
+        machine:
+        machine.config.toh.meta.machine.name
+        + "=https://${machine.config.toh.meta.network.ip}"
+        + ":${peerPortString}"
+      ) machines;
+    in
+    {
+      options.toh.services = {
+        etcd = {
+          enable = lib.mkEnableOption "etcd";
+        };
+      };
+
+      config = lib.mkMerge [
+        (lib.mkIf ((builtins.length machines) < 3 && !((builtins.length machines) == 0)) {
+          warnings = [
+            ''
+              Etcd will not be highly available with less than 3 nodes
+              (odd number of nodes is recommended).
+            ''
+          ];
+        })
+        (lib.mkIf cfg.enable {
+          services.etcd = {
+            enable = true;
+            name = config.toh.meta.machine.name;
+            listenClientUrls = [
+              "https://${config.toh.meta.network.ip}:${clientPortString}"
+              "https://127.0.0.1:${clientPortString}"
+            ];
+            advertiseClientUrls = [ "https://${config.toh.meta.network.ip}:${clientPortString}" ];
+            listenPeerUrls = [ "https://${config.toh.meta.network.ip}:${peerPortString}" ];
+            initialCluster = initialCluster;
+            # NOTE: etcd is smart enough to know that it should try joining an existing cluster first
+            initialClusterState = "new";
+            initialAdvertisePeerUrls = [ "https://${config.toh.meta.network.ip}:${peerPortString}" ];
+            initialClusterToken = "toh";
+
+            certFile = config.sops.secrets."etcd-public".path;
+            keyFile = config.sops.secrets."etcd-private".path;
+            trustedCaFile = config.sops.secrets."etcd-ca-public".path;
+            peerCertFile = config.sops.secrets."etcd-public".path;
+            peerKeyFile = config.sops.secrets."etcd-private".path;
+            peerTrustedCaFile = config.sops.secrets."etcd-ca-public".path;
+          };
+
+          # Open ports for client and peer communication
+          networking.firewall.allowedTCPPorts = [
+            peerPort
+            clientPort
+          ];
+
+          systemd.services.etcd.wantedBy = [
+            "toh-network-online.target"
+            "toh-time-synchronized.target"
+          ];
+          systemd.services.etcd.after = [
+            "toh-network-online.target"
+            "toh-time-synchronized.target"
+          ];
+          systemd.services.etcd.requires = [
+            "toh-network-online.target"
+            "toh-time-synchronized.target"
+          ];
+
+          systemd.targets.toh-config-initialized = {
+            wantedBy = [ "etcd.service" ];
+            bindsTo = [ "etcd.service" ];
+            after = [ "etcd.service" ];
+          };
+
+          environment.systemPackages = [
+            pkgs.etcd
+          ];
+
+          programs.rust-motd.settings = {
+            service_status = {
+              etcd = "etcd";
+            };
+          };
+
+          toh.meta.services = [
+            {
+              name = "etcd";
+              port = clientPort;
+              tls = true;
+              health = "https:///health";
+            }
+          ];
+
+          sops.secrets."etcd-ca-public" = {
+            key = "openssl-ca-public";
+            owner = config.systemd.services.etcd.serviceConfig.User;
+            group = config.systemd.services.etcd.serviceConfig.User;
+            mode = "0644";
+          };
+          sops.secrets."etcd-public" = {
+            owner = config.systemd.services.etcd.serviceConfig.User;
+            group = config.systemd.services.etcd.serviceConfig.User;
+            mode = "0644";
+          };
+          sops.secrets."etcd-private" = {
+            owner = config.systemd.services.etcd.serviceConfig.User;
+            group = config.systemd.services.etcd.serviceConfig.User;
+            mode = "0400";
+          };
+
+          toh.cryl.machine.etcd = {
+            generations = [
+              {
+                generator = "tls-leaf";
+                arguments = {
+                  common_name = "toh";
+                  organization = "ToH";
+                  sans = [
+                    "etcd.${config.toh.meta.domains.service}"
+                    "localhost"
+                    "${config.toh.meta.network.ip}"
+                    "127.0.0.1"
+                  ];
+                  config = "etcd-cert-config";
+                  request_config = "etcd-cert-request-config";
+                  private = "etcd-private";
+                  request = "etcd-cert-request";
+                  ca_private = "cluster/openssl-ca-private";
+                  ca_public = "cluster/openssl-ca-public";
+                  serial = "cluster/openssl-ca-serial";
+                  public = "etcd-public";
+                  renew = true;
+                };
+              }
+            ];
+          };
+
+          toh.ssl.generateCa = true;
+        })
+      ];
+    };
+}
