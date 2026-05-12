@@ -9,19 +9,21 @@
       ...
     }:
     let
+      cfg = config.toh.services.cockroachdb;
+
       serviceCfg = config.services.cockroachdb;
 
       user = config.toh.meta.user.user;
 
       machineName = config.toh.meta.machine.name;
 
-      clientCerts = "${config.users.users.${user}.home}/.cockroach-certs";
+      clientCerts =
+        builtins.replaceStrings [ "~" ] [ config.users.users.${user}.home ]
+          tohLib.cockroachdb.certs.user;
 
       clientEnv = "${clientCerts}/user.env";
 
       machines = tohLib.serviceMachines "cockroachdb";
-
-      anyMachines = tohLib.anyServiceMachines "cockroachdb";
 
       cockroachHost =
         if config.toh.cockroachdb.enable then
@@ -49,31 +51,34 @@
             ) machines
           );
     in
-    lib.mkMerge [
-      {
-        toh.overlays.cli-cockroachdb-user = (
-          tohLib.cli.makeOverlay {
-            enable = anyMachines;
-            extraRuntimeInputs = pkgs: [
-              pkgs.cockroachdb
-              pkgs.vault
-            ];
-            loadExtraTextFromFile = ./user.nu;
-            extraTextVariables = {
-              TOH_COCKROACHDB_USER_ENV_PATH = clientEnv;
-            };
-          }
-        );
-      }
-
-      (lib.mkIf anyMachines {
-        sops.secrets."cockroach-${user}-ca-public" = {
-          key = "cockroach-ca-public";
-          path = "${clientCerts}/ca.crt";
-          owner = user;
-          group = user;
-          mode = "0644";
+    {
+      options.toh.services = {
+        cockroachdb = {
+          connectUser = lib.mkEnableOption "CockroachDB user connection" // {
+            default = tohLib.anyServiceMachines "cockroachdb";
+          };
         };
+      };
+
+      config = lib.mkIf cfg.connectUser {
+        # TODO: fix recursion here
+        # toh.overlays.cli-cockroachdb-user = (
+        #   tohLib.cli.makeOverlay {
+        #     extraRuntimeInputs = pkgs: [
+        #       pkgs.cockroachdb
+        #       pkgs.vault
+        #     ];
+        #     loadExtraTextFromFile = ./user.nu;
+        #     extraTextVariables = {
+        #       TOH_COCKROACHDB_USER_ENV_PATH = clientEnv;
+        #     };
+        #   }
+        # );
+
+        services.cockroachdb.init.sql.files = lib.mkBefore [
+          config.sops.secrets."cockroach-${user}-init".path
+        ];
+
         sops.secrets."cockroach-${machineName}-${user}-public" = {
           path = "${clientCerts}/client.${user}.crt";
           owner = user;
@@ -92,26 +97,26 @@
           group = user;
           mode = "0400";
         };
-
-        toh.cryl.machine.cockroachdb-user-pass = {
-          imports = [
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/cockroach-${user}-pass";
-                to = "cockroach-${user}-pass";
-              };
-            }
-          ];
+        sops.secrets."cockroach-${user}-init" = {
+          owner = user;
+          group = user;
+          mode = "0400";
         };
 
         toh.cryl.machine.cockroachdb-user = {
           generations = [
             {
+              generator = "copy";
+              arguments = {
+                from = "cluster/cockroach-${user}-pass";
+                to = "cockroach-${user}-pass";
+              };
+            }
+            {
               generator = "cockroach-client-cert";
               arguments = {
-                ca_private = "cockroach-ca-private";
-                ca_public = "cockroach-ca-public";
+                ca_private = "cluster/cockroach-ca-private";
+                ca_public = "cluster/cockroach-ca-public";
                 private = "cockroach-${machineName}-${user}-private";
                 public = "cockroach-${machineName}-${user}-public";
                 user = user;
@@ -126,7 +131,7 @@
                 listing = {
                   type = "map";
                   value = {
-                    COCKROACH_USER_PASS = "cockroach-${user}-pass";
+                    COCKROACH_USER_PASS = "cluster/cockroach-${user}-pass";
                   };
                 };
                 template =
@@ -151,23 +156,34 @@
                   '';
               };
             }
-          ];
-        };
+            {
+              generator = "mustache";
+              arguments = {
+                name = "cockroach-${user}-init";
+                renew = true;
+                listing = {
+                  type = "map";
+                  value = {
+                    COCKROACH_USER_PASS = "cluster/cockroach-${user}-pass";
+                  };
+                };
+                template = ''
+                  create user if not exists ${user} password '{{COCKROACH_USER_PASS}}';
 
-        toh.cryl.machine.cockroachdb-ca = {
-          imports = [
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/cockroach-ca-private";
-                to = "cockroach-ca-private";
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/cockroach-ca-public";
-                to = "cockroach-ca-public";
+                  create database if not exists ${user};
+
+                  use ${user};
+
+                  alter default privileges for all roles in schema public grant all on tables to ${user};
+                  alter default privileges for all roles in schema public grant all on sequences to ${user};
+                  alter default privileges for all roles in schema public grant all on functions to ${user};
+
+                  grant all on all tables in schema public to ${user};
+                  grant all on all sequences in schema public to ${user};
+                  grant all on all functions in schema public to ${user};
+
+                  reset database;
+                '';
               };
             }
           ];
@@ -175,32 +191,6 @@
 
         # FIXME: this only runs after cockroachdb-ca because it is alphabetically ordered after it
         toh.cryl.cluster.cockroachdb-user = {
-          imports = [
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/cockroach-${user}-pass";
-                to = "cockroach-${user}-pass";
-                allow_fail = true;
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/cockroach-${user}-private";
-                to = "cockroach-${user}-private";
-                allow_fail = true;
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/cockroach-${user}-public";
-                to = "cockroach-${user}-public";
-                allow_fail = true;
-              };
-            }
-          ];
           generations = [
             {
               generator = "key";
@@ -220,30 +210,10 @@
               };
             }
           ];
-          exports = [
-            {
-              exporter = "copy";
-              arguments = {
-                from = "cockroach-${user}-pass";
-                to = "${tohLib.secrets.directories.cluster}/cockroach-${user}-pass";
-              };
-            }
-            {
-              exporter = "copy";
-              arguments = {
-                from = "cockroach-${user}-private";
-                to = "${tohLib.secrets.directories.cluster}/cockroach-${user}-private";
-              };
-            }
-            {
-              exporter = "copy";
-              arguments = {
-                from = "cockroach-${user}-public";
-                to = "${tohLib.secrets.directories.cluster}/cockroach-${user}-public";
-              };
-            }
-          ];
         };
-      })
-    ];
+
+        toh.services.cockroachdb.installCa = true;
+        toh.services.cockroachdb.createUserGroup = true;
+      };
+    };
 }

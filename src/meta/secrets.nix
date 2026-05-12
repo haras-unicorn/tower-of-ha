@@ -1,29 +1,43 @@
-{ inputs, ... }:
-
 {
   toh.lib.nixosModules.meta-secrets =
-    { lib, ... }:
+    { lib, tohLib, ... }:
     {
-      options.toh = {
-        cryl = {
-          cluster = lib.mkOption {
-            type = lib.types.attrsOf (lib.types.submodule inputs.cryl.lib.submodules.specification);
-            default = { };
-            description = ''
-              Specifications in attrs for uniqueness
-              that will be collected into a shared specification
-              for the cluster
-            '';
+      options.toh.meta = {
+        secrets = {
+          directories = {
+            cluster = lib.mkOption {
+              type = lib.types.str;
+              default = tohLib.secrets.directories.cluster;
+              description = "Secrets cluster directory";
+            };
+            machines = lib.mkOption {
+              type = lib.types.str;
+              default = tohLib.secrets.directories.machines;
+              description = "Secrets machines directory";
+            };
+            external = lib.mkOption {
+              type = lib.types.str;
+              default = tohLib.secrets.directories.external;
+              description = "Secrets external directory";
+            };
           };
 
-          machine = lib.mkOption {
-            type = lib.types.attrsOf (lib.types.submodule inputs.cryl.lib.submodules.specification);
-            default = { };
-            description = ''
-              Specifications in attrs for uniqueness
-              that will be collected into a shared specification
-              for the machine
-            '';
+          keys = {
+            cluster = lib.mkOption {
+              type = lib.types.str;
+              default = tohLib.secrets.keys.cluster;
+              description = "Secrets cluster key";
+            };
+            machines = lib.mkOption {
+              type = lib.types.str;
+              default = tohLib.secrets.keys.machines;
+              description = "Secrets machines key";
+            };
+            external = lib.mkOption {
+              type = lib.types.str;
+              default = tohLib.secrets.keys.external;
+              description = "Secrets external key";
+            };
           };
         };
       };

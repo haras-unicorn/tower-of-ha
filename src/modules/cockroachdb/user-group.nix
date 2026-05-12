@@ -7,14 +7,22 @@
       ...
     }:
     let
-      anyMachines = tohLib.anyServiceMachines "cockroachdb";
+      cfg = config.toh.services.cockroachdb;
     in
     {
-      users.groups.${config.services.cockroachdb.group} = lib.mkIf anyMachines { };
+      options.toh.services = {
+        cockroachdb = {
+          createUserGroup = lib.mkEnableOption "CockroachDB user and group";
+        };
+      };
 
-      users.users.${config.services.cockroachdb.user} = lib.mkIf anyMachines {
-        group = config.services.cockroachdb.group;
-        isSystemUser = true;
+      config = lib.mkIf cfg.createUserGroup {
+        users.groups.${config.services.cockroachdb.group} = { };
+
+        users.users.${config.services.cockroachdb.user} = {
+          group = config.services.cockroachdb.group;
+          isSystemUser = true;
+        };
       };
     };
 }

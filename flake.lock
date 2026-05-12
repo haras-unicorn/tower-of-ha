@@ -19,11 +19,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1776944474,
-        "narHash": "sha256-yoVEOiAVbwd6r38l1o+8OHCSgaly9L4q+KClT3P92a8=",
+        "lastModified": 1778569139,
+        "narHash": "sha256-4/GCVEiaxA9n4oFy3sTu/BYtGLAguHC8MXEF4M8nwaA=",
         "owner": "haras-unicorn",
         "repo": "cryl",
-        "rev": "d1591777f1dbc387fb1e94647948d47928b88701",
+        "rev": "51bd6b93f940110bfb67cd33696cf3763e9c1ed0",
         "type": "github"
       },
       "original": {

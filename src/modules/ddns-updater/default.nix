@@ -46,6 +46,17 @@
       };
 
       config = lib.mkIf cfg.enable {
+        assertions = [
+          {
+            assertion = config.toh.meta.domains.machineSecret != null;
+            message = ''
+              ToH ddns-updater requires a domain name for the configured machine.
+              Please set the required domain name secret for this machine
+              with `toh.meta.domains.machineSecret`.
+            '';
+          }
+        ];
+
         services.ddns-updater.enable = true;
         services.ddns-updater.environment = {
           CONFIG_FILEPATH = config.sops.secrets."ddns-updater-settings".path;
@@ -128,22 +139,6 @@
         };
 
         toh.cryl.machine.ddns-updater-duckdns = lib.mkIf cfg.duckdns.enable {
-          imports = [
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.external}/${config.toh.meta.domains.machineSecret}";
-                to = "ddns-updater-duckdns-domain";
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.external}/${cfg.duckdns.tokenSecret}";
-                to = "ddns-updater-duckdns-token";
-              };
-            }
-          ];
           generations = [
             {
               generator = "mustache";
@@ -153,8 +148,8 @@
                 listing = {
                   type = "map";
                   value = {
-                    DDNS_UPDATER_DUCKDNS_DOMAIN = "ddns-updater-duckdns-domain";
-                    DDNS_UPDATER_DUCKDNS_TOKEN = "ddns-updater-duckdns-token";
+                    DDNS_UPDATER_DUCKDNS_DOMAIN = "external/${config.toh.meta.domains.machineSecret}";
+                    DDNS_UPDATER_DUCKDNS_TOKEN = "external/${cfg.duckdns.tokenSecret}";
                   };
                 };
                 template = ''
@@ -171,29 +166,6 @@
         };
 
         toh.cryl.machine.ddns-updater-cloudflare = lib.mkIf cfg.cloudflare.enable {
-          imports = [
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.external}/${config.toh.meta.domains.machineSecret}";
-                to = "ddns-updater-cloudflare-domain";
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.external}/${cfg.cloudflare.zoneIdentifierSecret}";
-                to = "ddns-updater-cloudflare-zone-identifier";
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.external}/${cfg.cloudflare.tokenSecret}";
-                to = "ddns-updater-cloudflare-token";
-              };
-            }
-          ];
           generations = [
             {
               generator = "mustache";
@@ -203,9 +175,9 @@
                 listing = {
                   type = "map";
                   value = {
-                    DDNS_UPDATER_CLOUDFLARE_DOMAIN = "ddns-updater-cloudflare-domain";
-                    DDNS_UPDATER_CLOUDFLARE_TOKEN = "ddns-updater-cloudflare-token";
-                    DDNS_UPDATER_CLOUDFLARE_ZONE_IDENTIFIER = "ddns-updater-cloudflare-zone-identifier";
+                    DDNS_UPDATER_CLOUDFLARE_DOMAIN = "external/${config.toh.meta.domains.machineSecret}";
+                    DDNS_UPDATER_CLOUDFLARE_TOKEN = "external/${cfg.cloudflare.tokenSecret}";
+                    DDNS_UPDATER_CLOUDFLARE_ZONE_IDENTIFIER = "external/${cfg.cloudflare.zoneIdentifierSecret}";
                   };
                 };
                 template = ''

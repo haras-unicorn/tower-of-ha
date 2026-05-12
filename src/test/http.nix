@@ -241,7 +241,7 @@
                   '';
                 in
                 {
-                  toh.pki.enable = true;
+                  toh.ssl.installCa = true;
 
                   systemd.services.http = {
                     description = "Test HTTP server";
@@ -283,32 +283,6 @@
                     mode = "0400";
                   };
 
-                  toh.cryl.machine.openssl-ca = {
-                    imports = [
-                      {
-                        importer = "copy";
-                        arguments = {
-                          from = "${tohLib.secrets.directories.cluster}/openssl-ca-public";
-                          to = "openssl-ca-public";
-                        };
-                      }
-                      {
-                        importer = "copy";
-                        arguments = {
-                          from = "${tohLib.secrets.directories.cluster}/openssl-ca-private";
-                          to = "openssl-ca-private";
-                        };
-                      }
-                      {
-                        importer = "copy";
-                        arguments = {
-                          from = "${tohLib.secrets.directories.cluster}/openssl-ca-serial";
-                          to = "openssl-ca-serial";
-                        };
-                      }
-                    ];
-                  };
-
                   toh.cryl.machine.http = {
                     generations = [
                       {
@@ -326,9 +300,9 @@
                           request_config = "http-cert-request-config";
                           private = "http-private";
                           request = "http-cert-request";
-                          ca_private = "openssl-ca-private";
-                          ca_public = "openssl-ca-public";
-                          serial = "openssl-ca-serial";
+                          ca_private = "cluster/openssl-ca-private";
+                          ca_public = "cluster/openssl-ca-public";
+                          serial = "cluster/openssl-ca-serial";
                           public = "http-public";
                           renew = true;
                         };

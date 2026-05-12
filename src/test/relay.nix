@@ -55,15 +55,6 @@
               };
             }
           ];
-          exports = [
-            {
-              exporter = "copy";
-              arguments = {
-                from = controllerDomainSecret;
-                to = "${tohLib.secrets.directories.external}/${controllerDomainSecret}";
-              };
-            }
-          ];
         };
 
         nodes = {

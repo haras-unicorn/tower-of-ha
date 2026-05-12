@@ -26,7 +26,7 @@
               )
             );
             default = { };
-            description = "Local DNS zones to serve as local-data entries";
+            description = "Local DNS zones to serve as static records";
             example = {
               "test.local" = {
                 "test.local" = "192.168.1.100";
@@ -40,47 +40,47 @@
       config = lib.mkIf testConfig.toh.test.dns.enable {
         defaults = (
           { config, nodes, ... }:
-          lib.mkIf (config.toh.meta.machine.name != "dns" && config.toh.test.network.enable) {
-            networking.nameservers = lib.mkForce [ nodes.dns.toh.meta.network.ip ];
-          }
+          lib.mkIf (config.toh.meta.machine.name != "dns" && config.toh.test.network.enable) (
+            lib.mkMerge [
+              (lib.mkIf config.toh.services.coredns.enable {
+                toh.services.coredns.forwarders = lib.mkForce [ nodes.dns.toh.meta.network.ip ];
+              })
+              (lib.mkIf (!config.toh.services.coredns.enable) {
+                networking.nameservers = lib.mkForce [ nodes.dns.toh.meta.network.ip ];
+              })
+            ]
+          )
         );
 
         toh.test.commands.prefix = lib.mkBefore ''
-          dns.wait_for_unit("unbound.service")
+          dns.wait_for_unit("coredns.service")
         '';
 
         nodes.dns =
           { config, ... }:
           {
-            services.unbound = {
+            services.coredns = {
               enable = true;
-              settings = {
-                server = lib.mkMerge [
-                  {
-                    interface = [ "0.0.0.0" ];
-                    port = port;
-                    access-control = [
-                      "192.168.0.0/16 allow"
-                      "${config.toh.meta.network.subnet.ip}/${builtins.toString config.toh.meta.network.subnet.bits} allow"
-                    ];
-                  }
-                  (lib.mkIf (testConfig.toh.test.dns.zones != { }) {
-                    "local-zone" = lib.mapAttrsToList (name: _: "${name} static") testConfig.toh.test.dns.zones;
-                    "local-data" = lib.flatten (
-                      lib.mapAttrsToList (
-                        _: records:
-                        lib.mapAttrsToList (
-                          name: ips:
-                          let
-                            ipList = if builtins.isList ips then ips else [ ips ];
-                          in
-                          builtins.map (ip: "\"${name}. A ${ip}\"") ipList
-                        ) records
-                      ) testConfig.toh.test.dns.zones
-                    );
-                  })
-                ];
-              };
+              config =
+                let
+                  zoneBlocks = lib.mapAttrsToList (zone: records: ''
+                    ${zone} {
+                      hosts {
+                        ${lib.concatStringsSep "\n" (
+                          lib.mapAttrsToList (
+                            name: ips:
+                            let
+                              ipList = if builtins.isList ips then ips else [ ips ];
+                            in
+                            lib.concatMapStrings (ip: "${ip} ${name}") ipList
+                          ) records
+                        )}
+                        fallthrough
+                      }
+                    }
+                  '') testConfig.toh.test.dns.zones;
+                in
+                lib.concatStringsSep "\n" zoneBlocks;
             };
 
             networking.firewall.allowedUDPPorts = [ port ];

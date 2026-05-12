@@ -25,10 +25,6 @@
         services.traefik.enable = true;
         services.traefik.group = "traefik";
 
-        systemd.services.traefik.serviceConfig = {
-          Restart = lib.mkForce "always";
-        };
-
         services.traefik.dynamicConfigOptions = {
           tls = {
             certificates = [
@@ -120,13 +116,9 @@
           };
         };
 
-        toh.meta.services = [
-          {
-            name = "traefik";
-            port = httpsPort;
-            health = "tcp://";
-          }
-        ];
+        systemd.services.traefik.serviceConfig = {
+          Restart = lib.mkForce "always";
+        };
 
         networking.firewall.allowedTCPPorts = [
           httpsPort
@@ -137,6 +129,14 @@
             Traefik = "traefik";
           };
         };
+
+        toh.meta.services = [
+          {
+            name = "traefik";
+            port = httpsPort;
+            health = "tcp://";
+          }
+        ];
 
         sops.secrets."traefik-ca-public" = {
           key = "openssl-ca-public";
@@ -172,9 +172,9 @@
                 request_config = "traefik-cert-request-config";
                 private = "traefik-private";
                 request = "traefik-cert-request";
-                ca_private = "openssl-ca-private";
-                ca_public = "openssl-ca-public";
-                serial = "openssl-ca-serial";
+                ca_private = "cluster/openssl-ca-private";
+                ca_public = "cluster/openssl-ca-public";
+                serial = "cluster/openssl-ca-serial";
                 public = "traefik-public";
                 renew = true;
               };
@@ -182,31 +182,7 @@
           ];
         };
 
-        toh.cryl.machine.openssl-ca = {
-          imports = [
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/openssl-ca-public";
-                to = "openssl-ca-public";
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/openssl-ca-private";
-                to = "openssl-ca-private";
-              };
-            }
-            {
-              importer = "copy";
-              arguments = {
-                from = "${tohLib.secrets.directories.cluster}/openssl-ca-serial";
-                to = "openssl-ca-serial";
-              };
-            }
-          ];
-        };
+        toh.ssl.generateCa = true;
       };
     };
 }

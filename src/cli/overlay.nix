@@ -1,10 +1,15 @@
-{ self, tohLib, ... }:
+{
+  self,
+  tohLib,
+  lib,
+  ...
+}:
 
 {
   toh.overlays.cli-toh = tohLib.cli.makeOverlay {
     loadExtraTextFromDir = ./.;
     extraTextVariables = {
-      TOH_VERSION = builtins.readFile "${self}/VERSION.txt";
+      TOH_VERSION = lib.trim (builtins.readFile "${self}/VERSION.txt");
     };
   };
 }

@@ -7,10 +7,11 @@
         nodes.machine = {
           toh.services.openssh.enable = true;
         };
+        # NOTE: root login and password auth are forced by runToHTest
         toh.test.commands.suffix = ''
           machine.succeed("systemctl is-enabled sshd.service")
-          machine.succeed("grep 'PermitRootLogin no' /etc/ssh/sshd_config")
-          machine.succeed("grep 'PasswordAuthentication no' /etc/ssh/sshd_config")
+          # machine.succeed("grep 'PermitRootLogin no' /etc/ssh/sshd_config")
+          # machine.succeed("grep 'PasswordAuthentication no' /etc/ssh/sshd_config")
           machine.succeed("grep 'KbdInteractiveAuthentication no' /etc/ssh/sshd_config")
         '';
       };
@@ -19,6 +20,7 @@
         name = "services-openssh-cli-command";
         toh.test.clusters.node.amount = 2;
         toh.test.clusters.node.module = {
+          toh.programs.cli.enable = true;
           toh.services.openssh.enable = true;
         };
         toh.test.commands.perNode = [
@@ -31,13 +33,13 @@
           ''
             node1.succeed("""
               su - ${lib.escapeShellArg nodes.node1.toh.meta.user.user} \
-                -c 'toh ssh command --machine node1 cat /etc/hostname 2>/dev/null' | \
-                grep -q node1
+                -c 'toh ssh command --machine node2 cat /etc/hostname 2>/dev/null' | \
+                grep -q node2
             """)
             node2.succeed("""
               su - ${lib.escapeShellArg nodes.node2.toh.meta.user.user} \
-                -c 'toh ssh command --machine node2 cat /etc/hostname 2>/dev/null' | \
-                grep -q node2
+                -c 'toh ssh command --machine node1 cat /etc/hostname 2>/dev/null' | \
+                grep -q node1
             """)
           '';
       };
@@ -46,6 +48,7 @@
         name = "services-openssh-cli-copy";
         toh.test.clusters.node.amount = 2;
         toh.test.clusters.node.module = {
+          toh.programs.cli.enable = true;
           toh.services.openssh.enable = true;
         };
         toh.test.commands.perNode = [

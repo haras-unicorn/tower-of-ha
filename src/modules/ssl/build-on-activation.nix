@@ -1,5 +1,5 @@
 {
-  toh.lib.nixosModules.pki-build-on-activation =
+  toh.lib.nixosModules.ssl-build-on-activation =
     {
       config,
       lib,

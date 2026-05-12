@@ -18,12 +18,11 @@
       };
 
       config = lib.mkIf config.toh.test.ntp.enable {
-        defaults = lib.mkIf config.toh.test.network.enable (
+        defaults =
           { config, nodes, ... }:
-          lib.mkIf (config.toh.meta.machine.name != "ntp") {
+          lib.mkIf (config.toh.meta.machine.name != "ntp" && config.toh.test.network.enable) {
             networking.timeServers = lib.mkForce [ nodes.ntp.toh.meta.network.ip ];
-          }
-        );
+          };
 
         toh.test.commands.prefix = lib.mkBefore ''
           ntp.wait_for_unit("chronyd.service")

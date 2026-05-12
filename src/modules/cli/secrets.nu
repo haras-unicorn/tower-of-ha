@@ -1,4 +1,4 @@
-let secrets = "{{{TOH_LIB_SECRETS}}}" | from json
+let secrets = "{{{TOH_SECRETS}}}" | from json
 
 def "toh secrets machines" [] {
   if ($secrets.directories.machines | path exists) {
@@ -27,7 +27,7 @@ def "toh secrets machines" [] {
 }
 
 def "toh secrets machine" [name: string] {
-  if ($secrets.directories.machines | path exists) {
+  if ([ $secrets.directories.machines $name ] | path join | path exists) {
     ls ([ $secrets.directories.machines $name ] | path join)
       | each {
           {

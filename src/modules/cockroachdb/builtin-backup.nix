@@ -1,5 +1,3 @@
-{ tohLib, ... }:
-
 {
   toh.lib.nixosModules.services-cockroachdb-builtin-backup =
     {
@@ -15,12 +13,29 @@
     {
       options.toh.services = {
         cockroachdb = {
-          enableBuiltinBackup = lib.mkEnableOption "CockroachDB automatic backup";
+          builtinBackup = {
+            enable = lib.mkEnableOption "CockroachDB automatic backup";
+
+            s3EndpointSecret = lib.mkOption {
+              type = lib.types.str;
+              description = "S3 endpoint secret for CockroachDB builtin backup endpoint";
+            };
+
+            s3AccessKeyIdSecret = lib.mkOption {
+              type = lib.types.str;
+              description = "S3 access key id secret for CockroachDB builtin backup endpoint";
+            };
+
+            s3SecretAccessKeySecret = lib.mkOption {
+              type = lib.types.str;
+              description = "S3 secret access key secret for CockroachDB builtin backup endpoint";
+            };
+          };
         };
       };
 
       config = lib.mkMerge [
-        (lib.mkIf (cfg.enableBuiltinBackup && !cfg.enable) {
+        (lib.mkIf (!cfg.enable && cfg.builtinBackup.enable) {
           warnings = [
             ''
               ToH CockroachDB builtin backup enabled but CockroachDB disabled.
@@ -29,60 +44,29 @@
             ''
           ];
         })
-        (lib.mkIf (cfg.enable && cfg.enableBuiltinBackup) {
-          services.cockroachdb.init.sql.files = [ config.sops.secrets."cockroach-backup-init".path ];
+        (lib.mkIf (cfg.enable && cfg.builtinBackup.enable) {
+          services.cockroachdb.init.sql.files = [ config.sops.secrets."cockroach-builtin-backup-init".path ];
 
-          sops.secrets."cockroach-backup-init" = {
+          sops.secrets."cockroach-builtin-backup-init" = {
             owner = config.services.cockroachdb.user;
             group = config.services.cockroachdb.group;
             mode = "0400";
           };
 
           toh.cryl.machine.cockroachdb-builtin-backup = {
-            imports = [
-              {
-                importer = "copy";
-                arguments = {
-                  from = "${tohLib.secrets.directories.cluster}/cockroach-backup-pass";
-                  to = "cockroach-backup-pass";
-                };
-              }
-              {
-                importer = "copy";
-                arguments = {
-                  from = "${tohLib.secrets.directories.cluster}/cloudflare-r2-cockroachdb-endpoint";
-                  to = "cloudflare-r2-cockroachdb-endpoint";
-                };
-              }
-              {
-                importer = "copy";
-                arguments = {
-                  from = "${tohLib.secrets.directories.cluster}/cloudflare-r2-cockroachdb-access-key-id";
-                  to = "cloudflare-r2-cockroachdb-access-key-id";
-                };
-              }
-              {
-                importer = "copy";
-                arguments = {
-                  from = "${tohLib.secrets.directories.cluster}/cloudflare-r2-cockroachdb-secret-access-key";
-                  to = "cloudflare-r2-cockroachdb-secret-access-key";
-                };
-              }
-            ];
             generations = [
               {
                 generator = "mustache";
                 arguments = {
-                  name = "cockroach-backup-init";
+                  name = "cockroach-builtin-backup-init";
                   renew = true;
                   listing = {
                     type = "map";
                     value = {
-                      COCKROACH_BACKUP_PASS = "cockroach-backup-pass";
-
-                      CLOUDFLARE_R2_COCKROACHDB_ENDPOINT = "cloudflare-r2-cockroachdb-endpoint";
-                      CLOUDFLARE_R2_COCKROACHDB_ACCESS_KEY_ID = "cloudflare-r2-cockroachdb-access-key-id";
-                      CLOUDFLARE_R2_COCKROACHDB_SECRET_ACCESS_KEY = "cloudflare-r2-cockroachdb-secret-access-key";
+                      S3_ENDPOINT = "external/${cfg.builtinBackup.s3EndpointSecret}";
+                      S3_ACCESS_KEY_ID = "external/${cfg.builtinBackup.s3AccessKeyIdSecret}";
+                      S3_SECRET_ACCESS_KEY = "external/${cfg.builtinBackup.s3SecretAccessKeySecret}";
+                      COCKROACH_BACKUP_PASS = "cluster/cockroach-backup-pass";
                     };
                   };
                   template =
@@ -90,9 +74,9 @@
                       backupConnectionStringTemplate =
                         "s3://cockroachdb/v1"
                         + "?AWS_REGION=auto"
-                        + "&AWS_ENDPOINT={{CLOUDFLARE_R2_COCKROACHDB_ENDPOINT}}"
-                        + "&AWS_ACCESS_KEY_ID={{CLOUDFLARE_R2_COCKROACHDB_ACCESS_KEY_ID}}"
-                        + "&AWS_SECRET_ACCESS_KEY={{CLOUDFLARE_R2_COCKROACHDB_SECRET_ACCESS_KEY}}";
+                        + "&AWS_ENDPOINT={{S3_ENDPOINT}}"
+                        + "&AWS_ACCESS_KEY_ID={{S3_ACCESS_KEY_ID}}"
+                        + "&AWS_SECRET_ACCESS_KEY={{S3_SECRET_ACCESS_KEY}}";
                     in
                     ''
                       create user if not exists backup password '{{COCKROACH_BACKUP_PASS}}';
@@ -113,50 +97,12 @@
             ];
           };
 
-          toh.cryl.machine.cockroachdb-ca = {
-            imports = [
-              {
-                importer = "copy";
-                arguments = {
-                  from = "${tohLib.secrets.directories.cluster}/cockroach-ca-private";
-                  to = "cockroach-ca-private";
-                };
-              }
-              {
-                importer = "copy";
-                arguments = {
-                  from = "${tohLib.secrets.directories.cluster}/cockroach-ca-public";
-                  to = "cockroach-ca-public";
-                };
-              }
-            ];
-          };
-
           toh.cryl.cluster.cockroachdb-builtin-backup = {
-            imports = [
-              {
-                importer = "copy";
-                arguments = {
-                  from = "${tohLib.secrets.directories.cluster}/cockroach-backup-pass";
-                  to = "cockroach-backup-pass";
-                  allow_fail = true;
-                };
-              }
-            ];
             generations = [
               {
                 generator = "key";
                 arguments = {
                   name = "cockroach-backup-pass";
-                };
-              }
-            ];
-            exports = [
-              {
-                exporter = "copy";
-                arguments = {
-                  from = "cockroach-backup-pass";
-                  to = "${tohLib.secrets.directories.cluster}/cockroach-backup-pass";
                 };
               }
             ];

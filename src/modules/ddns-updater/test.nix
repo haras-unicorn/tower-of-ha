@@ -62,21 +62,10 @@
                     };
                   }
                 ) (lib.attrsToList secrets);
-                exports = builtins.map (
-                  { name, value }:
-                  {
-                    exporter = "copy";
-                    arguments = {
-                      from = name;
-                      to = "${tohLib.secrets.directories.external}/${name}";
-                    };
-
-                  }
-                ) (lib.attrsToList secrets);
               };
 
               nodes.machine = {
-                toh.pki.enable = true;
+                toh.ssl.installCa = true;
                 toh.meta.domains.machineSecret = domainSecret;
                 toh.services.ddns-updater = {
                   enable = true;

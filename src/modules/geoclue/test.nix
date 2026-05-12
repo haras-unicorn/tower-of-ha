@@ -2,25 +2,16 @@
   perSystem =
     { pkgs, tohLib, ... }:
     {
-      checks.test-services-geoclue-enabled = pkgs.tohPackages.testers.runToHTest {
-        name = "services-geoclue-enabled";
+      checks.test-services-geoclue = pkgs.tohPackages.testers.runToHTest {
+        name = "services-geoclue";
 
         toh.test.cryl.cluster.geoclue = {
           generations = [
             {
               generator = "text";
               arguments = {
-                name = "geoclue-static-geolocation";
+                name = "origin-homelab-geoclue-static-geolocation";
                 text = "1";
-              };
-            }
-          ];
-          exports = [
-            {
-              exporter = "copy";
-              arguments = {
-                from = "geoclue-static-geolocation";
-                to = "${tohLib.secrets.directories.cluster}/geoclue-static-geolocation";
               };
             }
           ];
