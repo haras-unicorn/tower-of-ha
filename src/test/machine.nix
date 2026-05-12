@@ -81,6 +81,8 @@
             pkgs.curl
             pkgs.jq
             pkgs.dig
+            pkgs.socat
+            pkgs.helix
           ];
         }
       ];

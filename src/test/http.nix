@@ -1,5 +1,63 @@
-{ tohLib, ... }:
+{ lib, tohLib, ... }:
 
+let
+  httpPort = 80;
+  httpsPort = 443;
+
+  httpSubmodule = {
+    options = {
+      enable = lib.mkEnableOption "HTTP test server";
+
+      tls = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable HTTPS for the HTTP server";
+      };
+
+      openFirewall = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Open firewall for the HTTP server";
+      };
+
+      domains = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "List of domains for the HTTP server";
+      };
+
+      handler = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = ''
+          Python snippet to execute inside the handler function:
+
+          def _do(self, method: str):
+            now = datetime.now().isoformat()
+            id = str(uuid.uuid4())
+
+            parsed = urllib.parse.urlparse(self.path)
+            path = parsed._asdict()
+            params = urllib.parse.parse_qs(parsed.query)
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode()
+            headers = dict(self.headers)
+
+            status_code = 200
+            response = 'OK'
+            content_type = 'text/plain'
+
+            ''${indentedHandler}
+
+            self.send_response(status_code)
+            self.send_header('Content-Type', content_type)
+            self.end_headers()
+            self.wfile.write(response.encode())
+        '';
+      };
+    };
+  };
+in
 {
   toh.lib.test.testModules.http =
     {
@@ -7,69 +65,22 @@
       config,
       ...
     }:
-    let
-      httpPort = 80;
-      httpsPort = 443;
-
-      getIp = name: config.nodes."http-${name}".toh.meta.network.ip;
-    in
     {
       options.toh.test = {
         http = lib.mkOption {
           description = "HTTP test servers";
           default = { };
-          type = lib.types.attrsOf (
-            lib.types.submodule {
-              options = {
-                enable = (lib.mkEnableOption "HTTP test server") // {
-                  default = true;
-                };
-
-                domains = lib.mkOption {
-                  type = lib.types.listOf lib.types.str;
-                  default = [ ];
-                  description = "List of domains to route to test HTTP server";
-                };
-
-                handler = lib.mkOption {
-                  type = lib.types.str;
-                  default = "";
-                  description = ''
-                    Python snippet to execute inside the handler function:
-
-                    def _do(self, method: str):
-                      now = datetime.now().isoformat()
-                      id = str(uuid.uuid4())
-
-                      parsed = urllib.parse.urlparse(self.path)
-                      path = parsed._asdict()
-                      params = urllib.parse.parse_qs(parsed.query)
-                      content_length = int(self.headers.get('Content-Length', 0))
-                      body = self.rfile.read(content_length).decode()
-                      headers = dict(self.headers)
-
-                      status_code = 200
-                      response = 'OK'
-                      content_type = 'text/plain'
-
-                      ''${indentedHandler}
-
-                      self.send_response(status_code)
-                      self.send_header('Content-Type', content_type)
-                      self.end_headers()
-                      self.wfile.write(response.encode())
-                  '';
-                };
-              };
-            }
-          );
+          type = lib.types.attrsOf (lib.types.submodule httpSubmodule);
         };
       };
 
       config = {
         toh.test.dns.zones = lib.mkMerge (
           builtins.map (
-            { name, value }: lib.mkIf value.enable (tohLib.dns.unbound.routeToIp value.domains (getIp name))
+            { name, value }:
+            lib.mkIf value.enable (
+              tohLib.dns.unbound.routeToIp value.domains config.nodes."http-${name}".toh.meta.network.ip
+            )
           ) (lib.attrsToList config.toh.test.http)
         );
 
@@ -91,228 +102,263 @@
           builtins.map (
             { name, value }:
             lib.mkIf value.enable {
-              "http-${name}" =
-                { config, pkgs, ... }:
-                let
-                  stateDir = "http";
-
-                  indentedHandler = builtins.concatStringsSep "\n" (
-                    lib.imap0 (index: line: if index == 0 then line else "      ${line}") (
-                      lib.splitString "\n" value.handler
-                    )
-                  );
-
-                  script = pkgs.writeText "http.py" ''
-                    HTTP_PORT = ${builtins.toString httpPort}
-                    HTTPS_PORT = ${builtins.toString httpsPort}
-                    TLS_CERT = "${config.sops.secrets."http-public".path}"
-                    TLS_KEY = "${config.sops.secrets."http-private".path}"
-                    LOG_FILE = "/var/lib/${stateDir}/log.jsonl"
-                    STORE_FILE = "/var/lib/${stateDir}/store.json"
-
-                    import http.server
-                    import socketserver
-                    import json
-                    import urllib.parse
-                    from datetime import datetime
-                    import os
-                    import threading
-                    from socketserver import ThreadingTCPServer
-                    import ssl
-                    import time
-                    import sys
-                    import signal
-                    import traceback
-                    import uuid
-
-                    store = {}
-
-                    def signal_handler(signum, frame):
-                      print("Shutting down gracefully...")
-                      http_server.shutdown()
-                      https_server.shutdown()
-                      sys.exit(0)
-
-                    class HTTPHandler(http.server.BaseHTTPRequestHandler):
-                      def log_message(self, format, *args):
-                        print(f"[HTTP] {self.address_string()} - {format % args}")
-
-                      def _do(self, method: str):
-                        now = datetime.now().isoformat()
-                        id = str(uuid.uuid4())
-
-                        parsed = urllib.parse.urlparse(self.path)
-                        path = parsed._asdict()
-                        params = urllib.parse.parse_qs(parsed.query)
-                        content_length = int(self.headers.get('Content-Length', 0))
-                        body = self.rfile.read(content_length).decode()
-                        headers = dict(self.headers)
-
-                        status_code = 200
-                        response = 'OK'
-                        content_type = 'text/plain'
-
-                        try:
-                          ${indentedHandler}
-                        except Exception as e:
-                          print(f"[HTTP] ERROR: Handler raised exception {e}")
-                          traceback.print_exc()
-
-                        self.send_response(status_code)
-                        self.send_header('Content-Type', content_type)
-                        self.end_headers()
-                        self.wfile.write(response.encode())
-
-                        with open(LOG_FILE, 'a') as f:
-                          data = {
-                            'id': id,
-                            'timestamp': now,
-                            'store': store,
-                            'request': {
-                              'method': method,
-                              'path': path,
-                              'params': params,
-                              'body': body,
-                              'headers': headers
-                            },
-                            'response': {
-                              'status_code': status_code,
-                              'response': response,
-                              'content_type': content_type
-                            }
-                          }
-                          f.write(f"{json.dumps(data)}\n")
-
-                        with open(STORE_FILE, 'w') as f:
-                          data = {
-                            'last_request': {
-                              'id': id,
-                              'timestamp': now
-                            },
-                            'records': store,
-                          }
-                          f.write(f"{json.dumps(data)}\n")
-
-                      def do_GET(self):
-                        self._do('GET')
-
-                      def do_POST(self):
-                        self._do('POST')
-
-                      def do_PUT(self):
-                        self._do('PUT')
-
-                    try:
-                      signal.signal(signal.SIGTERM, signal_handler)
-                      signal.signal(signal.SIGINT, signal_handler)
-
-                      os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
-
-                      print(f"[HTTP] Starting test HTTP server...")
-                      print(f"[HTTP] Log file: {LOG_FILE}")
-                      print(f"[HTTP] HTTP port: {HTTP_PORT}")
-                      print(f"[HTTP] HTTPS port: {HTTPS_PORT}")
-                      print(f"[HTTP] TLS cert: {TLS_CERT}")
-                      print(f"[HTTP] TLS key: {TLS_KEY}")
-
-                      http_server = ThreadingTCPServer(("0.0.0.0", HTTP_PORT), HTTPHandler)
-                      https_server = ThreadingTCPServer(("0.0.0.0", HTTPS_PORT), HTTPHandler)
-
-                      context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-                      context.load_cert_chain(certfile=TLS_CERT, keyfile=TLS_KEY)
-                      https_server.socket = context.wrap_socket(https_server.socket, server_side=True)
-
-                      http_thread = threading.Thread(target=http_server.serve_forever, daemon=True)
-                      https_thread = threading.Thread(target=https_server.serve_forever, daemon=True)
-                      http_thread.start()
-                      https_thread.start()
-
-                      print("[HTTP] Servers started successfully")
-
-                      try:
-                        while True:
-                          time.sleep(3600)
-                      except KeyboardInterrupt:
-                        signal_handler(signal.SIGINT, None)
-                    except Exception as e:
-                      print(f"[HTTP] ERROR: {e}")
-                      traceback.print_exc()
-                      sys.exit(1)
-                  '';
-                in
-                {
-                  toh.ssl.installCa = true;
-
-                  systemd.services.http = {
-                    description = "Test HTTP server";
-                    after = [ "network.target" ];
-                    wantedBy = [ "multi-user.target" ];
-                    serviceConfig = {
-                      AmbientCapabilities = "CAP_NET_BIND_SERVICE";
-                      Type = "simple";
-                      Restart = "always";
-                      User = "http";
-                      Group = "http";
-                      StateDirectory = stateDir;
-                      ExecStart = "${lib.getExe pkgs.python3} ${script}";
-                    };
-                  };
-
-                  networking.firewall.allowedTCPPorts = [
-                    httpPort
-                    httpsPort
-                  ];
-
-                  users.users.http = {
-                    isSystemUser = true;
-                    group = "http";
-                    description = "Test HTTP server system user";
-                  };
-
-                  users.groups.http = { };
-
-                  sops.secrets."http-public" = {
-                    owner = "http";
-                    group = "http";
-                    mode = "0400";
-                  };
-
-                  sops.secrets."http-private" = {
-                    owner = "http";
-                    group = "http";
-                    mode = "0400";
-                  };
-
-                  toh.cryl.machine.http = {
-                    generations = [
-                      {
-                        generator = "tls-leaf";
-                        arguments = {
-                          common_name = "toh";
-                          organization = "ToH";
-                          sans = [
-                            "localhost"
-                            "${config.toh.meta.network.ip}"
-                            "127.0.0.1"
-                          ]
-                          ++ value.domains;
-                          config = "http-cert-config";
-                          request_config = "http-cert-request-config";
-                          private = "http-private";
-                          request = "http-cert-request";
-                          ca_private = "cluster/openssl-ca-private";
-                          ca_public = "cluster/openssl-ca-public";
-                          serial = "cluster/openssl-ca-serial";
-                          public = "http-public";
-                          renew = true;
-                        };
-                      }
-                    ];
-                  };
-                };
+              "http-${name}".toh.test.http = value;
             }
           ) (lib.attrsToList config.toh.test.http)
         );
+      };
+    };
+
+  toh.lib.test.nixosModules.http =
+    {
+      lib,
+      config,
+      pkgs,
+      ...
+    }:
+    let
+      cfg = config.toh.test.http;
+
+      stateDir = "http";
+
+      indentedHandler = builtins.concatStringsSep "\n" (
+        lib.imap0 (index: line: if index == 0 then line else "      ${line}") (
+          lib.splitString "\n" cfg.handler
+        )
+      );
+
+      script = pkgs.writeText "http.py" ''
+        HTTP_PORT = ${builtins.toString httpPort}
+
+        ${lib.optionalString cfg.tls ''
+          HTTPS_PORT = ${builtins.toString httpsPort}
+          TLS_CERT = "${config.sops.secrets."http-public".path}"
+          TLS_KEY = "${config.sops.secrets."http-private".path}"
+        ''}
+
+        LOG_FILE = "/var/lib/${stateDir}/log.jsonl"
+        STORE_FILE = "/var/lib/${stateDir}/store.json"
+
+        import http.server
+        import socketserver
+        import json
+        import urllib.parse
+        from datetime import datetime
+        import os
+        import threading
+        from socketserver import ThreadingTCPServer
+        import ssl
+        import time
+        import sys
+        import signal
+        import traceback
+        import uuid
+
+        store = {}
+
+        def signal_handler(signum, frame):
+          print("Shutting down gracefully...")
+
+          http_server.shutdown()
+
+          ${lib.optionalString cfg.tls ''
+            https_server.shutdown()
+          ''}
+
+          sys.exit(0)
+
+        class HTTPHandler(http.server.BaseHTTPRequestHandler):
+          def log_message(self, format, *args):
+            print(f"[HTTP] {self.address_string()} - {format % args}")
+
+          def _do(self, method: str):
+            now = datetime.now().isoformat()
+            id = str(uuid.uuid4())
+
+            parsed = urllib.parse.urlparse(self.path)
+            path = parsed._asdict()
+            params = urllib.parse.parse_qs(parsed.query)
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode()
+            headers = dict(self.headers)
+
+            status_code = 200
+            response = 'OK'
+            content_type = 'text/plain'
+
+            try:
+              ${indentedHandler}
+            except Exception as e:
+              print(f"[HTTP] ERROR: Handler raised exception {e}")
+              traceback.print_exc()
+
+            self.send_response(status_code)
+            self.send_header('Content-Type', content_type)
+            self.end_headers()
+            self.wfile.write(response.encode())
+
+            with open(LOG_FILE, 'a') as f:
+              data = {
+                'id': id,
+                'timestamp': now,
+                'store': store,
+                'request': {
+                  'method': method,
+                  'path': path,
+                  'params': params,
+                  'body': body,
+                  'headers': headers
+                },
+                'response': {
+                  'status_code': status_code,
+                  'response': response,
+                  'content_type': content_type
+                }
+              }
+              f.write(f"{json.dumps(data)}\n")
+
+            with open(STORE_FILE, 'w') as f:
+              data = {
+                'last_request': {
+                  'id': id,
+                  'timestamp': now
+                },
+                'records': store,
+              }
+              f.write(f"{json.dumps(data)}\n")
+
+          def do_GET(self):
+            self._do('GET')
+
+          def do_POST(self):
+            self._do('POST')
+
+          def do_PUT(self):
+            self._do('PUT')
+
+        try:
+          signal.signal(signal.SIGTERM, signal_handler)
+          signal.signal(signal.SIGINT, signal_handler)
+
+          os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+
+          print(f"[HTTP] Starting test HTTP server...")
+          print(f"[HTTP] Log file: {LOG_FILE}")
+          print(f"[HTTP] HTTP port: {HTTP_PORT}")
+
+          http_server = ThreadingTCPServer(("0.0.0.0", HTTP_PORT), HTTPHandler)
+
+          http_thread = threading.Thread(target=http_server.serve_forever, daemon=True)
+          http_thread.start()
+
+          ${lib.optionalString cfg.tls ''
+            print(f"[HTTP] TLS cert: {TLS_CERT}")
+            print(f"[HTTP] TLS key: {TLS_KEY}")
+            print(f"[HTTP] HTTPS port: {HTTPS_PORT}")
+
+            https_server = ThreadingTCPServer(("0.0.0.0", HTTPS_PORT), HTTPHandler)
+
+            context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            context.load_cert_chain(certfile=TLS_CERT, keyfile=TLS_KEY)
+            https_server.socket = context.wrap_socket(https_server.socket, server_side=True)
+
+            https_thread = threading.Thread(target=https_server.serve_forever, daemon=True)
+            https_thread.start()
+          ''}
+
+          print("[HTTP] Server started successfully")
+
+          try:
+            while True:
+              time.sleep(3600)
+          except KeyboardInterrupt:
+            signal_handler(signal.SIGINT, None)
+        except Exception as e:
+          print(f"[HTTP] ERROR: {e}")
+          traceback.print_exc()
+          sys.exit(1)
+      '';
+    in
+    {
+      options.toh.test = {
+        http = lib.mkOption {
+          type = lib.types.submodule httpSubmodule;
+          default = { };
+          description = "Test HTTP server";
+        };
+      };
+
+      config = lib.mkIf cfg.enable {
+        systemd.services.http = {
+          description = "Test HTTP server";
+          after = [ "network.target" ];
+          wantedBy = [ "multi-user.target" ];
+          serviceConfig = {
+            AmbientCapabilities = "CAP_NET_BIND_SERVICE";
+            Type = "simple";
+            Restart = "always";
+            User = "http";
+            Group = "http";
+            StateDirectory = stateDir;
+            ExecStart = "${lib.getExe pkgs.python3} ${script}";
+          };
+        };
+
+        networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall (
+          [
+            httpPort
+          ]
+          ++ lib.optional cfg.tls httpsPort
+        );
+
+        users.users.http = {
+          isSystemUser = true;
+          group = "http";
+          description = "Test HTTP server system user";
+        };
+
+        users.groups.http = { };
+
+        sops.secrets."http-public" = lib.mkIf cfg.tls {
+          owner = "http";
+          group = "http";
+          mode = "0400";
+        };
+
+        sops.secrets."http-private" = lib.mkIf cfg.tls {
+          owner = "http";
+          group = "http";
+          mode = "0400";
+        };
+
+        toh.cryl.machine.http = lib.mkIf cfg.tls {
+          generations = [
+            {
+              generator = "tls-leaf";
+              arguments = {
+                common_name = "toh";
+                organization = "ToH";
+                sans = [
+                  "localhost"
+                  "${config.toh.meta.network.ip}"
+                  "127.0.0.1"
+                ]
+                ++ cfg.domains;
+                config = "http-cert-config";
+                request_config = "http-cert-request-config";
+                private = "http-private";
+                request = "http-cert-request";
+                ca_private = "cluster/openssl-ca-private";
+                ca_public = "cluster/openssl-ca-public";
+                serial = "cluster/openssl-ca-serial";
+                public = "http-public";
+                renew = true;
+              };
+            }
+          ];
+        };
+
+        toh.ssl.generateCa = lib.mkIf cfg.tls true;
       };
     };
 }
