@@ -14,8 +14,27 @@ def --wrapped "main test nixos" [
 ]: nothing -> nothing {
   cd (flake-root)
   (nix build
-    $".#checks.x86_64-linux.\"test-($test)\".withSshBackdoor"
+    $".#checks.(toh current system).\"test-($test)\".withSshBackdoor"
     --option sandbox-paths /dev/vhost-vsock
+    ...($args))
+}
+
+# Run all ToH NixOS tests matching a regex
+def --wrapped "main test nixos regex" [
+  # Test name
+  regex: string,
+  # Additional "nix build" arguments
+  ...args: string
+]: nothing -> nothing {
+  cd (flake-root)
+  (nix build
+    ...(nix eval --impure --json --expr
+      ("builtins.attrNames" +
+        $" \(builtins.getFlake \"path:(flake-root)\")"
+        + $".checks.(toh current system)")
+      | from json
+      | where { $in =~ $"test-($regex)" }
+      | each { $".#checks.(toh current system).\"($in)\"" })
     ...($args))
 }
 
@@ -28,7 +47,7 @@ def --wrapped "main test nixos interactive" [
 ]: nothing -> nothing {
   cd (flake-root)
   (nix run
-    $".#checks.x86_64-linux.\"test-($test)\".withSshBackdoor.driverInteractive"
+    $".#checks.(toh current system).\"test-($test)\".withSshBackdoor.driverInteractive"
     --option sandbox-paths /dev/vhost-vsock
     ...($args))
 }

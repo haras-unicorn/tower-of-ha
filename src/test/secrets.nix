@@ -22,8 +22,10 @@
       options.toh.test = {
         cryl = {
           cluster = lib.mkOption {
-            type = lib.types.attrsOf (lib.types.submodule inputs.cryl.lib.submodules.specification);
-            default = { };
+            type = lib.types.listOf (
+              lib.types.attrsOf (lib.types.submodule inputs.cryl.lib.submodules.specification)
+            );
+            default = [ ];
             description = ''
               Specifications in attrs for uniqueness
               that will be collected into a shared specification
@@ -37,7 +39,7 @@
         cryl.enable = true;
 
         cryl.specifications.test-cluster = builtins.zipAttrsWith (_: builtins.concatLists) (
-          builtins.attrValues config.toh.test.cryl.cluster
+          tohLib.lists.concatUniqueAttrValues config.toh.test.cryl.cluster
           ++ [
             {
               exports = [
@@ -79,9 +81,7 @@
               ];
             }
           ]
-          ++ builtins.attrValues (
-            builtins.zipAttrsWith (_: builtins.head) (builtins.map (node: node.toh.cryl.cluster) nodea)
-          )
+          ++ tohLib.lists.concatUniqueAttrValues (builtins.concatMap (node: node.toh.cryl.cluster) nodea)
           ++ [
             {
               exports = [
@@ -153,7 +153,7 @@
                   ];
                 }
               ]
-              ++ builtins.attrValues config.toh.cryl.machine
+              ++ tohLib.lists.concatUniqueAttrValues config.toh.cryl.machine
               ++ [
                 {
                   exports = [

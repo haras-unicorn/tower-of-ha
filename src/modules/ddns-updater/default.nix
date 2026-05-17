@@ -91,13 +91,9 @@
           healthPort
         ];
 
-        toh.meta.services = [
-          {
-            name = "ddns-updater";
-            port = httpPort;
-            health = "http://";
-          }
-        ];
+        toh.meta.services.ddns-updater = {
+          endpoint.http.port = httpPort;
+        };
 
         sops.secrets."ddns-updater-settings" = {
           owner = "ddns-updater";
@@ -105,96 +101,111 @@
           mode = "0400";
         };
 
-        # NOTE: this only runs after the provider generations because alphabetical order
-        toh.cryl.machine.ddns-updater-settings = {
-          generations = [
+        toh.cryl.machine = lib.mkMerge [
+          [
             {
-              generator = "mustache";
-              arguments = {
-                name = "ddns-updater-settings";
-                renew = true;
-                listing = {
-                  type = "map";
-                  value =
-                    lib.optionalAttrs cfg.duckdns.enable {
-                      DDNS_UPDATER_DUCKDNS = "ddns-updater-duckdns";
-                    }
-                    // lib.optionalAttrs cfg.cloudflare.enable {
-                      DDNS_UPDATER_CLOUDFLARE = "ddns-updater-cloudflare";
+              ddns-updater-settings = {
+                generations = [
+                  {
+                    generator = "mustache";
+                    arguments = {
+                      name = "ddns-updater-settings";
+                      renew = true;
+                      listing = {
+                        type = "map";
+                        value =
+                          lib.optionalAttrs cfg.duckdns.enable {
+                            DDNS_UPDATER_DUCKDNS = "ddns-updater-duckdns";
+                          }
+                          // lib.optionalAttrs cfg.cloudflare.enable {
+                            DDNS_UPDATER_CLOUDFLARE = "ddns-updater-cloudflare";
+                          };
+                      };
+                      template = ''
+                        {
+                          "settings": [
+                            ${builtins.concatStringsSep ", " (
+                              lib.optional cfg.duckdns.enable "{{{DDNS_UPDATER_DUCKDNS}}}"
+                              ++ lib.optional cfg.cloudflare.enable "{{{DDNS_UPDATER_CLOUDFLARE}}}"
+                            )}
+                          ]
+                        }
+                      '';
                     };
-                };
-                template = ''
-                  {
-                    "settings": [
-                      ${builtins.concatStringsSep ", " (
-                        lib.optional cfg.duckdns.enable "{{{DDNS_UPDATER_DUCKDNS}}}"
-                        ++ lib.optional cfg.cloudflare.enable "{{{DDNS_UPDATER_CLOUDFLARE}}}"
-                      )}
-                    ]
                   }
-                '';
+                ];
               };
             }
-          ];
-        };
-
-        toh.cryl.machine.ddns-updater-duckdns = lib.mkIf cfg.duckdns.enable {
-          generations = [
-            {
-              generator = "mustache";
-              arguments = {
-                name = "ddns-updater-duckdns";
-                renew = true;
-                listing = {
-                  type = "map";
-                  value = {
-                    DDNS_UPDATER_DUCKDNS_DOMAIN = "external/${config.toh.meta.domains.machineSecret}";
-                    DDNS_UPDATER_DUCKDNS_TOKEN = "external/${cfg.duckdns.tokenSecret}";
-                  };
+          ]
+          (lib.mkIf cfg.duckdns.enable (
+            lib.mkBefore [
+              {
+                ddns-updater-duckdns = {
+                  generations = [
+                    {
+                      generator = "mustache";
+                      arguments = {
+                        name = "ddns-updater-duckdns";
+                        renew = true;
+                        listing = {
+                          type = "map";
+                          value = {
+                            DDNS_UPDATER_DUCKDNS_DOMAIN = "external/${config.toh.meta.domains.machineSecret}";
+                            DDNS_UPDATER_DUCKDNS_TOKEN = "external/${cfg.duckdns.tokenSecret}";
+                          };
+                        };
+                        template = ''
+                          {
+                            "provider": "duckdns",
+                            "domain": "{{{DDNS_UPDATER_DUCKDNS_DOMAIN}}}",
+                            "token": "{{{DDNS_UPDATER_DUCKDNS_TOKEN}}}",
+                            "ip_version": "ipv4"
+                          }
+                        '';
+                      };
+                    }
+                  ];
                 };
-                template = ''
-                  {
-                    "provider": "duckdns",
-                    "domain": "{{{DDNS_UPDATER_DUCKDNS_DOMAIN}}}",
-                    "token": "{{{DDNS_UPDATER_DUCKDNS_TOKEN}}}",
-                    "ip_version": "ipv4"
-                  }
-                '';
-              };
-            }
-          ];
-        };
-
-        toh.cryl.machine.ddns-updater-cloudflare = lib.mkIf cfg.cloudflare.enable {
-          generations = [
-            {
-              generator = "mustache";
-              arguments = {
-                name = "ddns-updater-cloudflare";
-                renew = true;
-                listing = {
-                  type = "map";
-                  value = {
-                    DDNS_UPDATER_CLOUDFLARE_DOMAIN = "external/${config.toh.meta.domains.machineSecret}";
-                    DDNS_UPDATER_CLOUDFLARE_TOKEN = "external/${cfg.cloudflare.tokenSecret}";
-                    DDNS_UPDATER_CLOUDFLARE_ZONE_IDENTIFIER = "external/${cfg.cloudflare.zoneIdentifierSecret}";
-                  };
+              }
+            ]
+          ))
+          (lib.mkIf cfg.cloudflare.enable (
+            lib.mkBefore [
+              {
+                ddns-updater-cloudflare = {
+                  generations = [
+                    {
+                      generator = "mustache";
+                      arguments = {
+                        name = "ddns-updater-cloudflare";
+                        renew = true;
+                        listing = {
+                          type = "map";
+                          value = {
+                            DDNS_UPDATER_CLOUDFLARE_DOMAIN = "external/${config.toh.meta.domains.machineSecret}";
+                            DDNS_UPDATER_CLOUDFLARE_TOKEN = "external/${cfg.cloudflare.tokenSecret}";
+                            DDNS_UPDATER_CLOUDFLARE_ZONE_IDENTIFIER = "external/${cfg.cloudflare.zoneIdentifierSecret}";
+                          };
+                        };
+                        template = ''
+                          {
+                            "provider": "cloudflare",
+                            "zone_identifier": "{{{DDNS_UPDATER_CLOUDFLARE_ZONE_IDENTIFIER}}}",
+                            "domain": "{{{DDNS_UPDATER_CLOUDFLARE_DOMAIN}}}",
+                            "ttl": 1,
+                            "token": "{{{DDNS_UPDATER_CLOUDFLARE_TOKEN}}}",
+                            "ip_version": "ipv4",
+                            "ipv6_suffix": ""
+                          }
+                        '';
+                      };
+                    }
+                  ];
                 };
-                template = ''
-                  {
-                    "provider": "cloudflare",
-                    "zone_identifier": "{{{DDNS_UPDATER_CLOUDFLARE_ZONE_IDENTIFIER}}}",
-                    "domain": "{{{DDNS_UPDATER_CLOUDFLARE_DOMAIN}}}",
-                    "ttl": 1,
-                    "token": "{{{DDNS_UPDATER_CLOUDFLARE_TOKEN}}}",
-                    "ip_version": "ipv4",
-                    "ipv6_suffix": ""
-                  }
-                '';
-              };
-            }
-          ];
-        };
+              }
+            ]
+          ))
+        ];
       };
     };
 }

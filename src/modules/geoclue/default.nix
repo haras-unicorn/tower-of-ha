@@ -15,7 +15,7 @@
     {
       options.toh.services = {
         geoclue = {
-          enable = lib.mkEnableOption "Geoclue with Avahi";
+          enable = lib.mkEnableOption "Geoclue";
 
           staticGeolocationSecret = lib.mkOption {
             type = lib.types.str;
@@ -45,17 +45,21 @@
         #   mode = "0440";
         # };
 
-        toh.cryl.machine.geoclue2-avahi = {
-          generations = [
-            {
-              generator = "copy";
-              arguments = {
-                from = "external/${cfg.staticGeolocationSecret}";
-                to = "geoclue-static-geolocation";
-              };
-            }
-          ];
-        };
+        toh.cryl.machine = [
+          {
+            geoclue = {
+              generations = [
+                {
+                  generator = "copy";
+                  arguments = {
+                    from = "external/${cfg.staticGeolocationSecret}";
+                    to = "geoclue-static-geolocation";
+                  };
+                }
+              ];
+            };
+          }
+        ];
       };
     };
 }

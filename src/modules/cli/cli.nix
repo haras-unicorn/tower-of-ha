@@ -29,7 +29,7 @@
           pkgs.tohPackages.flake-root
           pkgs.openssh
         ];
-        loadExtraTextFromDir = ./.;
+        extraTextDir = ./.;
         extraTextVariables = builtins.mapAttrs (_: builtins.toJSON) {
           TOH_SOURCE = config.toh.meta.source;
           TOH_CLUSTER = cluster;

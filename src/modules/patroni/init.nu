@@ -1,17 +1,16 @@
-let host = "{{{TOH_DATABASE_INIT_HOST}}}"
-let user = "{{{TOH_DATABASE_INIT_USER}}}"
-let certs_dir = "{{{TOH_DATABASE_INIT_CERTS_DIR}}}"
-let database_url = "{{{TOH_DATABASE_INIT_DATABASE_URL}}}"
+let database_env_file = "{{{TOH_DATABASE_INIT_DATABASE_ENV_FILE}}}"
 let hash = "{{{TOH_DATABASE_INIT_HASH}}}"
-let init_command = "{{{TOH_DATABASE_INIT_COMMAND}}}"
+let init_command = r#'{{{TOH_DATABASE_INIT_COMMAND}}}'#
 let sql_scripts = "{{{TOH_DATABASE_INIT_SQL_SCRIPTS}}}"
   | split row ,
+  | where { is-not-empty }
   | each {
       let split = $in | split row ":";
       { name: $split.0 path: $split.1 }
     }
 let nushell_scripts = "{{{TOH_DATABASE_INIT_NUSHELL_SCRIPTS}}}"
   | split row ,
+  | where { is-not-empty }
   | each {
       let split = $in | split row ":";
       { name: $split.0 path: $split.1 }
@@ -24,28 +23,24 @@ def "main" [
   --script-timeout: int = 600,
   --wait-timeout: int = 3600
 ] {
+  open --raw $database_env_file | from toml | load-env
+
   try {
     database initialize cluster
   } catch { |e|
-    let data = $e.msg | from json
-    print -e $data.msg
-    exit 1
+    database handle error $e
   }
 
   try {
     database initialize database
   } catch { |e|
-    let data = $e.msg | from json
-    print -e $data.msg
-    exit 1
+    database handle error $e
   }
 
   let lock = (try {
       database lock initialization
     } catch { |e|
-      let data = $e.msg | from json
-      print -e $data.msg
-      exit 1
+      database handle error $e
     })
   if $lock.completed {
     exit 0
@@ -66,32 +61,25 @@ def "main" [
       }
     } catch { |e|
       let data = $e.msg | from json
-
       try {
         database record initialization failure $data.type $data.name
       } catch { |e|
-        let inner_data = $e.msg | from json
-        print -e $inner_data.msg
+        database handle error $e
       }
 
-      print -e $data.msg
-      exit 1
+      database handle error $e
     }
 
     try {
       database record initialization success
     } catch { |e|
-      let data = $e.msg | from json
-      print -e $data.msg
-      exit 1
+      database handle error $e
     }
   } else {
     try {
       database wait initialization
     } catch { |e|
-      let data = $e.msg | from json
-      print -e $data.msg
-      exit 1
+      database handle error $e
     }
   }
 
@@ -105,8 +93,7 @@ def "main" [
     for attempt in 1..$max_attempts {
       let output = (
         timeout $"($init_timeout)s"
-          runuser -u $user --
-            nu -c $init_command
+          nu -c $init_command
       ) | complete
 
       if $output.exit_code == 0 {
@@ -114,24 +101,19 @@ def "main" [
         break
       }
 
-      if ($output.stdout | str contains "cluster has already been initialized") {
-        print "Cluster already initialized, continuing..."
-        break
-      }
-
       if $attempt == $max_attempts {
-        error make {
-          msg: ({
-            msg: (
-              $"Failed to initialize cluster after ($max_attempts) attempts"
-              + $":\n($output.stderr)"
-            )
-          } | to json)
+        database make error {
+          msg: (
+            $"Failed to initialize cluster after ($max_attempts) attempts"
+            + $":\n($output.stderr)"
+          )
         }
       }
 
       print (
-        $"Initialization attempt ($attempt) failed with output '($output.stdout)'"
+        $"Initialization attempt ($attempt) failed"
+        + $" with stdout '($output.stdout)'"
+        + $" and stderr '($output.stderr)'"
         + $", retrying in ($retry_delay) seconds..."
       )
       sleep ($retry_delay | into duration --unit sec)
@@ -140,45 +122,53 @@ def "main" [
 
   def "database initialize database" [] {
     print "Setting up initialization table..."
+    let initialization_file = mktemp -t
+    echo `
+      select 'create database __toh_initialization'
+      where not exists (select from pg_database where datname = '__toh_initialization')\gexec
+      \c __toh_initialization
+      create table if not exists initializations (
+        hash text primary key,
+        status text,
+        timestamp timestamp with time zone default now(),
+        type text default null,
+        name text default null
+      );
+    ` | save -f $initialization_file
     for attempt in 1..$max_attempts {
       let output = (
         timeout $"($script_timeout)s"
-          runuser -u $user --
-            psql $database_url --set=ON_ERROR_STOP=1 -c `
-              CREATE DATABASE IF NOT EXISTS __toh_initialization;
-              USE __toh_initialization;
-              CREATE TABLE IF NOT EXISTS initializations (
-                hash STRING PRIMARY KEY,
-                status STRING,
-                timestamp TIMESTAMP DEFAULT now(),
-                type STRING DEFAULT null,
-                name STRING DEFAULT null
-              );
-            `
+          psql
+            --set=on_error_stop=1
+            -f $initialization_file
       ) | complete
 
       if $output.exit_code == 0 {
         print "Initialization table ready"
+        rm -f $initialization_file
         break
       }
 
       if $attempt == $max_attempts {
-        error make {
-          msg: ({
-            msg: (
-              $"Failed to create initialization table after ($max_attempts) attempts"
-              + $":\n($output.stderr)"
-            )
-          } | to json)
+        rm -f $initialization_file
+        database make error {
+          msg: (
+            $"Failed to create initialization table after ($max_attempts) attempts"
+            + $":\n($output.stderr)"
+          )
         }
       }
 
       print (
         $"Initialization table setup attempt ($attempt) failed"
+        + $" with stdout '($output.stdout)'"
+        + $" and stderr '($output.stderr)'"
         + $", retrying in ($max_attempts) seconds..."
       )
       sleep ($retry_delay | into duration --unit sec)
     }
+
+    rm -f $initialization_file
   }
 
   def "database lock initialization" [
@@ -187,40 +177,39 @@ def "main" [
 
     for attempt in 1..$max_attempts {
       let sql = $"
-        WITH
-          update_failed AS \(
-            UPDATE __toh_initialization.initializations
-            SET status = 'running', timestamp = now\(\)
-            WHERE hash = '($hash)' AND status = 'failed'
-            RETURNING type, name
+        with
+          update_failed as \(
+            update initializations
+            set status = 'running', timestamp = now\(\)
+            where hash = '($hash)' and status = 'failed'
+            returning type, name
           \),
-          insert_new AS \(
-            INSERT INTO __toh_initialization.initializations \(hash, status\)
-            VALUES \('($hash)', 'running'\)
-            ON CONFLICT \(hash\) DO NOTHING
-            RETURNING 1 AS dummy
+          insert_new as \(
+            insert into initializations \(hash, status\)
+            values \('($hash)', 'running'\)
+            on conflict \(hash\) do nothing
+            returning 1 as dummy
           \)
-        SELECT
-          CASE WHEN EXISTS\(SELECT 1 FROM insert_new\)
-                 OR EXISTS\(SELECT 1 FROM update_failed\) THEN 'true'
-               ELSE 'false'
-          END AS acquired,
-          CASE WHEN EXISTS\(SELECT 1 FROM insert_new\)
-                 OR EXISTS\(SELECT 1 FROM update_failed\) THEN 'false'
-               ELSE COALESCE\(
-                 \(SELECT 'true' FROM __toh_initialization.initializations
-                  WHERE hash = '($hash)' AND status = 'completed'\),
+        select
+          case when exists\(select 1 from insert_new\)
+                 or exists\(select 1 from update_failed\) then 'true'
+               else 'false'
+          end as acquired,
+          case when exists\(select 1 from insert_new\)
+                 or exists\(select 1 from update_failed\) then 'false'
+               else coalesce\(
+                 \(select 'true' from initializations
+                  where hash = '($hash)' and status = 'completed'\),
                  'false'
                \)
-          END AS completed,
-          COALESCE\(\(SELECT type FROM update_failed\), ''\) AS failure_type,
-          COALESCE\(\(SELECT name FROM update_failed\), ''\) AS failure_name
+          end as completed,
+          coalesce\(\(select type from update_failed\), ''\) as failure_type,
+          coalesce\(\(select name from update_failed\), ''\) as failure_name
       "
 
       let output = (
         timeout $"($init_timeout)s"
-          runuser -u $user --
-            psql $database_url -t -A -F '|' -c $sql
+          psql -d __toh_initialization -t -A -F '|' -c $sql
       ) | complete
 
       if $output.exit_code == 0 {
@@ -252,18 +241,18 @@ def "main" [
       }
 
       if $attempt == $max_attempts {
-        error make {
-          msg: ({
-            msg: (
-              $"Locking initialization failed after ($max_attempts) attempts"
-              + $":\n($output.stderr)"
-            )
-          } | to json)
+        database make error {
+          msg: (
+            $"Locking initialization failed after ($max_attempts) attempts"
+            + $":\n($output.stderr)"
+          )
         }
       }
 
       print (
         $"Initialization lock attempt ($attempt) failed"
+        + $" with stdout '($output.stdout)'"
+        + $" and stderr '($output.stderr)'"
         + $", retrying in ($retry_delay)s..."
       )
       sleep ($retry_delay | into duration --unit sec)
@@ -282,14 +271,12 @@ def "main" [
     while $waited < $wait_timeout {
       $output = (
         timeout $"($script_timeout)s"
-          runuser -u $user --
-            psql -t $database_url -c $"
-              USE __toh_initialization;
-              SELECT hash
-              FROM initializations
-              WHERE hash = '($hash)'
-              AND status = 'completed'
-            "
+          psql -d __toh_initialization -t -c $"
+            select hash
+            from initializations
+            where hash = '($hash)'
+            and status = 'completed'
+          "
       ) | complete
 
       if ($output.exit_code == 0
@@ -307,13 +294,11 @@ def "main" [
     }
 
     if $waited >= $wait_timeout {
-      error make {
-        msg: ({
-          msg: (
-            $"Timeout waiting for initialization to complete after ($wait_timeout)s"
-            + $":\n($output.stderr)"
-          )
-        } | to json)
+      database make error {
+        msg: (
+          $"Timeout waiting for initialization to complete after ($wait_timeout)s"
+          + $":\n($output.stderr)"
+        )
       }
     }
   }
@@ -323,12 +308,13 @@ def "main" [
     for attempt in 1..$max_attempts {
       let output = (
         timeout $"($script_timeout)s"
-          runuser -u $user --
-            psql $database_url --set=ON_ERROR_STOP=1 -c $"
-              USE __toh_initialization;
-              INSERT INTO initializations \(hash, status\)
-              VALUES \('($hash)', 'completed'\)
-              ON CONFLICT \(hash\) DO NOTHING;
+          psql
+            -d __toh_initialization
+            --set=on_error_stop=1
+            -c $"
+              insert into initializations \(hash, status\)
+              values \('($hash)', 'completed'\)
+              on conflict \(hash\) do update set status = 'completed', timestamp = now\(\);
             "
       ) | complete
 
@@ -338,18 +324,18 @@ def "main" [
       }
 
       if $attempt == $max_attempts {
-        error make {
-          msg: ({
-            msg: (
-              $"Failed to record initialization success after ($max_attempts) attempts"
-              + $":\n($output.stderr)"
-            )
-          } | to json)
+        database make error {
+          msg: (
+            $"Failed to record initialization success after ($max_attempts) attempts"
+            + $":\n($output.stderr)"
+          )
         }
       }
 
       print (
         $"Successful initialization record attempt ($attempt) failed"
+        + $" with stdout '($output.stdout)'"
+        + $" and stderr '($output.stderr)'"
         + $", retrying in ($retry_delay) seconds..."
       )
       sleep ($retry_delay | into duration --unit sec)
@@ -364,12 +350,13 @@ def "main" [
     for attempt in 1..$max_attempts {
       let output = (
         timeout $"($script_timeout)s"
-          runuser -u $user --
-            psql $database_url --set=ON_ERROR_STOP=1 -c $"
-              USE __toh_initialization;
-              INSERT INTO initializations \(hash, status, type, name\)
-              VALUES \('($hash)', 'failed', '($type)', '($name)'\)
-              ON CONFLICT \(hash\) DO NOTHING;
+          psql
+            -d __toh_initialization
+            --set=on_error_stop=1
+            -c $"
+              insert into initializations \(hash, status, type, name\)
+              values \('($hash)', 'failed', '($type)', '($name)'\)
+              on conflict \(hash\) do update set status = 'failed', type = '($type)', name = '($name)';
             "
       ) | complete
 
@@ -379,18 +366,18 @@ def "main" [
       }
 
       if $attempt == $max_attempts {
-        error make {
-          msg: ({
-            msg: (
-              $"Failed to record initialization failure after ($max_attempts) attempts"
-              + $":\n($output.stderr)"
-            )
-          } | to json)
+        database make error {
+          msg: (
+            $"Failed to record initialization failure after ($max_attempts) attempts"
+            + $":\n($output.stderr)"
+          )
         }
       }
 
       print (
         $"Failed initialization record attempt ($attempt) failed"
+        + $" with stdout '($output.stdout)'"
+        + $" and stderr '($output.stderr)'"
         + $", retrying in ($retry_delay) seconds..."
       )
       sleep ($retry_delay | into duration --unit sec)
@@ -413,11 +400,10 @@ def "main" [
       for attempt in 1..$max_attempts {
         let output = (
           timeout $"($script_timeout)s"
-            runuser -u $user --
-              psql $database_url --set=ON_ERROR_STOP=1 -c $"
-                USE __toh_initialization;
-                \\i ($script.path)
-              "
+            psql
+              -d __toh_initialization
+              --set=on_error_stop=1
+              -f $script.path
         ) | complete
 
         if $output.exit_code == 0 {
@@ -426,20 +412,20 @@ def "main" [
         }
 
         if $attempt == $max_attempts {
-          error make {
-            msg: ({
-              msg: (
-                $"SQL script ($script) failed after ($max_attempts) attempts"
-                + $":\n($output.stderr)"
-              )
-              type: sql
-              name: $script.name
-            } | to json)
+          database make error {
+            msg: (
+              $"SQL script ($script) failed after ($max_attempts) attempts"
+              + $":\n($output.stderr)"
+            )
+            type: sql
+            name: $script.name
           }
         }
 
         print (
           $"SQL script ($script) attempt ($attempt) failed"
+          + $" with stdout '($output.stdout)'"
+          + $" and stderr '($output.stderr)'"
           + $", retrying in ($retry_delay) seconds..."
         )
         sleep ($retry_delay | into duration --unit sec)
@@ -471,25 +457,41 @@ def "main" [
         }
 
         if $attempt == $max_attempts {
-          error make {
-            msg: ({
-              msg: (
-                $"Nushell script ($script) failed after ($max_attempts) attempts"
-                + $":\n($output.stderr)"
-              )
-              type: nushell
-              name: $script.name
-            } | to json)
+          database make error {
+            msg: (
+              $"Nushell script ($script) failed after ($max_attempts) attempts"
+              + $":\n($output.stderr)"
+            )
+            type: nushell
+            name: $script.name
           }
         }
 
         print (
           $"Nushell script ($script) attempt ($attempt) failed"
+          + $" with stdout '($output.stdout)'"
+          + $" and stderr '($output.stderr)'"
           + $", retrying in ($retry_delay) seconds..."
         )
         sleep ($retry_delay | into duration --unit sec)
       }
     }
     print "All nushell scripts completed"
+  }
+
+  def "database make error" [msg] {
+    error make {
+      msg: ($msg | to json)
+    }
+  }
+
+  def "database handle error" [e] {
+    let data = $e.msg | from json
+    if ($data | describe) == "string" {
+      print -e $e.msg
+    } else {
+      print -e $data.msg
+    }
+    exit 1
   }
 }

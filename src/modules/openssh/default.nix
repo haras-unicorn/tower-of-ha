@@ -27,7 +27,7 @@
       config = lib.mkIf cfg.enable {
         toh.overlays.cli-openssh = tohLib.cli.makeOverlay {
           extraRuntimeInputs = pkgs: [ pkgs.openssh ];
-          loadExtraTextFromFile = ./cli.nu;
+          extraTextFile = ./cli.nu;
         };
 
         services.openssh.enable = true;
@@ -89,105 +89,113 @@
           mode = "0600";
         };
 
-        toh.cryl.machine.openssh = {
-          generations = [
-            {
-              generator = "copy";
-              arguments = {
-                from = "cluster/${machineName}-ssh-public";
-                to = "ssh-public";
-                renew = true;
-              };
-            }
-            {
-              generator = "copy";
-              arguments = {
-                from = "cluster/${machineName}-ssh-private";
-                to = "ssh-private";
-                renew = true;
-              };
-            }
-            {
-              generator = "copy";
-              arguments = {
-                from = "cluster/${machineName}-ssh-server-public";
-                to = "ssh-server-public";
-                renew = true;
-              };
-            }
-            {
-              generator = "copy";
-              arguments = {
-                from = "cluster/${machineName}-ssh-server-private";
-                to = "ssh-server-private";
-                renew = true;
-              };
-            }
-            {
-              generator = "mustache";
-              arguments = {
-                name = "ssh-authorized-keys";
-                listing = {
-                  type = "map";
-                  value = builtins.listToAttrs (
-                    builtins.map (machine: {
-                      name = "${lib.toUpper machine.name}_SSH_PUBLIC";
-                      value = "cluster/${machine.name}-ssh-public";
-                    }) machines
-                  );
-                };
-                template = builtins.concatStringsSep "\n" (
-                  builtins.map (machine: "{{${lib.toUpper machine.name}_SSH_PUBLIC}}") machines
-                );
-                renew = true;
-              };
-            }
-            {
-              generator = "mustache";
-              arguments = {
-                name = "ssh-known-hosts";
-                listing = {
-                  type = "map";
-                  value = builtins.listToAttrs (
-                    builtins.map (machine: {
-                      name = "${lib.toUpper machine.name}_SSH_SERVER_PUBLIC";
-                      value = "cluster/${machine.name}-ssh-server-public";
-                    }) machines
-                  );
-                };
-                template = builtins.concatStringsSep "\n" (
-                  lib.flatten (
-                    builtins.map (machine: [
-                      "${machine.meta.network.ip} {{${lib.toUpper machine.name}_SSH_SERVER_PUBLIC}}"
-                    ]) machines
-                  )
-                );
-                renew = true;
-              };
-            }
-          ];
-        };
+        toh.cryl.machine = [
+          {
+            openssh = {
+              generations = [
+                {
+                  generator = "copy";
+                  arguments = {
+                    from = "cluster/${machineName}-ssh-public";
+                    to = "ssh-public";
+                    renew = true;
+                  };
+                }
+                {
+                  generator = "copy";
+                  arguments = {
+                    from = "cluster/${machineName}-ssh-private";
+                    to = "ssh-private";
+                    renew = true;
+                  };
+                }
+                {
+                  generator = "copy";
+                  arguments = {
+                    from = "cluster/${machineName}-ssh-server-public";
+                    to = "ssh-server-public";
+                    renew = true;
+                  };
+                }
+                {
+                  generator = "copy";
+                  arguments = {
+                    from = "cluster/${machineName}-ssh-server-private";
+                    to = "ssh-server-private";
+                    renew = true;
+                  };
+                }
+                {
+                  generator = "mustache";
+                  arguments = {
+                    name = "ssh-authorized-keys";
+                    listing = {
+                      type = "map";
+                      value = builtins.listToAttrs (
+                        builtins.map (machine: {
+                          name = "${lib.toUpper machine.name}_SSH_PUBLIC";
+                          value = "cluster/${machine.name}-ssh-public";
+                        }) machines
+                      );
+                    };
+                    template = builtins.concatStringsSep "\n" (
+                      builtins.map (machine: "{{${lib.toUpper machine.name}_SSH_PUBLIC}}") machines
+                    );
+                    renew = true;
+                  };
+                }
+                {
+                  generator = "mustache";
+                  arguments = {
+                    name = "ssh-known-hosts";
+                    listing = {
+                      type = "map";
+                      value = builtins.listToAttrs (
+                        builtins.map (machine: {
+                          name = "${lib.toUpper machine.name}_SSH_SERVER_PUBLIC";
+                          value = "cluster/${machine.name}-ssh-server-public";
+                        }) machines
+                      );
+                    };
+                    template = builtins.concatStringsSep "\n" (
+                      lib.flatten (
+                        builtins.map (machine: [
+                          "${machine.meta.network.ip} {{${lib.toUpper machine.name}_SSH_SERVER_PUBLIC}}"
+                        ]) machines
+                      )
+                    );
+                    renew = true;
+                  };
+                }
+              ];
+            };
+          }
+        ];
 
-        toh.cryl.cluster.openssh = {
-          generations = builtins.concatMap (machine: [
-            {
-              generator = "ssh-key";
-              arguments = {
-                name = machine.name;
-                public = "${machine.name}-ssh-public";
-                private = "${machine.name}-ssh-private";
-              };
-            }
-            {
-              generator = "ssh-key";
-              arguments = {
-                name = machine.name;
-                public = "${machine.name}-ssh-server-public";
-                private = "${machine.name}-ssh-server-private";
-              };
-            }
-          ]) machines;
-        };
+        toh.cryl.cluster = [
+          {
+            openssh = {
+              generations = builtins.concatMap (machine: [
+                {
+                  generator = "ssh-key";
+                  arguments = {
+                    name = machine.name;
+                    public = "${machine.name}-ssh-public";
+                    private = "${machine.name}-ssh-private";
+                  };
+                }
+                {
+                  generator = "ssh-key";
+                  arguments = {
+                    name = machine.name;
+                    public = "${machine.name}-ssh-server-public";
+                    private = "${machine.name}-ssh-server-private";
+                  };
+                }
+              ]) machines;
+            };
+          }
+        ];
       };
     };
 }

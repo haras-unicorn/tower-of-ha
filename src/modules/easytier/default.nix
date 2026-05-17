@@ -18,6 +18,10 @@
       group = service;
       envSecret = service;
 
+      machines = tohLib.serviceMachines "easytier";
+
+      machinesWithDomain = builtins.filter (machine: machine.meta.domains.machineSecret != null) machines;
+
       otherMachines = tohLib.otherServiceMachines "easytier";
 
       otherMachinesWithDomain = builtins.filter (
@@ -36,6 +40,12 @@
       };
 
       config = lib.mkIf cfg.enable {
+        assertions = [
+          {
+            assertion = (builtins.length machinesWithDomain) != 0;
+            message = "Easytier VPN requires at least one machine with domain to configure a lighthouse and relay";
+          }
+        ];
         environment.systemPackages = [
           package
         ];
@@ -120,73 +130,81 @@
           mode = "0400";
         };
 
-        toh.cryl.machine.easytier = {
-          generations =
-            (builtins.map (machine: {
-              generator = "copy";
-              arguments = {
-                from = "external/${machine.meta.domains.machineSecret}";
-                to = "easytier-${machine.name}-domain";
-              };
-            }) otherMachinesWithDomain)
-            ++ [
-              {
-                generator = "copy";
-                arguments = {
-                  from = "cluster/easytier-network-secret";
-                  to = "easytier-network-secret";
-                };
-              }
-            ]
-            ++ [
-              {
-                generator = "mustache";
-                arguments = {
-                  name = envSecret;
-                  renew = true;
-                  listing = {
-                    type = "map";
-                    value =
-                      let
-                        peersVariables = builtins.listToAttrs (
-                          builtins.map (machine: {
-                            name = "EASYTIER_${lib.toUpper machine.name}_DOMAIN";
-                            value = "easytier-${machine.name}-domain";
-                          }) otherMachinesWithDomain
-                        );
-                      in
-                      {
-                        EASYTIER_NETWORK_SECRET = "easytier-network-secret";
-                      }
-                      // peersVariables;
+        toh.cryl.machine = [
+          {
+            easytier = {
+              generations =
+                (builtins.map (machine: {
+                  generator = "copy";
+                  arguments = {
+                    from = "external/${machine.meta.domains.machineSecret}";
+                    to = "easytier-${machine.name}-domain";
                   };
-                  template =
-                    let
-                      peersTemplate = builtins.concatStringsSep "," (
-                        builtins.map (
-                          machine: "udp://{{{EASYTIER_${lib.toUpper machine.name}_DOMAIN}}}:${builtins.toString port}"
-                        ) otherMachinesWithDomain
-                      );
-                    in
-                    ''
-                      ${if peersTemplate == "" then "" else ''ET_PEERS="${peersTemplate}"''}
-                      ET_NETWORK_SECRET="{{{EASYTIER_NETWORK_SECRET}}}"
-                    '';
-                };
-              }
-            ];
-        };
+                }) otherMachinesWithDomain)
+                ++ [
+                  {
+                    generator = "copy";
+                    arguments = {
+                      from = "cluster/easytier-network-secret";
+                      to = "easytier-network-secret";
+                    };
+                  }
+                ]
+                ++ [
+                  {
+                    generator = "mustache";
+                    arguments = {
+                      name = envSecret;
+                      renew = true;
+                      listing = {
+                        type = "map";
+                        value =
+                          let
+                            peersVariables = builtins.listToAttrs (
+                              builtins.map (machine: {
+                                name = "EASYTIER_${lib.toUpper machine.name}_DOMAIN";
+                                value = "easytier-${machine.name}-domain";
+                              }) otherMachinesWithDomain
+                            );
+                          in
+                          {
+                            EASYTIER_NETWORK_SECRET = "easytier-network-secret";
+                          }
+                          // peersVariables;
+                      };
+                      template =
+                        let
+                          peersTemplate = builtins.concatStringsSep "," (
+                            builtins.map (
+                              machine: "udp://{{{EASYTIER_${lib.toUpper machine.name}_DOMAIN}}}:${builtins.toString port}"
+                            ) otherMachinesWithDomain
+                          );
+                        in
+                        ''
+                          ${if peersTemplate == "" then "" else ''ET_PEERS="${peersTemplate}"''}
+                          ET_NETWORK_SECRET="{{{EASYTIER_NETWORK_SECRET}}}"
+                        '';
+                    };
+                  }
+                ];
+            };
+          }
+        ];
 
-        toh.cryl.cluster.easytier = {
-          generations = [
-            {
-              generator = "key";
-              arguments = {
-                name = "easytier-network-secret";
-              };
-            }
-          ];
-        };
+        toh.cryl.cluster = [
+          {
+            easytier = {
+              generations = [
+                {
+                  generator = "key";
+                  arguments = {
+                    name = "easytier-network-secret";
+                  };
+                }
+              ];
+            };
+          }
+        ];
       };
     };
 }

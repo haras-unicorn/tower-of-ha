@@ -51,18 +51,22 @@
               toh.test.ddns.enable = true;
               toh.test.ip.enable = true;
 
-              toh.test.cryl.cluster.ddns-updater = {
-                generations = builtins.map (
-                  { name, value }:
-                  {
-                    generator = "text";
-                    arguments = {
-                      inherit name;
-                      text = value;
-                    };
-                  }
-                ) (lib.attrsToList secrets);
-              };
+              toh.test.cryl.cluster = [
+                {
+                  ddns-updater = {
+                    generations = builtins.map (
+                      { name, value }:
+                      {
+                        generator = "text";
+                        arguments = {
+                          inherit name;
+                          text = value;
+                        };
+                      }
+                    ) (lib.attrsToList secrets);
+                  };
+                }
+              ];
 
               nodes.machine = {
                 toh.ssl.installCa = true;

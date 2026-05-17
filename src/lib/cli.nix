@@ -10,26 +10,24 @@
   toh.lib.cli.makeOverrideOverlay =
     attr:
     {
-      # NOTE: this allows us to not hit infinite recursion on certain evaluations
-      enable ? true,
       name ? null,
       deps ? [ ],
       extraRuntimeInputs ? [ ],
       extraText ? "",
-      loadExtraTextFromFile ? null,
-      loadExtraTextFromDir ? null,
+      extraTextFile ? null,
+      extraTextDir ? null,
       extraTextVariables ? null,
     }:
     let
-      fileText = if loadExtraTextFromFile == null then "" else builtins.readFile loadExtraTextFromFile;
+      fileText = if extraTextFile == null then "" else builtins.readFile extraTextFile;
 
       dirText =
-        if loadExtraTextFromDir == null then
+        if extraTextDir == null then
           ""
         else
           builtins.concatStringsSep "\n\n" (
-            builtins.map (script: builtins.readFile (lib.path.append loadExtraTextFromDir script)) (
-              builtins.filter (lib.hasSuffix ".nu") (builtins.attrNames (builtins.readDir loadExtraTextFromDir))
+            builtins.map (script: builtins.readFile (lib.path.append extraTextDir script)) (
+              builtins.filter (lib.hasSuffix ".nu") (builtins.attrNames (builtins.readDir extraTextDir))
             )
           );
     in
@@ -39,50 +37,45 @@
         "${attr}-package"
       ]
       ++ deps;
-      value =
-        final: prev:
-        if (!enable) then
-          { }
-        else
-          {
-            tohPackages = prev.tohPackages // {
-              ${attr} = prev.tohPackages.${attr}.override (
-                prev:
-                let
-                  nextName = if name == null then prev.name else name;
+      value = final: prev: {
+        tohPackages = prev.tohPackages // {
+          ${attr} = prev.tohPackages.${attr}.override (
+            prev:
+            let
+              nextName = if name == null then prev.name else name;
 
-                  nextExtraRuntimeInputs =
-                    prev.extraRuntimeInputs
-                    ++ (if lib.isFunction extraRuntimeInputs then extraRuntimeInputs final else extraRuntimeInputs);
+              nextExtraRuntimeInputs =
+                prev.extraRuntimeInputs
+                ++ (if lib.isFunction extraRuntimeInputs then extraRuntimeInputs final else extraRuntimeInputs);
 
-                  newExtraText = builtins.concatStringsSep "\n\n" [
-                    extraText
-                    fileText
-                    dirText
-                  ];
+              newExtraText = builtins.concatStringsSep "\n\n" [
+                extraText
+                fileText
+                dirText
+              ];
 
-                  renderedNewExtraText =
-                    if extraTextVariables == null then
-                      newExtraText
-                    else
-                      builtins.readFile (
-                        final.tohPackages.renderMustacheTemplate {
-                          name = "toh-${attr}-rendered-extra-text";
-                          variables = extraTextVariables;
-                          template = newExtraText;
-                        }
-                      );
+              renderedNewExtraText =
+                if extraTextVariables == null then
+                  newExtraText
+                else
+                  builtins.readFile (
+                    final.tohPackages.renderMustacheTemplate {
+                      name = "toh-${attr}-rendered-extra-text";
+                      variables = extraTextVariables;
+                      template = newExtraText;
+                    }
+                  );
 
-                  nextExtraText = prev.extraText + "\n\n" + renderedNewExtraText;
-                in
-                {
-                  name = nextName;
-                  extraRuntimeInputs = nextExtraRuntimeInputs;
-                  extraText = nextExtraText;
-                }
-              );
-            };
-          };
+              nextExtraText = prev.extraText + "\n\n" + renderedNewExtraText;
+            in
+            {
+              name = nextName;
+              extraRuntimeInputs = nextExtraRuntimeInputs;
+              extraText = nextExtraText;
+            }
+          );
+        };
+      };
     };
 
   toh.lib.cli.makeBaseOverlay = attr: {

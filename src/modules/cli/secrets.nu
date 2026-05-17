@@ -1,4 +1,4 @@
-let secrets = "{{{TOH_SECRETS}}}" | from json
+let secrets = r#'{{{TOH_SECRETS}}}'# | from json
 
 def "toh secrets machines" [] {
   if ($secrets.directories.machines | path exists) {

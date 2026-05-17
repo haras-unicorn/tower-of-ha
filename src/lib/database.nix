@@ -1,5 +1,6 @@
 {
   toh.lib.database.protocols = [
-    "postgresql://"
+    "postgresql"
+    "mysql"
   ];
 }
