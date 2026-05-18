@@ -10,7 +10,7 @@
       options.toh.meta = {
         database = {
           protocol = lib.mkOption {
-            type = lib.types.str;
+            type = lib.types.enum tohLib.database.protocols;
             description = "Database protocol";
           };
 

@@ -10,6 +10,12 @@
               Name of the machine.
             '';
           };
+          index = lib.mkOption {
+            type = lib.types.ints.unsigned;
+            description = ''
+              Machine index.
+            '';
+          };
           version = lib.mkOption {
             type = lib.types.str;
             description = ''

@@ -10,7 +10,7 @@
             type = lib.types.listOf (
               lib.types.attrsOf (lib.types.submodule inputs.cryl.lib.submodules.specification)
             );
-            default = { };
+            default = [ ];
             description = ''
               Specifications in lists of attrs for ordering and uniqueness
               that will be collected into a shared specification
@@ -22,7 +22,7 @@
             type = lib.types.listOf (
               lib.types.attrsOf (lib.types.submodule inputs.cryl.lib.submodules.specification)
             );
-            default = { };
+            default = [ ];
             description = ''
               Specifications in lists of attrs for ordering and uniqueness
               that will be collected into a shared specification

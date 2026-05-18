@@ -12,6 +12,7 @@
       toh.cluster = tohLib.cluster.fromTestNodes nodes;
 
       toh.meta.machine.name = config.virtualisation.test.nodeName;
+      toh.meta.machine.index = config.virtualisation.test.nodeNumber;
       toh.meta.machine.version = "25.11";
 
       toh.meta.user.user = "test";
@@ -34,7 +35,7 @@
 
       networking.hostName = config.toh.meta.machine.name;
 
-      virtualisation.memorySize = 8192; # in MiB
+      virtualisation.memorySize = 8192; # 8 GiB
       virtualisation.cores = 4;
       virtualisation.graphics = false;
       # NOTE: needed for raft consensus so clock doesn't drift
@@ -49,6 +50,10 @@
       documentation.info.enable = false;
 
       system.stateVersion = config.toh.meta.machine.version;
+
+      environment.variables = {
+        PAGER = "cat";
+      };
 
       environment.systemPackages = [
         pkgs.curl
