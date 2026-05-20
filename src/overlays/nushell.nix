@@ -1,6 +1,7 @@
 {
   toh.overlays.nushell = {
     deps = [ "packages" ];
+    nixos = true;
     value = final: prev: {
       tohPackages = prev.tohPackages // {
         writeNushellApplication =

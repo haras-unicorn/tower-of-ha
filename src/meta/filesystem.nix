@@ -1,3 +1,5 @@
+# TODO: instances
+
 {
   toh.lib.nixosModules.meta-filesystem =
     { lib, tohLib, ... }:
@@ -14,13 +16,19 @@
             default = { };
             type = lib.types.attrsOf (
               lib.types.submodule (
-                { config, ... }:
+                { name, config, ... }:
                 {
                   options = {
                     directory = lib.mkOption {
-                      type = lib.types.nullOr lib.types.str;
-                      default = null;
+                      type = lib.types.str;
+                      default = name;
+                      defaultText = lib.literalExpression "name";
                       description = "Mount from a subdirectory of the filesystem";
+                    };
+                    erase = lib.mkOption {
+                      type = lib.types.bool;
+                      default = false;
+                      description = "Erase existing directory before mounting";
                     };
                     user = lib.mkOption {
                       type = lib.types.str;
@@ -36,6 +44,32 @@
                       type = lib.types.str;
                       default = "0750";
                       description = "Mount permission mode";
+                    };
+                    share = lib.mkOption {
+                      description = "SMB share options for mount";
+                      default = null;
+                      type = lib.types.nullOr (
+                        lib.types.submodule {
+                          options = {
+                            name = lib.mkOption {
+                              type = lib.types.str;
+                              default = builtins.replaceStrings [ "/" ] [ "-" ] (lib.removePrefix "/" name);
+                              defaultText = lib.literalExpression ''builtins.replaceStrings [ "/" ] [ "-" ] (lib.removePrefix "/" name)'';
+                              description = "Share name";
+                            };
+                            fileMask = lib.mkOption {
+                              type = lib.types.str;
+                              default = "0644";
+                              description = "File creation mask";
+                            };
+                            directoryMask = lib.mkOption {
+                              type = lib.types.str;
+                              default = "0755";
+                              description = "Directory creation mask";
+                            };
+                          };
+                        }
+                      );
                     };
                   };
                 }

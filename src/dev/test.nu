@@ -15,7 +15,7 @@ def --wrapped "main test nixos" [
   cd (flake-root)
   (nix build
     $".#checks.(toh current system).\"test-($test)\".withSshBackdoor"
-    --option sandbox-paths /dev/vhost-vsock
+    --option extra-sandbox-paths /dev/vhost-vsock
     ...($args))
 }
 
@@ -48,7 +48,7 @@ def --wrapped "main test nixos interactive" [
   cd (flake-root)
   (nix run
     $".#checks.(toh current system).\"test-($test)\".withSshBackdoor.driverInteractive"
-    --option sandbox-paths /dev/vhost-vsock
+    --option extra-sandbox-paths /dev/vhost-vsock
     ...($args))
 }
 

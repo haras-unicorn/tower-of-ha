@@ -12,6 +12,7 @@
       "https"
       "postgresql"
       "mysql"
+      "smb"
     ];
 
     sslTermination = [

@@ -22,6 +22,7 @@
     makeUrl =
       {
         protocol,
+        domain ? null,
         user ? null,
         password ? null,
         host,
@@ -31,7 +32,10 @@
       }:
       "${protocol}://"
       + lib.optionalString (user != null) (
-        user + lib.optionalString (password != null) ":${password}" + "@"
+        lib.optionalString (domain != null) "${domain};"
+        + user
+        + lib.optionalString (password != null) ":${password}"
+        + "@"
       )
       + "${host}:${builtins.toString port}"
       + lib.optionalString (path != null) path
@@ -41,6 +45,5 @@
           builtins.map ({ name, value }: "${name}=${builtins.toString value}") (lib.attrsToList parameters)
         )
       );
-
   };
 }

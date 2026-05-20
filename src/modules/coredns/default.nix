@@ -18,7 +18,11 @@
 
       otherCorednsMachines = tohLib.otherServiceMachines "coredns";
 
-      relays = config.toh.meta.relays;
+      relays =
+        if builtins.elem config.toh.meta.network.ip config.toh.meta.relays then
+          [ "127.0.0.1" ] ++ config.toh.meta.relays
+        else
+          config.toh.meta.relays;
     in
     {
       options.toh.services = {
@@ -52,6 +56,8 @@
             enable = true;
             config = ''
               ${nodeDomain} {
+                bind 127.0.0.1
+                bind ${config.toh.meta.network.ip}
                 hosts {
                   ${builtins.concatStringsSep "\n" (
                     map (m: "${m.config.toh.meta.network.ip} ${m.name}.${nodeDomain}") machines
@@ -61,6 +67,8 @@
               }
 
               ${serviceDomain} {
+                bind 127.0.0.1
+                bind ${config.toh.meta.network.ip}
                 template IN A {
                   ${tohLib.strings.indentTail "    " (
                     builtins.concatStringsSep "\n" (
@@ -71,6 +79,8 @@
               }
 
               . {
+                bind 127.0.0.1
+                bind ${config.toh.meta.network.ip}
                 forward . ${builtins.concatStringsSep " " cfg.forwarders}
               }
             '';

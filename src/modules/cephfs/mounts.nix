@@ -18,8 +18,6 @@
 
       anyMounts = builtins.length (builtins.attrNames mounts) != 0;
 
-      data = "/var/lib/ceph/mounts";
-
       mergeByMount =
         forEachMount:
         lib.mkMerge (
@@ -32,9 +30,9 @@
               {
                 path = name;
                 name = baseName;
-                mount = "${data}/${baseName}";
-                service = "ceph-mount-${baseName}";
-                bind = baseName;
+                preMount = "ceph-pre-mount-${baseName}";
+                postMount = "ceph-post-mount-${baseName}";
+                mount = baseName;
               }
               // value
             )
@@ -43,33 +41,32 @@
     in
     {
       toh.meta.filesystem = {
-        type = lib.mkIf anyMachines "cephfs";
+        type = lib.mkIf anyMachines "ceph";
       };
 
       systemd.tmpfiles.rules = mergeByMount (
         {
           path,
-          mount,
           user,
           group,
           mode,
           ...
         }:
         [
-          "d ${data} 0750 ceph ceph -"
-          "d ${mount} 0750 ceph ceph -"
           "d ${path} ${mode} ${user} ${group} -"
         ]
       );
 
       systemd.services = mergeByMount (
         {
-          service,
+          preMount,
+          postMount,
+          erase,
           path,
-          mount,
           user,
           group,
           directory,
+          mode,
           ...
         }:
         let
@@ -85,39 +82,47 @@
           );
         in
         {
-          ${service} = {
-            description = "Mount CephFS at '${path}'";
+          ${preMount} = {
+            description = "Pre mount CephFS at '${path}'";
             wantedBy = afterServices;
             after = afterServices;
             requires = afterServices;
-            path = [
-              pkgs.ceph
-              pkgs.fuse
-            ];
-            script =
-              let
-                subDir = if directory == null then "" else ''-r "${directory}"'';
-              in
-              ''
-                while ! ceph fs status --format json \
-                  | grep '"state": "active"' >/dev/null 2>&1; do
-                  echo "Waiting for MDS..."
-                  sleep 1
-                done
+            path = [ pkgs.ceph ];
+            script = ''
+              ${lib.optionalString erase ''
+                shopt -s extglob
+                shopt -s dotglob
+                rm -rf "${path}"/*
+                shopt -u extglob
+                shopt -u dotglob
+              ''}
 
-                ceph-fuse "${mount}" ${subDir} \
-                  -n client.admin \
-                  -o allow_other
-              '';
-            postStop = ''
-              fusermount -u "${mount}"
+              while ! ceph fs status --format json \
+                | grep '"state": "active"' >/dev/null 2>&1; do
+                echo "Waiting for MDS..."
+                sleep 1
+              done
+
+              cephfs-shell "mkdir -p -m ${mode} '${directory}'"
             '';
             serviceConfig = {
               Type = "oneshot";
               RemainAfterExit = true;
-              User = "ceph";
-              Group = "ceph";
-              SupplementaryGroups = [ "fuse" ];
+            };
+          };
+
+          ${postMount} = {
+            description = "Post mount CephFS at '${path}'";
+            wantedBy = afterServices;
+            after = afterServices;
+            requires = afterServices;
+            path = [ pkgs.ceph ];
+            script = ''
+              chown ${user}:${group} '${path}'
+            '';
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
             };
           };
         }
@@ -126,44 +131,61 @@
       systemd.mounts = mergeByMount (
         {
           path,
-          mount,
-          service,
+          preMount,
+          postMount,
+          directory,
           ...
         }:
         [
           {
-            what = mount;
+            what = "admin@.ceph=${directory}";
             where = path;
-            type = "none";
-            options = "bind";
-            wantedBy = [ "${service}.service" ];
-            bindsTo = [ "${service}.service" ];
-            after = [ "${service}.service" ];
+            type = "ceph";
+            wantedBy = [
+              "${preMount}.service"
+              "${postMount}.service"
+            ];
+            bindsTo = [
+              "${preMount}.service"
+              "${postMount}.service"
+            ];
+            after = [ "${preMount}.service" ];
+            before = [ "${postMount}.service" ];
             unitConfig.DefaultDependencies = false;
           }
         ]
       );
 
       systemd.targets.toh-filesystem-initialized = mergeByMount (
-        { service, bind, ... }:
+        {
+          preMount,
+          postMount,
+          mount,
+          ...
+        }:
         {
           wantedBy = [
-            "${service}.service"
-            "${bind}.mount"
+            "${preMount}.service"
+            "${mount}.mount"
+            "${postMount}.service"
           ];
           bindsTo = [
-            "${service}.service"
-            "${bind}.mount"
+            "${preMount}.service"
+            "${mount}.mount"
+            "${postMount}.service"
           ];
           after = [
-            "${service}.service"
-            "${bind}.mount"
+            "${preMount}.service"
+            "${mount}.mount"
+            "${postMount}.service"
           ];
         }
       );
 
       users.groups.fuse = lib.mkIf anyMounts { };
-      users.users.ceph.extraGroups = lib.mkIf anyMounts [ "fuse" ];
+      users.users.ceph = lib.mkIf anyMounts {
+        extraGroups = [ "fuse" ];
+      };
       programs.fuse.userAllowOther = true;
 
       toh.services.cephfs.createUserGroup = lib.mkIf anyMounts true;

@@ -18,3 +18,11 @@ ignoreWords:
   - bitwarden
   - foss
   - homelab
+  - cryl
+  - nushell
+  - mdbook
+  - nixos
+  - hostnames
+  - pkgs
+  - nixfmt
+  - nixpkgs
