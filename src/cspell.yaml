@@ -204,3 +204,9 @@ ignoreWords:
   - standbyok
   - perfstandbyok
   - hasattr
+  - cephfs
+  - monmap
+  - monmaptool
+  - fsid
+  - losetup
+  - radosgw
