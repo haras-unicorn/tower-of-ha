@@ -6,6 +6,7 @@
       "packages"
       "nushell"
     ];
+    nixos = true;
     value = final: prev: {
       tohPackages = prev.tohPackages // {
         renderMustacheTemplate =

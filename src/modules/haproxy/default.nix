@@ -104,6 +104,26 @@
             "option tcp-check" + "\ntcp-check connect linger" + lib.optionalString healthAttrs.ssl " ssl"
         );
 
+      makePersistenceBlock =
+        serviceName: services:
+        let
+          firstService = builtins.head services;
+          endpointAttrs = tohLib.services.endpoint.toAttrs firstService.endpoint;
+        in
+        if endpointAttrs ? persistIp && endpointAttrs.persistIp then
+          ''
+            stick-table type ip size 1m expire 30m
+            stick on src
+          ''
+        else if endpointAttrs ? persistCookie && endpointAttrs.persistCookie != null then
+          ''
+            cookie ${endpointAttrs.persistCookie} insert indirect nocache
+            stick-table type string len 32 size 1m expire 30m
+            stick on cookie(${endpointAttrs.persistCookie})
+          ''
+        else
+          "";
+
       httpHostMap = builtins.toFile "toh-service-http-host-map.map" (
         lib.concatMapStringsSep "\n" (serviceName: "${serviceName}.${serviceDomain} ${serviceName}") (
           builtins.attrNames httpServiceNamesToMachineServices
@@ -119,7 +139,10 @@
       httpBackends = builtins.concatStringsSep "\n\n" (
         lib.mapAttrsToList (serviceName: services: ''
           backend ${serviceName}
+            mode http
             balance roundrobin
+
+            ${tohLib.strings.indentTail "  " (makePersistenceBlock serviceName services)}
 
             ${tohLib.strings.indentTail "  " (makeCheckBlock serviceName services)}
 
@@ -153,6 +176,8 @@
             mode tcp
             balance leastconn
 
+            ${tohLib.strings.indentTail "  " (makePersistenceBlock serviceName services)}
+
             ${tohLib.strings.indentTail "  " (makeCheckBlock serviceName services)}
 
             ${tohLib.strings.indentTail "  " (makeServersBlock serviceName services)}
@@ -170,6 +195,26 @@
         {
           toh.meta.relays = builtins.map (machine: machine.meta.network.ip) machines;
         }
+        (lib.mkIf (machines != [ ]) {
+          toh.meta.proxies = builtins.mapAttrs (
+            serviceName: services:
+            let
+              service = builtins.head services;
+              endpointAttrs = tohLib.services.endpoint.toAttrs service.endpoint;
+              isHttpBased = builtins.elem endpointAttrs.protocol [
+                "http"
+                "https"
+              ];
+              protocol = if isHttpBased then "https" else endpointAttrs.layer7Protocol;
+            in
+            {
+              endpoint.${protocol} = {
+                host = "${serviceName}.${serviceDomain}";
+                port = if isHttpBased then httpPort else mapTcpPortFromServices services;
+              };
+            }
+          ) serviceNamesToMachineServices;
+        })
         (lib.mkIf cfg.enable {
           services.haproxy = {
             enable = true;
@@ -179,7 +224,6 @@
                 daemon
 
               defaults
-                mode http
                 timeout connect 5s
                 timeout client 30s
                 timeout server 30s
@@ -211,25 +255,6 @@
             group = config.systemd.services.haproxy.serviceConfig.Group;
             mode = "0400";
           };
-
-          toh.meta.proxies = builtins.mapAttrs (
-            serviceName: services:
-            let
-              service = builtins.head services;
-              endpointAttrs = tohLib.services.endpoint.toAttrs service.endpoint;
-              isHttpBased = builtins.elem endpointAttrs.protocol [
-                "http"
-                "https"
-              ];
-              protocol = if isHttpBased then "https" else endpointAttrs.layer7Protocol;
-            in
-            {
-              endpoint.${protocol} = {
-                host = "${serviceName}.${serviceDomain}";
-                port = if isHttpBased then httpPort else mapTcpPortFromServices services;
-              };
-            }
-          ) serviceNamesToMachineServices;
 
           toh.cryl.machine = [
             {

@@ -1,3 +1,7 @@
+# TODO: disks
+# TODO: fs instances
+# TODO: mount acl
+
 {
   toh.lib.nixosModules.services-ceph =
     {

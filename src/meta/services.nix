@@ -96,6 +96,33 @@
           };
         };
 
+      layer4PersistentEndpointSubmodule =
+        { lib, ... }:
+        {
+          options = {
+            persistIp = lib.mkOption {
+              type = lib.types.bool;
+              default = false;
+              description = "Persist connections over the same IP.";
+            };
+          };
+        };
+
+      httpPersistentEndpointSubmodule =
+        { lib, ... }:
+        {
+          options = {
+            persistCookie = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              example = "my_cookie";
+              description = ''
+                Persist connections that have the same cookie value
+                of the provided cookie.
+              '';
+            };
+          };
+        };
+
       makeEndpointSubmodule =
         {
           makeExtraEndpointImports ? (_: [ ]),
@@ -179,6 +206,20 @@
           [ httpHealthEndpointSubmodule ]
         else
           [ ];
+
+      makePersistentEndpointSubmodules =
+        protocol:
+        if protocol == "tcp" then
+          [ layer4PersistentEndpointSubmodule ]
+        else if
+          builtins.elem protocol [
+            "http"
+            "https"
+          ]
+        then
+          [ httpPersistentEndpointSubmodule ]
+        else
+          [ ];
     in
     {
       config = {
@@ -202,6 +243,7 @@
                   protocol = if attrs ? layer7Protocol then attrs.layer7Protocol else attrs.protocol;
                   base =
                     {
+                      domain ? null,
                       user ? null,
                       password ? null,
                       path ? null,
@@ -210,6 +252,7 @@
                     tohLib.url.makeUrl {
                       inherit
                         protocol
+                        domain
                         user
                         password
                         host
@@ -252,6 +295,18 @@
                     inherit user password parameters;
                     path = database;
                   }
+                else if attrs.protocol == "smb" then
+                  {
+                    domain ? null,
+                    user ? null,
+                    password ? null,
+                    share,
+                    path ? null,
+                  }:
+                  base {
+                    inherit domain user password;
+                    path = share + lib.optionalString (path != null) ("/" + lib.removePrefix "/" path);
+                  }
                 else
                   base { };
             };
@@ -280,18 +335,25 @@
                     (builtins.removeAttrs endpointAttrs [
                       "protocol"
                       "sslTermination"
+                      "persistIp"
                     ])
                     // {
                       ssl = endpointAttrs.sslTermination == "re-encrypt";
                     }
                   else
-                    builtins.removeAttrs endpointAttrs [ "protocol" ];
+                    builtins.removeAttrs endpointAttrs [
+                      "protocol"
+                      "persistCookie"
+                    ];
               in
               {
                 imports = [
                   (makeEndpointSubmodule {
                     makeExtraEndpointImports =
-                      protocol: makeExtraSecureEndpointSubmodules protocol ++ makeExtraLayer4EndpointSubmodules protocol;
+                      protocol:
+                      makeExtraSecureEndpointSubmodules protocol
+                      ++ makeExtraLayer4EndpointSubmodules protocol
+                      ++ makePersistentEndpointSubmodules protocol;
                   })
                 ];
 
@@ -350,6 +412,16 @@
                         description = "PostgreSQL endpoint";
                       };
                       mysql = lib.mkOption {
+                        type = lib.types.submodule {
+                          imports = [
+                            baseEndpointSubmodule
+                          ]
+                          ++ makeExtraEndpointImports "mysql";
+                        };
+                        default = { };
+                        description = "MySQL endpoint";
+                      };
+                      smb = lib.mkOption {
                         type = lib.types.submodule {
                           imports = [
                             baseEndpointSubmodule

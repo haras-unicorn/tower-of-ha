@@ -1,0 +1,12 @@
+diff --git a/pkgs/by-name/ce/ceph/package.nix b/pkgs/by-name/ce/ceph/package.nix
+index a39b06cb62a4..3c143e8d4b00 100644
+--- a/pkgs/by-name/ce/ceph/package.nix
++++ b/pkgs/by-name/ce/ceph/package.nix
+@@ -371,6 +371,7 @@ let
+       # src/tools/cephfs/shell/setup.py
+       cmd2
+       colorama
++      distro
+     ]
+   );
+   inherit (ceph-python-env.python) sitePackages;

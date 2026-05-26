@@ -2,6 +2,8 @@
 useGitignore: true
 version: "0.2"
 language: en
+ignorePaths:
+  - "**/*.patch"
 ignoreWords:
   - nixos
   - ints
@@ -210,3 +212,23 @@ ignoreWords:
   - fsid
   - losetup
   - radosgw
+  - usershare
+  - usershares
+  - winbindd
+  - nofile
+  - ctdbd
+  - reclock
+  - esac
+  - nmbd
+  - localstatedir
+  - wscript
+  - sysconfdir
+  - netbios
+  - extglob
+  - dotglob
+  - nocache
+  - rundir
+  - vardir
+  - etcdir
+  - winbind
+  - killall
