@@ -1,3 +1,6 @@
+# NOTE: this service is incomplete and requires to be tested thoroughly!!!
+# please do not take into account anything in this service file or its test file
+
 {
   toh.lib.nixosModules.services-miniflux =
     {
@@ -10,7 +13,6 @@
     let
       cfg = config.toh.services.miniflux;
 
-      # NOTE: 8080 is cockroachdb, 8081 is seaweedfs
       port = 8082;
 
       database = config.toh.meta.database;

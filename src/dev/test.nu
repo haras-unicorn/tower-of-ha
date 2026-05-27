@@ -1,7 +1,10 @@
 # Run all ToH tests
 def "main test" []: nothing -> nothing {
   cd (flake-root)
-  nix flake check --all-systems
+  (nix flake check
+    --option max-jobs ([ 1 (((nproc | into int) / 4) | math floor) ] | math max)
+    --keep-going
+    --all-systems)
   nix-unit --flake .#tests
 }
 
@@ -28,6 +31,8 @@ def --wrapped "main test nixos regex" [
 ]: nothing -> nothing {
   cd (flake-root)
   (nix build
+    --option max-jobs ([ 1 (((nproc | into int) / 4) | math floor) ] | math max)
+    --keep-going
     ...(nix eval --impure --json --expr
       ("builtins.attrNames" +
         $" \(builtins.getFlake \"path:(flake-root)\")"

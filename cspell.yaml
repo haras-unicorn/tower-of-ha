@@ -26,3 +26,5 @@ ignoreWords:
   - pkgs
   - nixfmt
   - nixpkgs
+  - openrouter
+  - deepseek

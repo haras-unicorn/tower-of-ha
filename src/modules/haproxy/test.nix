@@ -132,7 +132,7 @@
                 module =
                   { config, tohLib, ... }:
                   let
-                    proxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.http;
+                    proxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.http.endpoint;
                   in
                   {
                     toh.services.coredns.enable = true;
@@ -216,6 +216,7 @@
           }
         );
     in
+    # NOTE: <frontend>-<backend>-<health>
     {
       checks.test-services-haproxy-http-http-http = makeProtocolTest {
         name = "services-haproxy-http-http-http";

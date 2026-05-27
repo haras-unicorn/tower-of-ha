@@ -1,3 +1,6 @@
+# NOTE: this service is incomplete and requires to be tested thoroughly!!!
+# please do not take into account anything in this service file or its test file
+
 {
   toh.lib.nixosModules.services-vaultwarden =
     {

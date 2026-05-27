@@ -178,7 +178,8 @@ in
 
         class HTTPHandler(http.server.BaseHTTPRequestHandler):
           def log_message(self, format, *args):
-            print(f"[HTTP] {self.address_string()} - {format % args}")
+            if " 2" not in format % args:
+              print(f"[HTTP] {self.address_string()} - {format % args}")
 
           def _do(self, method: str):
             now = datetime.now().isoformat()

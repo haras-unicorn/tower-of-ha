@@ -1,4 +1,12 @@
 # TODO: dnssec and dnsovertls
+# TODO: sort service hosts by and set low ttl
+# so caching does not disrupt this order a lot
+# if something goes down:
+# 1. machine
+# 2. rack
+# 3. datacenter
+# 4. region
+# 5. other regions
 
 {
   toh.lib.nixosModules.services-coredns =

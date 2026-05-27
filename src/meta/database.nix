@@ -34,11 +34,13 @@
                   options = {
                     user = lib.mkOption {
                       type = lib.types.str;
+                      default = name;
                       description = "Application secrets owner linux user";
                     };
 
                     group = lib.mkOption {
                       type = lib.types.str;
+                      default = name;
                       description = "Application secrets owner linux group";
                     };
 
@@ -70,6 +72,14 @@
                           description = "Nushell file path to execute during initialization of database";
                         };
                       };
+
+                      systemd = {
+                        unit = lib.mkOption {
+                          type = lib.types.nullOr lib.types.str;
+                          default = null;
+                          description = "Systemd unit to execute during initialization of database";
+                        };
+                      };
                     };
                   };
                 }
@@ -88,6 +98,21 @@
                     password = lib.mkOption {
                       type = lib.types.str;
                       description = "Database user password file path";
+                    };
+
+                    ssl.ca = lib.mkOption {
+                      type = lib.types.path;
+                      description = "Database SSL CA path";
+                    };
+
+                    ssl.crt = lib.mkOption {
+                      type = lib.types.path;
+                      description = "Database certificate path";
+                    };
+
+                    ssl.key = lib.mkOption {
+                      type = lib.types.path;
+                      description = "Database certificate key path";
                     };
 
                     parameters = lib.mkOption {

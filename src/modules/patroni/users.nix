@@ -45,7 +45,8 @@
                   certs =
                     if
                       builtins.elem name tohLib.patroni.superusers.names
-                      || !(builtins.elem name (builtins.attrNames osUsers))
+                      || !builtins.elem name (builtins.attrNames osUsers)
+                      || osUsers.${name}.home == "/var/empty"
                     then
                       "${tohLib.patroni.certs.root}/${name}"
                     else
@@ -121,14 +122,12 @@
             config.services.patroni.postgresqlPackage
             pkgs.vault
           ];
-          extraTextFile = pkgs.tohPackages.renderMustacheTemplate {
-            name = "patroni-user";
-            template = builtins.readFile ./user.nu;
-            variables = {
-              TOH_PATRONI_USERS_TO_ENV_PATHS = builtins.toJSON (
-                builtins.mapAttrs (_: { env, ... }: env) config.toh.services.patroni.users
-              );
-            };
+          extraTextFile = ./user.nu;
+          extraTextVariables = {
+            TOH_PATRONI_USERS_TO_ENV_PATHS = builtins.toJSON (
+              builtins.mapAttrs (_: { env, ... }: env) config.toh.services.patroni.users
+            );
+            TOH_PATRONI_SUPERUSERS = builtins.toJSON tohLib.patroni.superusers.names;
           };
         };
 
@@ -265,7 +264,10 @@
                         PGSSLROOTCERT="${ca}"
                         PGSSLCERT="${crt}"
                         PGSSLKEY="${key}"
-                      '';
+                      ''
+                      + (lib.optionalString (!isSuperuser) ''
+                        PGDATABASE="${user}"
+                      '');
                     };
                   }
                   {
@@ -319,10 +321,12 @@
                         alter default privileges in schema public grant all on functions to ${user};
                         alter default privileges in schema public grant all on types to ${user};
 
-                        grant all on tables in schema public to ${user};
-                        grant all on sequences in schema public to ${user};
-                        grant all on functions in schema public to ${user};
-                        grant all on types in schema public to ${user};
+                        grant usage on schema public to ${user};
+                        grant create on schema public to ${user};
+
+                        grant all on all tables in schema public to ${user};
+                        grant all on all sequences in schema public to ${user};
+                        grant all on all functions in schema public to ${user};
                       '';
                     };
                   })

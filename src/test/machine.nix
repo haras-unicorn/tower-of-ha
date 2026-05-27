@@ -61,6 +61,7 @@
         pkgs.dig
         pkgs.socat
         pkgs.helix
+        pkgs.usql
       ];
     };
 }

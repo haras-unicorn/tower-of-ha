@@ -36,16 +36,8 @@
 
       mergeByMachineApps =
         forEachApp: lib.mkIf anyMachines (lib.mkMerge (builtins.map forEachApp machineApps));
-
-      proxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.postgresql.endpoint;
     in
     {
-      toh.meta.database = {
-        protocol = lib.mkIf anyMachines "postgresql";
-        host = lib.mkIf anyMachines proxyAttrs.host;
-        port = lib.mkIf anyMachines proxyAttrs.port;
-      };
-
       toh.meta.database.instances = mergeByMachineApps (
         { name, dbUser, ... }:
         {
@@ -57,6 +49,9 @@
               sslcert = dbUser.crt;
               sslkey = dbUser.key;
             };
+            ssl.ca = dbUser.ca;
+            ssl.crt = dbUser.crt;
+            ssl.key = dbUser.key;
             url = dbUser.url;
           };
         }
@@ -99,6 +94,14 @@
         lib.mkIf (app.init.nushell.script != null) [
           {
             ${app.name} = app.init.nushell.script;
+          }
+        ]
+      );
+      toh.services.patroni.init.systemd.units = mergeByClusterApps (
+        app:
+        lib.mkIf (app.init.systemd.unit != null) [
+          {
+            ${app.name} = app.init.systemd.unit;
           }
         ]
       );
