@@ -7,7 +7,7 @@
       {
         options = {
           deps = lib.mkOption {
-            type = lib.types.listOf lib.types.str;
+            type = lib.types.listOf tohLib.types.regexOrString;
             default = [ ];
             description = "Dependencies of this overlay for composition";
           };
@@ -46,9 +46,7 @@
             directDeps = allOverlays.${current}.deps or [ ];
 
             deps = builtins.filter (
-              overlay:
-              (builtins.elem overlay directDeps)
-              || (builtins.any (dep: (builtins.match dep overlay) != null) directDeps)
+              overlay: builtins.any (dep: (tohLib.regex.match dep overlay) != null) directDeps
             ) (builtins.attrNames allOverlays);
           in
           lib.unique (deps ++ lib.concatMap (dep: go dep (visited ++ [ current ])) deps);
@@ -66,8 +64,7 @@
         namedOverlays = builtins.map (name: { inherit name; } // allOverlays.${name}) overlayNames;
 
         sorted = lib.toposort (
-          a: b:
-          (builtins.elem a.name b.deps) || (builtins.any (dep: (builtins.match dep a.name) != null) b.deps)
+          a: b: builtins.any (dep: (tohLib.regex.match dep a.name) != null) b.deps
         ) namedOverlays;
       in
       assert lib.assertMsg (sorted ? result) (
@@ -101,9 +98,7 @@
           _:
           { deps, ... }:
           builtins.filter (
-            dep:
-            !(builtins.elem dep allOverlayNames)
-            && !(builtins.any (overlay: (builtins.match dep overlay) != null) allOverlayNames)
+            dep: !builtins.any (overlay: (tohLib.regex.match dep overlay) != null) allOverlayNames
           ) deps
         ) overlays;
         undefinedDepsString = builtins.concatStringsSep "; " (
@@ -149,7 +144,7 @@
           value = final: prev: { c = prev.a + "-" + prev.b; };
         };
         d = {
-          deps = [ "a|b" ];
+          deps = [ "/a|b/" ];
           flake = false;
           nixos = false;
           value = final: prev: { d = prev.a + "-" + prev.b; };
@@ -171,6 +166,12 @@
           flake = false;
           nixos = false;
           value = final: prev: { final = "final-" + prev.c; };
+        };
+        transitive-regex = {
+          deps = [ "d" ];
+          flake = false;
+          nixos = false;
+          value = final: prev: { final = "final-" + prev.d; };
         };
       };
 
@@ -224,6 +225,16 @@
         expr = tohLib.overlay.transitiveDeps testOverlays "final";
         expected = [
           "c"
+          "a"
+          "b"
+          "base"
+        ];
+      };
+
+      test-transitive-regex = {
+        expr = tohLib.overlay.transitiveDeps testOverlays "transitive-regex";
+        expected = [
+          "d"
           "a"
           "b"
           "base"

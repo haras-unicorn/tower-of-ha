@@ -16,6 +16,7 @@
               toh.services.etcd.enable = true;
               toh.services.patroni.enable = true;
               toh.services.patroni.init.enable = true;
+              toh.services.valkey.enable = true;
               toh.services.lldap.enable = true;
               toh.services.authelia.enable = true;
               toh.meta.oidc.apps.test = {

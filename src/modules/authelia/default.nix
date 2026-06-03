@@ -35,6 +35,9 @@
       dbConfig = config.toh.meta.database;
       dbName = if dbConfig.protocol == "postgresql" then "postgres" else "mysql";
       dbInstance = config.toh.meta.database.instances.${name};
+      kvConfig = config.toh.meta.kv;
+      kvName = if kvConfig.protocol == "redis" then "redis" else "redis";
+      kvInstance = config.toh.meta.kv.instances.${name};
 
       trust = "/run/authelia/trust";
     in
@@ -91,6 +94,20 @@
                 {{ secret "${dbInstance.ssl.key}" | indent 8 }}
                       certificate_chain: |
                 {{ secret "${dbInstance.ssl.crt}" | indent 8 }}
+              '')
+              (pkgs.writeText "authelia-config-session.yaml" ''
+                session:
+                  ${kvName}:
+                    host: '${kvConfig.host}'
+                    port: ${builtins.toString kvConfig.port}
+                    username: '${name}'
+                    password: {{ secret "${kvInstance.password}" }}
+                    database_index: ${builtins.toString kvInstance.database}
+                    tls:
+                      private_key: |
+                {{ secret "${kvInstance.ssl.key}" | indent 8 }}
+                      certificate_chain: |
+                {{ secret "${kvInstance.ssl.crt}" | indent 8 }}
               '')
               # {{ secret "${dbInstance.ssl.ca}" | indent 8 }}
             ];
@@ -465,6 +482,18 @@
             user = owner;
             group = group;
             init.systemd.unit = "authelia-authelia-storage-migration.service";
+          };
+
+          toh.meta.kv.apps.${name} = {
+            user = owner;
+            group = group;
+            database = port;
+            permissions = [
+              tohLib.kv.permissions.read
+              tohLib.kv.permissions.write
+              tohLib.kv.permissions.connection
+              tohLib.kv.permissions.keyspace
+            ];
           };
         })
       ];

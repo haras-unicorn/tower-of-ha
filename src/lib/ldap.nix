@@ -1,17 +1,8 @@
 {
   toh.lib.ldap = {
-    permissions = rec {
+    permissions = {
       readOnly = "read-only";
       passwordChange = "password-change";
-
-      keys = [
-        "readOnly"
-        "passwordChange"
-      ];
-      names = [
-        readOnly
-        passwordChange
-      ];
     };
   };
 }

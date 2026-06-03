@@ -79,6 +79,33 @@
           };
         };
 
+      tcpHealthEndpointSubmodule =
+        { lib, ... }:
+        {
+          options = {
+            packets = lib.mkOption {
+              description = "Packets to send and expect as part of the health check";
+              default = [ ];
+              type = lib.types.listOf (
+                lib.types.submodule {
+                  options = {
+                    send = lib.mkOption {
+                      type = lib.types.nullOr lib.types.str;
+                      default = null;
+                      description = "Packet to send";
+                    };
+                    expect = lib.mkOption {
+                      type = lib.types.nullOr tohLib.types.regexOrString;
+                      default = null;
+                      description = "Packet to expect";
+                    };
+                  };
+                }
+              );
+            };
+          };
+        };
+
       httpHealthEndpointSubmodule =
         { lib, ... }:
         {
@@ -143,6 +170,7 @@
                         type = lib.types.submodule {
                           imports = [
                             baseEndpointSubmodule
+                            tcpHealthEndpointSubmodule
                           ]
                           ++ makeExtraEndpointImports "tcp";
                         };

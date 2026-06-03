@@ -249,3 +249,21 @@ ignoreWords:
   - ldif
   - chpass
   - gecos
+  - rediss
+  - redis
+  - keyspace
+  - sortedset
+  - hyperloglog
+  - rstring
+  - reqs
+  - aclfile
+  - replicaof
+  - nopass
+  - allkeys
+  - allchannels
+  - resetkeys
+  - resetchannels
+  - allcommands
+  - nocommands
+  - alldbs
+  - resetdbs

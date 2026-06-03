@@ -14,6 +14,8 @@
       "smb"
       "ldap"
       "ldaps"
+      "redis"
+      "rediss"
     ];
 
     sslTermination = [

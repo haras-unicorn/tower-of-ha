@@ -68,6 +68,8 @@
         ) services
       ) serviceNamesToMachineServices;
 
+      escape = string: builtins.replaceStrings [ "\n" "\r" " " "\t" ] [ "\\n" "\\r" "\\ " "\\t" ] string;
+
       makeServerBlock =
         serviceName: service:
         let
@@ -115,7 +117,22 @@
             + "\nhttp-check send meth ${healthAttrs.method} ${healthUri}"
             + "\nhttp-check expect status ${builtins.toString healthAttrs.status}"
           else
-            "option tcp-check" + "\ntcp-check connect linger" + lib.optionalString healthAttrs.ssl " ssl"
+            "option tcp-check"
+            + "\ntcp-check connect linger"
+            + lib.optionalString healthAttrs.ssl " ssl"
+            + builtins.concatStringsSep "" (
+              builtins.map (
+                { send, expect }:
+                let
+                  hasSend = send != null;
+                  hasExpect = expect != null;
+
+                  expectType = if tohLib.regex.isRegex expect then "rstring" else "string";
+                in
+                lib.optionalString hasSend "\ntcp-check send ${escape send}"
+                + lib.optionalString hasExpect "\ntcp-check expect ${expectType} ${escape expect}"
+              ) healthAttrs.packets
+            )
         );
 
       makePersistenceBlock =

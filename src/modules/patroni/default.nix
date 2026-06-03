@@ -115,7 +115,7 @@
                 };
 
                 authentication = builtins.listToAttrs (
-                  lib.zipListsWith (name: user: {
+                  lib.mapAttrsToList (name: user: {
                     inherit name;
                     value = {
                       username = user;
@@ -125,7 +125,7 @@
                       sslkey = config.toh.services.patroni.users.${user}.key;
                       sslrootcert = config.toh.services.patroni.users.${user}.ca;
                     };
-                  }) tohLib.patroni.superusers.keys tohLib.patroni.superusers.names
+                  }) tohLib.patroni.superusers
                 );
               };
             };
@@ -301,7 +301,7 @@
             builtins.map (name: {
               inherit name;
               value.installSecrets = true;
-            }) tohLib.patroni.superusers.names
+            }) (builtins.attrValues tohLib.patroni.superusers)
           );
 
           toh.services.patroni.generateCa = true;

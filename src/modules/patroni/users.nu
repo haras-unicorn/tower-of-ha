@@ -1,18 +1,18 @@
-let users_to_envs = r#'{{{TOH_PATRONI_USERS_TO_ENV_PATHS}}}'# | from json
+let users = r#'{{{TOH_PATRONI_USERS}}}'# | from json
 let superusers = r#'{{{TOH_PATRONI_SUPERUSERS}}}'# | from json
 
 def --wrapped "main psql" [user: string, ...args: string] {
-  let user_env = $users_to_envs | get $user
+  let config = $users | get $user
   let is_superuser = $superusers | any { $in == $user }
 
   let tmp = (mktemp -d)
   chmod 700 $tmp
 
-  if ($user_env | path exists) {
-    if ($env.USER != root and ($env.USER != $user or $is_superuser)) {
-      sudo cat $user_env | from toml | load-env
+  if ($config.env | path exists) {
+    if ($env.USER != root and $env.USER != $user) {
+      sudo cat $config.env | from toml | load-env
     } else {
-      open --raw $user_env | from toml | load-env
+      open --raw $config.env | from toml | load-env
     }
   } else {
     let cluster = toh secrets cluster

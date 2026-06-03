@@ -121,9 +121,14 @@
   };
 
   toh.lib.cli.makeFinalOverlay = attr: {
-    deps = [ "${attr}-.*" ];
+    deps = [ "/${attr}-.*/" ];
     flake = true;
     nixos = true;
-    value = final: prev: { };
+    value =
+      final: prev:
+      assert lib.assertMsg (
+        prev ? tohPackages && prev.tohPackages ? ${attr}
+      ) "Missing ToH package ${attr}";
+      { };
   };
 }
