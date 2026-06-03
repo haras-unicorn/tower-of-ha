@@ -114,6 +114,7 @@
           options = {
             persistCookie = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
+              default = null;
               example = "my_cookie";
               description = ''
                 Persist connections that have the same cookie value
@@ -307,6 +308,18 @@
                     inherit domain user password;
                     path = share + lib.optionalString (path != null) ("/" + lib.removePrefix "/" path);
                   }
+                else if
+                  builtins.elem attrs.protocol [
+                    "ldap"
+                    "ldaps"
+                  ]
+                then
+                  {
+                    path ? null,
+                  }:
+                  base {
+                    inherit path;
+                  }
                 else
                   base { };
             };
@@ -400,38 +413,21 @@
                       makeExtraEndpointImports ? (_: [ ]),
                       ...
                     }:
-                    {
-                      postgresql = lib.mkOption {
-                        type = lib.types.submodule {
-                          imports = [
-                            baseEndpointSubmodule
-                          ]
-                          ++ makeExtraEndpointImports "postgresql";
+                    (builtins.listToAttrs (
+                      builtins.map (protocol: {
+                        name = protocol;
+                        value = lib.mkOption {
+                          type = lib.types.submodule {
+                            imports = [
+                              baseEndpointSubmodule
+                            ]
+                            ++ makeExtraEndpointImports protocol;
+                          };
+                          default = { };
+                          description = "${protocol} endpoint";
                         };
-                        default = { };
-                        description = "PostgreSQL endpoint";
-                      };
-                      mysql = lib.mkOption {
-                        type = lib.types.submodule {
-                          imports = [
-                            baseEndpointSubmodule
-                          ]
-                          ++ makeExtraEndpointImports "mysql";
-                        };
-                        default = { };
-                        description = "MySQL endpoint";
-                      };
-                      smb = lib.mkOption {
-                        type = lib.types.submodule {
-                          imports = [
-                            baseEndpointSubmodule
-                          ]
-                          ++ makeExtraEndpointImports "mysql";
-                        };
-                        default = { };
-                        description = "MySQL endpoint";
-                      };
-                    };
+                      }) tohLib.services.extraLayer7Protocols
+                    ));
                 })
               ];
             }

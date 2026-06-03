@@ -1,15 +1,18 @@
 let users_to_envs = r#'{{{TOH_PATRONI_USERS_TO_ENV_PATHS}}}'# | from json
+let superusers = r#'{{{TOH_PATRONI_SUPERUSERS}}}'# | from json
 
 def --wrapped "main psql" [user: string, ...args: string] {
-  let userEnv = $users_to_envs | get $user
+  let user_env = $users_to_envs | get $user
+  let is_superuser = $superusers | any { $in == $user }
+
   let tmp = (mktemp -d)
   chmod 700 $tmp
 
-  if ($userEnv | path exists) {
-    if ($env.USER != $user or $user == "postgresql") and $env.USER != root {
-      sudo cat $userEnv | from toml | load-env
+  if ($user_env | path exists) {
+    if ($env.USER != root and ($env.USER != $user or $is_superuser)) {
+      sudo cat $user_env | from toml | load-env
     } else {
-      open --raw $userEnv | from toml | load-env
+      open --raw $user_env | from toml | load-env
     }
   } else {
     let cluster = toh secrets cluster
@@ -30,7 +33,7 @@ def --wrapped "main psql" [user: string, ...args: string] {
     let proxy = $machine.proxies.postgresql
     let pass = $cluster | get $"patroni-($user)-pass"
 
-    {
+    mut psql_env = {
       PGUSER: $user
       PGPASSWORD: $pass
       PGHOST: $proxy.host
@@ -39,12 +42,20 @@ def --wrapped "main psql" [user: string, ...args: string] {
       PGSSLROOTCERT: $ca_path
       PGSSLCERT: $public_path
       PGSSLKEY: $private_path
-    } | load-env
+    }
+    if not $is_superuser {
+      $psql_env = $psql_env | insert PGDATABASE $user
+    }
+    $psql_env | load-env
   }
 
-  let result = psql ...($args) | complete
+  try {
+    psql ...($args)
+  } catch { |e|
+    print -e $e.msg
+    rm -rf $tmp
+    exit 1
+  }
   rm -rf $tmp
-  print $result.stdout
-  print -e $result.stderr
-  exit $result.exit_code
+  exit 0
 }

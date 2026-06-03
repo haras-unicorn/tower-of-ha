@@ -8,7 +8,20 @@
     }:
     let
       machines = builtins.mapAttrs (
-        _: machine: builtins.removeAttrs machine [ "config" ]
+        _: machine:
+        let
+          attrs = builtins.removeAttrs machine [ "config" ];
+        in
+        attrs
+        // {
+          meta = builtins.mapAttrs (
+            name: value:
+            let
+              eval = builtins.tryEval (builtins.deepSeq value value);
+            in
+            if eval.success then eval.value else null
+          ) attrs.meta;
+        }
       ) config.toh.cluster.machines;
 
       cluster = {

@@ -1,3 +1,16 @@
+# TODO: switch to proxying to other proxies
+# if the service is not on this machine with a secure connection
+# and proxying to localhost with the actual configured connection
+# when the service is on localhost
+# with a huge weight for it and lesser weights for other proxies
+# the weights should go only to proxies that are on machines
+# with the service in the following order:
+# 1. this machine
+# 2. my rack
+# 3. my datacenter
+# 4. my region
+# 5. other regions
+
 {
   toh.lib.nixosModules.services-haproxy =
     {
@@ -91,7 +104,8 @@
             "http"
             "https"
           ];
-          healthUri = if healthAttrs.path != null then "uri /${healthAttrs.path}" else "";
+          healthUri =
+            if healthAttrs.path != null then "uri /${lib.removePrefix "/" healthAttrs.path}" else "";
         in
         lib.optionalString (service.health.endpoint != null) (
           if isHealthHttp then
@@ -132,7 +146,9 @@
 
       httpFrontend = ''
         frontend http_any
+          mode http
           bind ${config.toh.meta.network.ip}:${builtins.toString httpPort} ssl crt ${certFile}
+          bind 127.0.0.1:${builtins.toString httpPort} ssl crt ${certFile}
           use_backend %[req.hdr(host),map_str(${httpHostMap})]
       '';
 
@@ -165,6 +181,7 @@
             frontend tcp_${serviceName}
               mode tcp
               bind ${config.toh.meta.network.ip}:${builtins.toString (mapTcpPortFromServices services)} ${ssl}
+              bind 127.0.0.1:${builtins.toString (mapTcpPortFromServices services)} ${ssl}
               default_backend ${serviceName}
           ''
         ) tcpServiceNamesToMachineServices
@@ -285,7 +302,7 @@
                   {
                     generator = "script";
                     arguments = {
-                      name = "haproxy-pem";
+                      name = "haproxy-pem-script";
                       renew = true;
                       text = ''
                         (echo $"(open --raw haproxy-public)(open --raw haproxy-private)"

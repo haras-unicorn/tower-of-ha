@@ -1,20 +1,9 @@
 let database_env_file = "{{{TOH_DATABASE_INIT_DATABASE_ENV_FILE}}}"
 let hash = "{{{TOH_DATABASE_INIT_HASH}}}"
 let init_command = r#'{{{TOH_DATABASE_INIT_COMMAND}}}'#
-let sql_scripts = "{{{TOH_DATABASE_INIT_SQL_SCRIPTS}}}"
-  | split row ,
-  | where { is-not-empty }
-  | each {
-      let split = $in | split row ":";
-      { name: $split.0 path: $split.1 }
-    }
-let nushell_scripts = "{{{TOH_DATABASE_INIT_NUSHELL_SCRIPTS}}}"
-  | split row ,
-  | where { is-not-empty }
-  | each {
-      let split = $in | split row ":";
-      { name: $split.0 path: $split.1 }
-    }
+let sql_scripts = "{{{TOH_DATABASE_INIT_SQL_SCRIPTS}}}" | from json
+let nushell_scripts = "{{{TOH_DATABASE_INIT_NUSHELL_SCRIPTS}}}" | from json
+let systemd_units = "{{{TOH_DATABASE_INIT_SYSTEMD_UNITS}}}" | from json
 
 def "main" [
   --max-attempts: int = 10,
@@ -50,10 +39,15 @@ def "main" [
     try {
       if $lock.failure == null {
         database initialize sql
+        database initialize systemd
         database initialize nushell
       } else {
         if $lock.failure.type == sql {
           database initialize sql $lock.failure.name
+          database initialize systemd
+          database initialize nushell
+        } else if $lock.failure.type == systemd {
+          database initialize systemd $lock.failure.name
           database initialize nushell
         } else {
           database initialize nushell $lock.failure.name
@@ -139,7 +133,7 @@ def "main" [
       let output = (
         timeout $"($script_timeout)s"
           psql
-            --set=on_error_stop=1
+            --set=ON_ERROR_STOP=on
             -f $initialization_file
       ) | complete
 
@@ -310,7 +304,7 @@ def "main" [
         timeout $"($script_timeout)s"
           psql
             -d __toh_initialization
-            --set=on_error_stop=1
+            --set=ON_ERROR_STOP=on
             -c $"
               insert into initializations \(hash, status\)
               values \('($hash)', 'completed'\)
@@ -352,7 +346,7 @@ def "main" [
         timeout $"($script_timeout)s"
           psql
             -d __toh_initialization
-            --set=on_error_stop=1
+            --set=ON_ERROR_STOP=on
             -c $"
               insert into initializations \(hash, status, type, name\)
               values \('($hash)', 'failed', '($type)', '($name)'\)
@@ -402,7 +396,7 @@ def "main" [
           timeout $"($script_timeout)s"
             psql
               -d __toh_initialization
-              --set=on_error_stop=1
+              --set=ON_ERROR_STOP=on
               -f $script.path
         ) | complete
 
@@ -477,6 +471,51 @@ def "main" [
       }
     }
     print "All nushell scripts completed"
+  }
+
+  def "database initialize systemd" [
+    from?: string
+  ] {
+    let systemd_units_to_run = if $from == null {
+      print $"Running all systemd units..."
+      $systemd_units
+    } else {
+      print $"Resuming systemd units from '($from)'..."
+      $systemd_units | skip until { $in.name == $from }
+    }
+
+    for unit in $systemd_units_to_run {
+      print $"Running systemd unit: ($unit)"
+      for attempt in 1..$max_attempts {
+        let output = timeout $"($script_timeout)s" systemctl start $unit.unit
+          | complete
+
+        if $output.exit_code == 0 {
+          print $"systemd unit ($unit) completed successfully"
+          break
+        }
+
+        if $attempt == $max_attempts {
+          database make error {
+            msg: (
+              $"systemd unit ($unit) failed after ($max_attempts) attempts"
+              + $":\n($output.stderr)"
+            )
+            type: systemd
+            name: $unit.name
+          }
+        }
+
+        print (
+          $"systemd unit ($unit) attempt ($attempt) failed"
+          + $" with stdout '($output.stdout)'"
+          + $" and stderr '($output.stderr)'"
+          + $", retrying in ($retry_delay) seconds..."
+        )
+        sleep ($retry_delay | into duration --unit sec)
+      }
+    }
+    print "All systemd units completed"
   }
 
   def "database make error" [msg] {

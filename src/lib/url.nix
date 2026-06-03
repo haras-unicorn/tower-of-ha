@@ -28,7 +28,7 @@
         host,
         port,
         path ? null,
-        parameters ? { },
+        parameters ? null,
       }:
       "${protocol}://"
       + lib.optionalString (user != null) (
@@ -38,11 +38,11 @@
         + "@"
       )
       + "${host}:${builtins.toString port}"
-      + lib.optionalString (path != null) path
-      + lib.optionalString (parameters != { }) (
+      + lib.optionalString (path != null) "/${lib.removePrefix "/" path}"
+      + lib.optionalString (parameters != null && parameters != { }) (
         "?"
         + builtins.concatStringsSep "&" (
-          builtins.map ({ name, value }: "${name}=${builtins.toString value}") (lib.attrsToList parameters)
+          lib.mapAttrsToList (name: value: "${name}=${builtins.toString value}") parameters
         )
       );
   };

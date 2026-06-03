@@ -40,7 +40,6 @@ ignoreWords:
   - oneshot
   - nixpkgs
   - virtualisation
-  - seaweedfs
   - Nushell
   - nushell
   - avahi
@@ -80,6 +79,7 @@ ignoreWords:
   - coreutils
   - gnugrep
   - PGUSER
+  - PGDATABASE
   - PGPASSWORD
   - PGHOST
   - PGSSLMODE
@@ -232,3 +232,20 @@ ignoreWords:
   - etcdir
   - winbind
   - killall
+  - authelia
+  - totp
+  - lldap
+  - testpass
+  - usql
+  - ldaps
+  - ldap
+  - ldapsearch
+  - ldapmodify
+  - hmac
+  - changetype
+  - authtok
+  - reqcert
+  - homedir
+  - ldif
+  - chpass
+  - gecos

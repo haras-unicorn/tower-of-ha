@@ -9,8 +9,6 @@
     }:
     let
       cfg = config.toh.services.patroni;
-
-      serviceCfg = config.services.patroni;
     in
     {
       options.toh.services = {
@@ -57,6 +55,14 @@
                 description = "List of nushell script file paths to execute during initialization (init node only)";
               };
             };
+
+            systemd = {
+              units = lib.mkOption {
+                type = lib.types.listOf (lib.types.attrsOf lib.types.str);
+                default = [ ];
+                description = "List of systemd units to execute during initialization (init node only)";
+              };
+            };
           };
         };
       };
@@ -67,7 +73,7 @@
           patroni-init = tohLib.cli.makeFinalOverlay "patroni-init";
           patroni-init-impl = tohLib.cli.makeOverrideOverlay "patroni-init" {
             extraRuntimeInputs = pkgs: [
-              serviceCfg.postgresqlPackage
+              config.services.patroni.postgresqlPackage
               pkgs.patroni
             ];
             extraTextFile = ./init.nu;
@@ -76,52 +82,64 @@
                 serializeScripts =
                   { files, scripts }:
                   let
-                    fileList = tohLib.lists.concatMapUniqueAttrValues lib.id files;
+                    fileList = tohLib.lists.concatMapUniqueAttrValues (
+                      { name, value }:
+                      {
+                        inherit name;
+                        path = value;
+                      }
+                    ) files;
                     scriptList = tohLib.lists.concatMapUniqueAttrValues (
                       { name, value }:
                       {
                         inherit name;
-                        value = pkgs.writeText "${name}.sql" value;
+                        path = pkgs.writeText "${name}.sql" value;
                       }
                     ) scripts;
                   in
-                  builtins.concatStringsSep "," (
-                    builtins.map ({ name, value }: "${name}:${value}") (fileList ++ scriptList)
-                  );
+                  fileList ++ scriptList;
 
                 sqlScripts = serializeScripts cfg.init.sql;
                 nushellScripts = serializeScripts cfg.init.nushell;
+
+                systemdUnits = tohLib.lists.concatMapUniqueAttrValues (
+                  { name, value }:
+                  {
+                    inherit name;
+                    unit = value;
+                  }
+                ) cfg.init.systemd.units;
+
+                initPasswordSql = builtins.concatStringsSep "\n" (
+                  lib.zipListsWith (
+                    key: name:
+                    let
+                      passwordFile = cfg.users.${name}.password;
+                    in
+                    ''alter user ${name} with password '(open --raw "${passwordFile}")';''
+                  ) tohLib.patroni.superusers.keys tohLib.patroni.superusers.names
+                );
               in
               {
                 TOH_DATABASE_INIT_HASH = cfg.init.hash;
-                TOH_DATABASE_INIT_COMMAND =
-                  let
-                    sql = builtins.concatStringsSep "\n" (
-                      lib.zipListsWith (
-                        key: name:
-                        let
-                          passwordFile = cfg.users.${name}.password;
-                        in
-                        ''alter user ${name} with password '(open --raw "${passwordFile}")';''
-                      ) tohLib.patroni.superusers.keys tohLib.patroni.superusers.names
-                    );
-                  in
-                  ''
-                    with-env {
-                      PGPASSWORD: null
-                    } {
-                      psql -c $"
-                        ${tohLib.strings.indentTail "    " sql}
-                      "
-                    }
-                  '';
+                TOH_DATABASE_INIT_COMMAND = ''
+                  with-env {
+                    PGPASSWORD: null
+                  } {
+                    psql -c $"
+                      ${tohLib.strings.indentTail "    " initPasswordSql}
+                    "
+                  }
+                '';
                 TOH_DATABASE_INIT_DATABASE_ENV_FILE = cfg.users.${tohLib.patroni.superusers.superuser}.env;
-                TOH_DATABASE_INIT_SQL_SCRIPTS = "${sqlScripts}";
-                TOH_DATABASE_INIT_NUSHELL_SCRIPTS = "${nushellScripts}";
+                TOH_DATABASE_INIT_SQL_SCRIPTS = "${builtins.toJSON sqlScripts}";
+                TOH_DATABASE_INIT_NUSHELL_SCRIPTS = "${builtins.toJSON nushellScripts}";
+                TOH_DATABASE_INIT_SYSTEMD_UNITS = "${builtins.toJSON systemdUnits}";
               };
           };
         };
 
+        # NOTE: running as root because we need to be able to run other services from this
         systemd.services.patroni-initialization = {
           description = "patroni Initialization";
           wantedBy = [ "patroni.service" ];
@@ -130,8 +148,6 @@
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
-            User = serviceCfg.user;
-            Group = serviceCfg.group;
             StandardOutput = "journal";
             TimeoutStartSec = "infinity";
             Restart = "on-failure";
