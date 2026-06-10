@@ -61,6 +61,17 @@
       ];
     };
 
+    systemd.targets.toh-kv-initialized = {
+      requires = [
+        "network-online.target"
+        "nss-lookup.target"
+      ];
+      after = [
+        "network-online.target"
+        "nss-lookup.target"
+      ];
+    };
+
     systemd.targets.toh-auth-oidc-initialized = {
       requires = [
         "network-online.target"

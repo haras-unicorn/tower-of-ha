@@ -10,21 +10,10 @@
       crt = "user.crt";
       key = "user.key";
     };
-    superusers = rec {
+    superusers = {
       superuser = "postgres";
       replication = "replicator";
       rewind = "rewinder";
-
-      keys = [
-        "superuser"
-        "replication"
-        "rewind"
-      ];
-      names = [
-        superuser
-        replication
-        rewind
-      ];
     };
   };
 }

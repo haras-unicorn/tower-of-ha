@@ -137,7 +137,7 @@
                       description = "LDAP password owner linux group";
                     };
                     permissions = lib.mkOption {
-                      type = lib.types.listOf (lib.types.enum tohLib.ldap.permissions.names);
+                      type = lib.types.listOf (lib.types.enum (builtins.attrValues tohLib.ldap.permissions));
                       description = "LDAP permissions for the user";
                     };
                   };

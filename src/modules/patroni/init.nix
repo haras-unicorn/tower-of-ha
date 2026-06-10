@@ -111,13 +111,13 @@
                 ) cfg.init.systemd.units;
 
                 initPasswordSql = builtins.concatStringsSep "\n" (
-                  lib.zipListsWith (
+                  lib.mapAttrsToList (
                     key: name:
                     let
                       passwordFile = cfg.users.${name}.password;
                     in
                     ''alter user ${name} with password '(open --raw "${passwordFile}")';''
-                  ) tohLib.patroni.superusers.keys tohLib.patroni.superusers.names
+                  ) tohLib.patroni.superusers
                 );
               in
               {

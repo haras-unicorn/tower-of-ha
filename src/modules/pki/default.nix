@@ -73,7 +73,6 @@
                     generator = "mustache";
                     arguments = {
                       name = "openssl-ca-serial";
-                      renew = true;
                       listing = {
                         type = "map";
                         value = {

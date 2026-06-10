@@ -22,7 +22,7 @@
               // (rec {
                 user = name;
 
-                isSuperuser = builtins.elem name tohLib.patroni.superusers.names;
+                isSuperuser = builtins.elem name (builtins.attrValues tohLib.patroni.superusers);
 
                 isCliUser = !isSuperuser || name == tohLib.patroni.superusers.superuser;
 
@@ -44,7 +44,7 @@
                 let
                   certs =
                     if
-                      builtins.elem name tohLib.patroni.superusers.names
+                      builtins.elem name (builtins.attrValues tohLib.patroni.superusers)
                       || !builtins.elem name (builtins.attrNames osUsers)
                       || osUsers.${name}.home == "/var/empty"
                     then
@@ -119,15 +119,13 @@
       config = {
         toh.overlays.cli-patroni-user = tohLib.cli.makeOverlay {
           extraRuntimeInputs = pkgs: [
-            config.services.patroni.postgresqlPackage
+            pkgs.postgresql
             pkgs.vault
           ];
-          extraTextFile = ./user.nu;
+          extraTextFile = ./users.nu;
           extraTextVariables = {
-            TOH_PATRONI_USERS_TO_ENV_PATHS = builtins.toJSON (
-              builtins.mapAttrs (_: { env, ... }: env) config.toh.services.patroni.users
-            );
-            TOH_PATRONI_SUPERUSERS = builtins.toJSON tohLib.patroni.superusers.names;
+            TOH_PATRONI_USERS = builtins.toJSON config.toh.services.patroni.users;
+            TOH_PATRONI_SUPERUSERS = builtins.toJSON (builtins.attrValues tohLib.patroni.superusers);
           };
         };
 

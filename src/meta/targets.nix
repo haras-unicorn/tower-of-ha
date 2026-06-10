@@ -36,6 +36,12 @@
       before = [ "multi-user.target" ];
     };
 
+    systemd.targets.toh-kv-initialized = {
+      description = "ToH KV store initialized";
+      wantedBy = [ "multi-user.target" ];
+      before = [ "multi-user.target" ];
+    };
+
     systemd.targets.toh-auth-oidc-initialized = {
       description = "ToH OIDC initialized";
       wantedBy = [ "multi-user.target" ];

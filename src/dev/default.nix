@@ -17,20 +17,20 @@
         tohPackages.flake-root
 
         nil
-        nixfmt-rfc-style
+        nixfmt
         nix-unit
 
         markdownlint-cli
-        nodePackages.markdown-link-check
+        markdown-link-check
         marksman
 
-        nodePackages.cspell
+        cspell
 
         mdbook
-        nodePackages.prettier
-        nodePackages.vscode-langservers-extracted
-        nodePackages.prettier
-        nodePackages.yaml-language-server
+        prettier
+        vscode-langservers-extracted
+        prettier
+        yaml-language-server
         taplo
 
         fd
