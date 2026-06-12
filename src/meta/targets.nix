@@ -47,5 +47,11 @@
       wantedBy = [ "multi-user.target" ];
       before = [ "multi-user.target" ];
     };
+
+    systemd.targets.toh-s3-initialized = {
+      description = "ToH S3 initialized";
+      wantedBy = [ "multi-user.target" ];
+      before = [ "multi-user.target" ];
+    };
   };
 }

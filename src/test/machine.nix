@@ -43,7 +43,7 @@
       virtualisation.qemu.options = [ "-cpu host,+kvmclock" ];
       boot.kernelParams = lib.mkAfter [
         "clocksource=kvm-clock"
-        "clocksource_wd=0"
+        "tsc=nowatchdog"
       ];
 
       # Workaround for nixpkgs gzip/install-info issue

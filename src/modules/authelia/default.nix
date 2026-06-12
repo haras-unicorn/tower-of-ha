@@ -2,8 +2,6 @@
 # - need traefik for udp revere proxy and abstracting away chrony
 # TODO: notifier setup with email
 # - need dovecot, postfix and email abstraction in meta
-# TODO: session high availability
-# - need valkey and abstraction in meta
 
 {
   toh.lib.nixosModules.services-authelia =

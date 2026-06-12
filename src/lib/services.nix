@@ -16,6 +16,7 @@
       "ldaps"
       "redis"
       "rediss"
+      "s3"
     ];
 
     sslTermination = [

@@ -100,10 +100,10 @@
         cephfs = {
           enable = lib.mkEnableOption "CephFS";
 
-          capacityInMiB = lib.mkOption {
+          capacityInMB = lib.mkOption {
             type = lib.types.ints.unsigned;
             default = 1024;
-            description = "CephFS size in MiB for truncate command";
+            description = "CephFS size in MB for truncate command";
           };
 
           fsid = lib.mkOption {
@@ -118,7 +118,7 @@
         # NOTE: the standard size is 1024,
         # so we just increase it by the ceph disk capacity
         # + a little more space for comfort
-        virtualisation.diskSize = 1024 * (cfg.capacityInMiB + 16);
+        virtualisation.diskSize = 1024 * (cfg.capacityInMB + 16);
 
         environment.systemPackages = [
           pkgs.ceph
@@ -351,7 +351,7 @@
                     img="${stateDirectory}/data.img"
                     if ! losetup -l | grep -q $img; then
                       if [ ! -f $img ]; then
-                        truncate -s ${builtins.toString cfg.capacityInMiB}M $img
+                        truncate -s ${builtins.toString cfg.capacityInMB}MB $img
                       fi
                       dev=$(losetup -f --show $img)
                       if ! ceph-volume raw list | grep -q $dev; then
