@@ -267,3 +267,7 @@ ignoreWords:
   - nocommands
   - alldbs
   - resetdbs
+  - genpkey
+  - outform
+  - pubout
+  - nowatchdog

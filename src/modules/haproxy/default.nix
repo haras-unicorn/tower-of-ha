@@ -114,7 +114,7 @@
             "option httpchk"
             + "\nhttp-check connect linger"
             + lib.optionalString (healthAttrs.protocol == "https") " ssl"
-            + "\nhttp-check send meth ${healthAttrs.method} ${healthUri}"
+            + "\nhttp-check send meth ${healthAttrs.method} ${healthUri} hdr host ${healthAttrs.host}"
             + "\nhttp-check expect status ${builtins.toString healthAttrs.status}"
           else
             "option tcp-check"

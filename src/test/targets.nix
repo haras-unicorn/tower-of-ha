@@ -82,5 +82,16 @@
         "nss-lookup.target"
       ];
     };
+
+    systemd.targets.toh-s3-initialized = {
+      requires = [
+        "network-online.target"
+        "nss-lookup.target"
+      ];
+      after = [
+        "network-online.target"
+        "nss-lookup.target"
+      ];
+    };
   };
 }

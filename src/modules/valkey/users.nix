@@ -28,6 +28,7 @@
           owner = value.user;
         }
       ) (lib.attrsToList cfg.users);
+      anyUsers = usersList != [ ];
 
       mergeByUser = forEachUser: lib.mkMerge (builtins.map forEachUser usersList);
     in
@@ -146,13 +147,13 @@
         };
 
         sops.secrets = lib.mkMerge [
-          {
+          (lib.mkIf anyUsers {
             "valkey-acl" = {
               owner = valkeyUser;
               group = valkeyGroup;
               mode = "0400";
             };
-          }
+          })
           (mergeByUser (
             {
               user,
@@ -198,90 +199,92 @@
         ];
 
         toh.cryl.machine = lib.mkMerge [
-          (lib.mkAfter [
-            {
-              "valkey-acl" = {
-                generations = [
-                  {
-                    generator = "mustache";
-                    arguments = {
-                      name = "valkey-acl";
-                      renew = true;
-                      listing = {
-                        type = "map";
-                        value = builtins.listToAttrs (
-                          builtins.concatMap (
-                            { user, generateSecrets, ... }:
-                            lib.optional generateSecrets {
-                              name = "VALKEY_${lib.toUpper user}_PASS";
-                              value = "valkey-${user}-pass";
-                            }
+          (lib.mkIf anyUsers (
+            lib.mkAfter [
+              {
+                "valkey-acl" = {
+                  generations = [
+                    {
+                      generator = "mustache";
+                      arguments = {
+                        name = "valkey-acl";
+                        renew = true;
+                        listing = {
+                          type = "map";
+                          value = builtins.listToAttrs (
+                            builtins.concatMap (
+                              { user, generateSecrets, ... }:
+                              lib.optional generateSecrets {
+                                name = "VALKEY_${lib.toUpper user}_PASS";
+                                value = "valkey-${user}-pass";
+                              }
+                            ) usersList
+                          );
+                        };
+                        template = builtins.concatStringsSep "\n" (
+                          builtins.map (
+                            {
+                              user,
+                              active,
+                              password,
+                              prefix,
+                              database,
+                              permissions,
+                              generateSecrets,
+                              ...
+                            }:
+                            let
+                              activePart = if active then "on" else "off";
+                              passwordPart = if password == null then "nopass" else ">{{{VALKEY_${lib.toUpper user}_PASS}}}";
+                              prefixPart =
+                                if prefix == "all" then
+                                  "allkeys allchannels"
+                                else if prefix == "none" then
+                                  "resetkeys resetchannels"
+                                else
+                                  "~${prefix}* &${prefix}*";
+                              permissionPart = builtins.concatStringsSep " " (
+                                builtins.map (
+                                  permission:
+                                  if permission == "all" then
+                                    "allcommands"
+                                  else if permission == "health" then
+                                    "+ping +info"
+                                  else if permission == "none" then
+                                    "nocommands"
+                                  else
+                                    "+@${permission}"
+                                ) permissions
+                              );
+                              # NOTE: actually use this with valkey 9.1
+                              # databasePart =
+                              #   if database == "all" then
+                              #     "alldbs"
+                              #   else if database == "none" then
+                              #     "resetdbs"
+                              #   else
+                              #     "db=${database}";
+                            in
+                            lib.optionalString generateSecrets (
+                              builtins.concatStringsSep " " [
+                                "user"
+                                user
+                                activePart
+                                passwordPart
+                                prefixPart
+                                # databasePart
+                                permissionPart
+                              ]
+                            )
                           ) usersList
                         );
                       };
-                      template = builtins.concatStringsSep "\n" (
-                        builtins.map (
-                          {
-                            user,
-                            active,
-                            password,
-                            prefix,
-                            database,
-                            permissions,
-                            generateSecrets,
-                            ...
-                          }:
-                          let
-                            activePart = if active then "on" else "off";
-                            passwordPart = if password == null then "nopass" else ">{{{VALKEY_${lib.toUpper user}_PASS}}}";
-                            prefixPart =
-                              if prefix == "all" then
-                                "allkeys allchannels"
-                              else if prefix == "none" then
-                                "resetkeys resetchannels"
-                              else
-                                "~${prefix}* &${prefix}*";
-                            permissionPart = builtins.concatStringsSep " " (
-                              builtins.map (
-                                permission:
-                                if permission == "all" then
-                                  "allcommands"
-                                else if permission == "health" then
-                                  "+ping +info"
-                                else if permission == "none" then
-                                  "nocommands"
-                                else
-                                  "+@${permission}"
-                              ) permissions
-                            );
-                            # NOTE: actually use this with valkey 9.1
-                            # databasePart =
-                            #   if database == "all" then
-                            #     "alldbs"
-                            #   else if database == "none" then
-                            #     "resetdbs"
-                            #   else
-                            #     "db=${database}";
-                          in
-                          lib.optionalString generateSecrets (
-                            builtins.concatStringsSep " " [
-                              "user"
-                              user
-                              activePart
-                              passwordPart
-                              prefixPart
-                              # databasePart
-                              permissionPart
-                            ]
-                          )
-                        ) usersList
-                      );
-                    };
-                  }
-                ];
-              };
-            }
-          ])
+                    }
+                  ];
+                };
+              }
+            ]
+          ))
           (mergeByUser (
             {
               user,
