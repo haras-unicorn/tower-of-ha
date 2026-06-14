@@ -53,5 +53,11 @@
       wantedBy = [ "multi-user.target" ];
       before = [ "multi-user.target" ];
     };
+
+    systemd.targets.toh-email-initialized = {
+      description = "ToH email initialized";
+      wantedBy = [ "multi-user.target" ];
+      before = [ "multi-user.target" ];
+    };
   };
 }

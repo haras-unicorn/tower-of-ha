@@ -2,6 +2,7 @@
   toh.lib.services = rec {
     proxyProtocols = [
       "tcp"
+      "submit"
       "http"
       "https"
     ];
@@ -17,6 +18,8 @@
       "redis"
       "rediss"
       "s3"
+      "smtp"
+      "imap"
     ];
 
     sslTermination = [

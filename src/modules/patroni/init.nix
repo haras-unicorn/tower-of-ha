@@ -14,7 +14,9 @@
       options.toh.services = {
         patroni = {
           init = {
-            enable = lib.mkEnableOption "Patroni cluster initialization";
+            enable = lib.mkEnableOption "Patroni cluster initialization" // {
+              default = cfg.enable;
+            };
 
             hash = lib.mkOption {
               type = lib.types.str;
@@ -80,7 +82,11 @@
             extraTextVariables =
               let
                 serializeScripts =
-                  { files, scripts }:
+                  {
+                    files,
+                    scripts,
+                    extension,
+                  }:
                   let
                     fileList = tohLib.lists.concatMapUniqueAttrValues (
                       { name, value }:
@@ -93,14 +99,14 @@
                       { name, value }:
                       {
                         inherit name;
-                        path = pkgs.writeText "${name}.sql" value;
+                        path = pkgs.writeText "${name}.${extension}" value;
                       }
                     ) scripts;
                   in
                   fileList ++ scriptList;
 
-                sqlScripts = serializeScripts cfg.init.sql;
-                nushellScripts = serializeScripts cfg.init.nushell;
+                sqlScripts = serializeScripts (cfg.init.sql // { extension = "sql"; });
+                nushellScripts = serializeScripts (cfg.init.nushell // { extension = "nu"; });
 
                 systemdUnits = tohLib.lists.concatMapUniqueAttrValues (
                   { name, value }:

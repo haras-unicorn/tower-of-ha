@@ -29,6 +29,7 @@
       caFile = config.sops.secrets."haproxy-ca-public".path;
 
       httpPort = 443;
+      submitPort = 25;
 
       tcpPortOffset = 10000;
 
@@ -41,32 +42,33 @@
         builtins.map (machine: machine.meta.services) config.toh.cluster.machinea
       );
 
-      httpServiceNamesToMachineServices = lib.filterAttrs (
-        _: services:
-        builtins.all (
-          service:
-          let
-            endpointAttrs = tohLib.services.endpoint.toAttrs service.endpoint;
-          in
-          builtins.elem endpointAttrs.protocol [
-            "http"
-            "https"
-          ]
-        ) services
-      ) serviceNamesToMachineServices;
+      filterServiceNamesToMachineNames =
+        protocols:
+        lib.filterAttrs (
+          _: services:
+          builtins.all (
+            service:
+            let
+              endpointAttrs = tohLib.services.endpoint.toAttrs service.endpoint;
+            in
+            builtins.elem endpointAttrs.protocol protocols
+          ) services
+        ) serviceNamesToMachineServices;
 
-      tcpServiceNamesToMachineServices = lib.filterAttrs (
-        _: services:
-        builtins.all (
-          service:
-          let
-            endpointAttrs = tohLib.services.endpoint.toAttrs service.endpoint;
-          in
-          builtins.elem endpointAttrs.protocol [
-            "tcp"
-          ]
-        ) services
-      ) serviceNamesToMachineServices;
+      httpServiceNamesToMachineServices = filterServiceNamesToMachineNames [
+        "http"
+        "https"
+      ];
+
+      submitServiceMachineServices = builtins.concatLists (
+        builtins.attrValues (filterServiceNamesToMachineNames [
+          "submit"
+        ])
+      );
+
+      tcpServiceNamesToMachineServices = filterServiceNamesToMachineNames [
+        "tcp"
+      ];
 
       escape = string: builtins.replaceStrings [ "\n" "\r" " " "\t" ] [ "\\n" "\\r" "\\ " "\\t" ] string;
 
@@ -106,6 +108,7 @@
             "http"
             "https"
           ];
+          isHealthTcp = healthAttrs.protocol == "tcp";
           healthUri =
             if healthAttrs.path != null then "uri /${lib.removePrefix "/" healthAttrs.path}" else "";
         in
@@ -120,18 +123,20 @@
             "option tcp-check"
             + "\ntcp-check connect linger"
             + lib.optionalString healthAttrs.ssl " ssl"
-            + builtins.concatStringsSep "" (
-              builtins.map (
-                { send, expect }:
-                let
-                  hasSend = send != null;
-                  hasExpect = expect != null;
+            + lib.optionalString isHealthTcp (
+              builtins.concatStringsSep "" (
+                builtins.map (
+                  { send, expect }:
+                  let
+                    hasSend = send != null;
+                    hasExpect = expect != null;
 
-                  expectType = if tohLib.regex.isRegex expect then "rstring" else "string";
-                in
-                lib.optionalString hasSend "\ntcp-check send ${escape send}"
-                + lib.optionalString hasExpect "\ntcp-check expect ${expectType} ${escape expect}"
-              ) healthAttrs.packets
+                    expectType = if tohLib.regex.isRegex expect then "rstring" else "string";
+                  in
+                  lib.optionalString hasSend "\ntcp-check send ${escape send}"
+                  + lib.optionalString hasExpect "\ntcp-check expect ${expectType} ${escape expect}"
+                ) healthAttrs.packets
+              )
             )
         );
 
@@ -217,6 +222,26 @@
             ${tohLib.strings.indentTail "  " (makeServersBlock serviceName services)}
         '') tcpServiceNamesToMachineServices
       );
+
+      submitFrontend = ''
+        frontend submit_any
+          mode tcp
+          bind ${config.toh.meta.network.ip}:${builtins.toString submitPort} ssl crt ${certFile}
+          bind 127.0.0.1:${builtins.toString submitPort} ssl crt ${certFile}
+          default_backend submit_backend
+      '';
+
+      submitBackend = ''
+        backend submit_backend
+          mode tcp
+          balance leastconn
+
+          ${tohLib.strings.indentTail "  " (makePersistenceBlock "submit" submitServiceMachineServices)}
+
+          ${tohLib.strings.indentTail "  " (makeCheckBlock "submit" submitServiceMachineServices)}
+
+          ${tohLib.strings.indentTail "  " (makeServersBlock "submit" submitServiceMachineServices)}
+      '';
     in
     {
       options.toh.services = {
@@ -239,12 +264,25 @@
                 "http"
                 "https"
               ];
-              protocol = if isHttpBased then "https" else endpointAttrs.layer7Protocol;
+              isSubmit = endpointAttrs.protocol == "submit";
+              protocol =
+                if isSubmit then
+                  "submit"
+                else if isHttpBased then
+                  "https"
+                else
+                  endpointAttrs.layer7Protocol;
             in
             {
               endpoint.${protocol} = {
-                host = "${serviceName}.${serviceDomain}";
-                port = if isHttpBased then httpPort else mapTcpPortFromServices services;
+                host = if isSubmit then config.toh.meta.email.domain else "${serviceName}.${serviceDomain}";
+                port =
+                  if isSubmit then
+                    submitPort
+                  else if isHttpBased then
+                    httpPort
+                  else
+                    mapTcpPortFromServices services;
               };
             }
           ) serviceNamesToMachineServices;
@@ -269,11 +307,16 @@
               ${tcpFrontends}
 
               ${tcpBackends}
+
+              ${submitFrontend}
+
+              ${submitBackend}
             '';
           };
 
           networking.firewall.allowedTCPPorts = [
             httpPort
+            submitPort
           ]
           ++ (builtins.map mapTcpPortFromServices (builtins.attrValues tcpServiceNamesToMachineServices));
 

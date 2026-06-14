@@ -23,6 +23,7 @@
       machines = config.toh.cluster.machinea;
       nodeDomain = config.toh.meta.domains.node;
       serviceDomain = config.toh.meta.domains.service;
+      emailDomain = config.toh.meta.email.domain;
 
       otherCorednsMachines = tohLib.otherServiceMachines "coredns";
 
@@ -71,6 +72,18 @@
                     map (m: "${m.config.toh.meta.network.ip} ${m.name}.${nodeDomain}") machines
                   )}
                   fallthrough
+                }
+              }
+
+              ${emailDomain} {
+                bind 127.0.0.1
+                bind ${config.toh.meta.network.ip}
+                template IN A {
+                  ${tohLib.strings.indentTail "    " (
+                    builtins.concatStringsSep "\n" (
+                      builtins.map (relay: ''answer "{{ .Name }} 60 IN A ${relay}"'') relays
+                    )
+                  )}
                 }
               }
 

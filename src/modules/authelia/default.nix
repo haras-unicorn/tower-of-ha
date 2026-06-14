@@ -1,7 +1,5 @@
 # TODO: ntp from reverse proxied ntp server
 # - need traefik for udp revere proxy and abstracting away chrony
-# TODO: notifier setup with email
-# - need dovecot, postfix and email abstraction in meta
 
 {
   toh.lib.nixosModules.services-authelia =
@@ -30,12 +28,17 @@
       group = name;
 
       ldapConfig = config.toh.meta.ldap;
+
       dbConfig = config.toh.meta.database;
       dbName = if dbConfig.protocol == "postgresql" then "postgres" else "mysql";
       dbInstance = config.toh.meta.database.instances.${name};
+
       kvConfig = config.toh.meta.kv;
       kvName = if kvConfig.protocol == "redis" then "redis" else "redis";
       kvInstance = config.toh.meta.kv.instances.${name};
+
+      emailConfig = config.toh.meta.email;
+      emailInstance = config.toh.meta.email.emails.${name};
 
       trust = "/run/authelia/trust";
     in
@@ -107,7 +110,16 @@
                       certificate_chain: |
                 {{ secret "${kvInstance.ssl.crt}" | indent 8 }}
               '')
-              # {{ secret "${dbInstance.ssl.ca}" | indent 8 }}
+              (pkgs.writeText "authelia-config-notifications.yaml" ''
+                notifier:
+                  disable_startup_check: true
+                  smtp:
+                    address: "smtp://${emailConfig.domain}:25"
+                    username: '${name}'
+                    password: {{ secret "${emailInstance.password}" }}
+                    sender: 'Auth <${emailInstance.address}>'
+                    startup_check_address: '${emailConfig.admin}'
+              '')
             ];
 
             settings = {
@@ -131,18 +143,27 @@
                   address = ldapConfig.url;
                   base_dn = ldapConfig.baseDistinguishedName;
                   user = ldapConfig.users.authelia.dn;
+                  users_filter =
+                    let
+                      usernameFilter = lib.optionalString (
+                        ldapConfig.usernameAttribute != null
+                      ) "({username_attribute}={input})";
+                      mailFilter = lib.optionalString (ldapConfig.mailAttribute != null) "({mail_attribute}={input})";
+                    in
+                    "(&(|${usernameFilter}${mailFilter})(objectClass=${ldapConfig.userObjectClass}))";
+                  groups_filter =
+                    let
+                      groupMemberFilter = lib.optionalString (
+                        ldapConfig.groupMemberAttribute != null
+                      ) "(${ldapConfig.groupMemberAttribute}={dn})";
+                    in
+                    "(&(|${groupMemberFilter})(objectClass=${ldapConfig.groupObjectClass}))";
                 }
                 // lib.optionalAttrs (ldapConfig.additionalUsersDn != null) {
                   additional_users_dn = ldapConfig.additionalUsersDn;
                 }
                 // lib.optionalAttrs (ldapConfig.additionalGroupsDn != null) {
                   additional_groups_dn = ldapConfig.additionalGroupsDn;
-                }
-                // lib.optionalAttrs (ldapConfig.usersFilter != null) {
-                  users_filter = ldapConfig.usersFilter;
-                }
-                // lib.optionalAttrs (ldapConfig.groupsFilter != null) {
-                  groups_filter = ldapConfig.groupsFilter;
                 }
                 // {
                   attributes = lib.filterAttrs (_: value: value != null) {
@@ -163,13 +184,6 @@
                     authelia_url = proxyUrl;
                   }
                 ];
-              };
-
-              notifier = {
-                disable_startup_check = true;
-                filesystem = {
-                  filename = "/var/lib/authelia-authelia/notifications.txt";
-                };
               };
 
               access_control = {
@@ -446,10 +460,27 @@
             };
           };
 
-          toh.meta.ldap.apps.authelia = {
+          toh.meta.ldap.apps.${name} = {
             user = owner;
             group = group;
             permissions = [ tohLib.ldap.permissions.passwordChange ];
+          };
+
+          toh.meta.email.apps.${name} = {
+            user = owner;
+            group = group;
+          };
+
+          toh.meta.kv.apps.${name} = {
+            user = owner;
+            group = group;
+            database = port;
+            permissions = [
+              tohLib.kv.permissions.read
+              tohLib.kv.permissions.write
+              tohLib.kv.permissions.connection
+              tohLib.kv.permissions.keyspace
+            ];
           };
 
           systemd.services.authelia-authelia-storage-migration =
@@ -480,18 +511,6 @@
             user = owner;
             group = group;
             init.systemd.unit = "authelia-authelia-storage-migration.service";
-          };
-
-          toh.meta.kv.apps.${name} = {
-            user = owner;
-            group = group;
-            database = port;
-            permissions = [
-              tohLib.kv.permissions.read
-              tohLib.kv.permissions.write
-              tohLib.kv.permissions.connection
-              tohLib.kv.permissions.keyspace
-            ];
           };
         })
       ];

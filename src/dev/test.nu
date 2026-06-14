@@ -8,7 +8,7 @@ def "main test" []: nothing -> nothing {
   nix-unit --flake .#tests
 }
 
-# Run specified ToH NixOS test
+# Run specified ToH NixOS test (run with --no-eval-cache if the store complains)
 def --wrapped "main test nixos" [
   # Test name
   test: string,

@@ -7,7 +7,7 @@
       ...
     }:
     let
-      cfg = config.toh.services.lldap.init;
+      cfg = config.toh.services.lldap;
 
       serviceCfg = config.services.lldap;
 
@@ -20,15 +20,15 @@
         pkgs.writeText "user-config-${builtins.toString i}.json" (
           builtins.toJSON (lib.filterAttrs (_: value: value != null) config)
         )
-      ) cfg.userConfigs;
+      ) cfg.init.userConfigs;
 
       groupConfigFiles = lib.imap0 (
         i: config: pkgs.writeText "group-config-${builtins.toString i}.json" (builtins.toJSON config)
-      ) cfg.groupConfigs;
+      ) cfg.init.groupConfigs;
 
-      userSchemaFile = pkgs.writeText "user-schemas.json" (builtins.toJSON cfg.userSchemas);
+      userSchemaFile = pkgs.writeText "user-schemas.json" (builtins.toJSON cfg.init.userSchemas);
 
-      groupSchemaFile = pkgs.writeText "group-schemas.json" (builtins.toJSON cfg.groupSchemas);
+      groupSchemaFile = pkgs.writeText "group-schemas.json" (builtins.toJSON cfg.init.groupSchemas);
 
       init = pkgs.runCommand "lldap-initialization" { } ''
         mkdir -p $out/user-configs $out/group-configs $out/user-schemas $out/group-schemas
@@ -46,7 +46,9 @@
     {
       options.toh.services.lldap = {
         init = {
-          enable = lib.mkEnableOption "LLDAP initialization";
+          enable = lib.mkEnableOption "LLDAP initialization" // {
+            default = cfg.enable;
+          };
 
           userSchemas = lib.mkOption {
             type = lib.types.listOf (
@@ -186,7 +188,7 @@
         };
       };
 
-      config = lib.mkIf cfg.enable {
+      config = lib.mkIf cfg.init.enable {
         systemd.services.lldap-initialization = {
           description = "LLDAP initialization";
           wantedBy = [ "lldap.service" ];

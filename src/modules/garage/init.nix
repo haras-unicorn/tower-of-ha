@@ -14,7 +14,9 @@
       options.toh.services = {
         garage = {
           init = {
-            enable = lib.mkEnableOption "Garage cluster and bucket initialization";
+            enable = lib.mkEnableOption "Garage cluster and bucket initialization" // {
+              default = cfg.enable;
+            };
 
             keys = lib.mkOption {
               type = lib.types.listOf (

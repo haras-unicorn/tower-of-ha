@@ -55,7 +55,7 @@
         [
           {
             id = name;
-            email = "${name}@email.${config.toh.meta.domains.service}";
+            email = "${name}@${config.toh.meta.email.domain}";
             password_file = config.sops.secrets."lldap-app-${name}-pass".path;
             displayName = name;
             groups = builtins.filter (permission: permission != null) (

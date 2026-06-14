@@ -271,3 +271,13 @@ ignoreWords:
   - outform
   - pubout
   - nowatchdog
+  - maddy
+  - maddyctl
+  - dbname
+  - localpart
+  - authdb
+  - imapsql
+  - sasl
+  - dmarc
+  - msgpipeline
+  - mtasts

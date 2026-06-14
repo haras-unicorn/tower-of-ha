@@ -170,9 +170,18 @@
                         type = lib.types.submodule {
                           imports = [
                             baseEndpointSubmodule
-                            tcpHealthEndpointSubmodule
                           ]
                           ++ makeExtraEndpointImports "tcp";
+                        };
+                        default = { };
+                        description = "TCP endpoint";
+                      };
+                      submit = lib.mkOption {
+                        type = lib.types.submodule {
+                          imports = [
+                            baseEndpointSubmodule
+                          ]
+                          ++ makeExtraEndpointImports "submit";
                         };
                         default = { };
                         description = "TCP endpoint";
@@ -209,10 +218,28 @@
         };
 
       makeExtraSecureEndpointSubmodules =
-        protocol: if protocol == "tcp" then [ terminatedEndpointSubmodule ] else [ ];
+        protocol:
+        if
+          builtins.elem protocol [
+            "tcp"
+            "submit"
+          ]
+        then
+          [ terminatedEndpointSubmodule ]
+        else
+          [ ];
 
       makeExtraSecureHealthEndpointSubmodules =
-        protocol: if protocol == "tcp" then [ secureEndpointSubmodule ] else [ ];
+        protocol:
+        if
+          builtins.elem protocol [
+            "tcp"
+            "submit"
+          ]
+        then
+          [ secureEndpointSubmodule ]
+        else
+          [ ];
 
       makeExtraLayer4EndpointSubmodules =
         protocol:
@@ -235,6 +262,9 @@
           [ httpHealthEndpointSubmodule ]
         else
           [ ];
+
+      makeExtraHealthTcpEndpointSubmodules =
+        protocol: if protocol == "tcp" then [ tcpHealthEndpointSubmodule ] else [ ];
 
       makePersistentEndpointSubmodules =
         protocol:
@@ -410,6 +440,7 @@
                             protocol:
                             makeExtraSecureHealthEndpointSubmodules protocol
                             ++ makeExtraLayer4EndpointSubmodules protocol
+                            ++ makeExtraHealthTcpEndpointSubmodules protocol
                             ++ makeExtraHealthHttpEndpointSubmodules protocol;
                         })
                       ];

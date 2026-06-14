@@ -12,7 +12,6 @@
             toh.services.coredns.enable = true;
             toh.services.haproxy.enable = true;
             toh.services.garage.enable = true;
-            toh.services.garage.init.enable = true;
           };
         };
 
