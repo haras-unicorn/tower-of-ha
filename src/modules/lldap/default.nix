@@ -51,7 +51,6 @@
             baseDistinguishedName = baseDistinguishedName;
 
             additionalUsersDn = "ou=people";
-            usersFilter = "(&(|({username_attribute}={input})({mail_attribute}={input}))(objectClass=person))";
             userObjectClass = "posixAccount";
             usernameAttribute = "uid";
             displayNameAttribute = "cn";
@@ -67,11 +66,10 @@
             ];
 
             additionalGroupsDn = "ou=groups";
-            groupsFilter = "(&(member={dn})(objectClass=groupOfUniqueNames))";
-            groupObjectClass = "groupOfUniqueNames";
+            groupObjectClass = "groupOfNames";
             groupNameAttribute = "cn";
             groupGidNumber = "gidNumber";
-            groupMemberAttribute = "uniqueMember";
+            groupMemberAttribute = "member";
             idMapping = false;
             ignoredGroups = [
               "admin"
@@ -93,8 +91,7 @@
             ldap_base_dn = config.toh.meta.ldap.baseDistinguishedName;
             # NOTE: it says DN but LLDAP actually expects just a username
             ldap_user_dn = adminName;
-            # TODO: use dovecot/postfix
-            ldap_user_email = "admin@email.${config.toh.meta.domains.service}";
+            ldap_user_email = "${adminName}@${config.toh.meta.email.domain}";
             http_host = config.toh.meta.network.ip;
             http_port = httpPort;
             http_url = proxyUrl;

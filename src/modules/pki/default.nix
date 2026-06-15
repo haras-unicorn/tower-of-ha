@@ -19,6 +19,11 @@
       };
 
       config = lib.mkMerge [
+        {
+          environment.systemPackages = [
+            pkgs.openssl
+          ];
+        }
         (lib.mkIf cfg.installCa {
           toh.ssl.generateCa = true;
 

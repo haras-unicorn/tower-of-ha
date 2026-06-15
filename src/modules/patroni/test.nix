@@ -40,7 +40,6 @@
             toh.services.coredns.enable = true;
             toh.services.haproxy.enable = true;
             toh.services.patroni.enable = true;
-            toh.services.patroni.init.enable = true;
           };
         };
 
@@ -70,7 +69,6 @@
             toh.services.coredns.enable = true;
             toh.services.haproxy.enable = true;
             toh.services.patroni.enable = true;
-            toh.services.patroni.init.enable = true;
           };
         };
 
@@ -91,7 +89,6 @@
             toh.services.coredns.enable = true;
             toh.services.haproxy.enable = true;
             toh.services.patroni.enable = true;
-            toh.services.patroni.init.enable = true;
             toh.meta.database.apps.test = {
               user = "test";
               group = "test";

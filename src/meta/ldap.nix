@@ -42,16 +42,6 @@
             default = null;
             description = "Additional groups DN";
           };
-          usersFilter = lib.mkOption {
-            type = lib.types.nullOr lib.types.str;
-            default = null;
-            description = "LDAP users filter";
-          };
-          groupsFilter = lib.mkOption {
-            type = lib.types.nullOr lib.types.str;
-            default = null;
-            description = "LDAP groups filter";
-          };
           usernameAttribute = lib.mkOption {
             type = lib.types.str;
             description = "LDAP username attribute";

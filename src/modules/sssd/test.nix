@@ -13,7 +13,6 @@
             toh.services.coredns.enable = true;
             toh.services.etcd.enable = true;
             toh.services.patroni.enable = true;
-            toh.services.patroni.init.enable = true;
             toh.services.lldap.enable = true;
             toh.services.sssd.enable = true;
           };
