@@ -1,3 +1,5 @@
+# TODO: multiple users + ACL
+
 {
   toh.lib.nixosModules.meta-user =
     { lib, ... }:

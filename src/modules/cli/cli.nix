@@ -22,7 +22,7 @@
             if eval.success then eval.value else null
           ) attrs.meta;
         }
-      ) config.toh.cluster.machines;
+      ) config.toh.meta.cluster.machines;
 
       cluster = {
         inherit machines;
@@ -30,8 +30,8 @@
       };
 
       ageKeyPathsPerMachine = builtins.mapAttrs (
-        _: machine: machine.config.sops.age.keyFile
-      ) config.toh.cluster.machines;
+        _: machine: machine.meta.secrets.files.age
+      ) config.toh.meta.cluster.machines;
     in
     {
       toh.overlays.cli-nixos = tohLib.cli.makeOverlay {

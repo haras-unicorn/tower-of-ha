@@ -88,7 +88,7 @@
           };
         };
 
-        sops.secrets = mergeByUser (
+        toh.meta.sops.secrets = mergeByUser (
           {
             user,
             installSecrets,
@@ -112,7 +112,7 @@
           }
         );
 
-        toh.cryl.machine = mergeByUser (
+        toh.meta.cryl.machine = mergeByUser (
           {
             user,
             generateSecrets,
@@ -142,7 +142,7 @@
           ])
         );
 
-        toh.cryl.cluster = mergeByUser (
+        toh.meta.cryl.cluster = mergeByUser (
           { user, generateSecrets, ... }:
           lib.mkIf generateSecrets [
             {

@@ -20,7 +20,7 @@
 
     let
       cfg = config.toh.services.coredns;
-      machines = config.toh.cluster.machinea;
+      machines = config.toh.meta.cluster.machinea;
       nodeDomain = config.toh.meta.domains.node;
       serviceDomain = config.toh.meta.domains.service;
       emailDomain = config.toh.meta.email.domain;

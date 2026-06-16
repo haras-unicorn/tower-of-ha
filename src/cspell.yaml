@@ -281,3 +281,16 @@ ignoreWords:
   - dmarc
   - msgpipeline
   - mtasts
+  - openbao
+  - activecode
+  - standbycode
+  - sealedcode
+  - uninitcode
+  - userpass
+  - ipcalc
+  - rustscan
+  - prefixlen
+  - greppable
+  - sysinit
+  - fileset
+  - dependants

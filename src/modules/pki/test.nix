@@ -2,10 +2,10 @@
   perSystem =
     { pkgs, ... }:
     {
-      checks.test-ssl = pkgs.tohPackages.testers.runToHTest {
-        name = "ssl";
+      checks.test-pki = pkgs.tohPackages.testers.runToHTest {
+        name = "pki";
         nodes.machine = {
-          toh.ssl.installCa = true;
+          toh.pki.installCa = true;
         };
         toh.test.commands.suffix = ''
           machine.succeed("test -d /etc/ssl/certs")

@@ -146,7 +146,7 @@
           };
         };
 
-        sops.secrets = lib.mkMerge [
+        toh.meta.sops.secrets = lib.mkMerge [
           (lib.mkIf anyUsers {
             "valkey-acl" = {
               owner = valkeyUser;
@@ -198,7 +198,7 @@
           ))
         ];
 
-        toh.cryl.machine = lib.mkMerge [
+        toh.meta.cryl.machine = lib.mkMerge [
           (lib.mkIf anyUsers (
             lib.mkAfter [
               {
@@ -361,7 +361,7 @@
           ))
         ];
 
-        toh.cryl.cluster = mergeByUser (
+        toh.meta.cryl.cluster = mergeByUser (
           { user, generateSecrets, ... }:
           lib.mkIf generateSecrets [
             {
@@ -405,7 +405,7 @@
           { installSecrets, ... }: lib.mkIf installSecrets true
         );
 
-        toh.ssl.generateCa = mergeByUser ({ generateSecrets, ... }: lib.mkIf generateSecrets true);
+        toh.pki.generateCa = mergeByUser ({ generateSecrets, ... }: lib.mkIf generateSecrets true);
       };
     };
 }

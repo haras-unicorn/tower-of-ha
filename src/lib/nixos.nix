@@ -1,5 +1,7 @@
+{ tohLib, ... }:
+
 {
-  toh.lib.nixosModules.meta-impl =
+  toh.lib.nixosModules.lib-impl =
     { config, tohLib, ... }:
     {
       toh.lib = {
@@ -7,7 +9,7 @@
           service:
           builtins.filter (
             machine: machine.config.toh.services.${service}.enable
-          ) config.toh.cluster.machinea;
+          ) config.toh.meta.cluster.machinea;
 
         otherServiceMachines =
           service:
@@ -23,7 +25,27 @@
 
         anyServiceMachines =
           service:
-          builtins.any (machine: machine.config.toh.services.${service}.enable) config.toh.cluster.machinea;
+          builtins.any (
+            machine: machine.config.toh.services.${service}.enable
+          ) config.toh.meta.cluster.machinea;
+      };
+    };
+
+  toh.lib.nixosModules.lib =
+    { config, lib, ... }:
+    {
+      options.toh = {
+        lib = lib.mkOption {
+          type = tohLib.types.recursiveAttrsOf lib.types.raw;
+          default = { };
+          description = "ToH library merged attrset";
+        };
+      };
+
+      config = {
+        _module.args.tohLib = config.toh.lib;
+
+        toh.lib = tohLib;
       };
     };
 }

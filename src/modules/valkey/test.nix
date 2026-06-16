@@ -16,7 +16,7 @@
         };
 
         toh.test.commands.perNodeInCluster.node = [
-          ''command_node.wait_until_succeeds("systemctl is-active toh-kv-initialized.target", timeout=300)''
+          ''command_node.wait_until_succeeds("systemctl is-active toh-kv-online.target", timeout=300)''
           ''command_node.wait_until_succeeds("toh valkey valkey ping | grep -q 'PONG'", timeout=30)''
         ];
       };

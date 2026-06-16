@@ -135,23 +135,5 @@
           };
         };
       };
-
-      config = {
-        assertions = [
-          (
-            let
-              databases = builtins.concatMap (
-                { database, ... }: lib.optional (builtins.isInt database) database
-              ) (builtins.attrValues config.toh.meta.kv.apps);
-            in
-            {
-              assertion = databases == (lib.unique databases);
-              message =
-                "Duplicate KV databases requested: "
-                + builtins.concatStringsSep ", " (builtins.map builtins.toString databases);
-            }
-          )
-        ];
-      };
     };
 }

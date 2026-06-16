@@ -36,6 +36,27 @@
               cp ${wrapped} $out/bin/${name}
               chmod +x $out/bin/${name}
             '';
+
+        makeNushellLib =
+          {
+            name,
+            sources,
+          }:
+          let
+            pkgs = final;
+            lib = pkgs.lib;
+          in
+          pkgs.linkFarm (
+            builtins.listToAttrs (
+              builtins.concatMap (
+                src:
+                builtins.map (file: {
+                  name = lib.removeSuffix ".nu" (lib.removePrefix "./" (lib.path.removePrefix src file));
+                  value = file;
+                }) (lib.fileset.toList (lib.fileset.fileFilter ({ hasExt, ... }: hasExt "nu") src))
+              ) sources
+            )
+          );
       };
     };
   };

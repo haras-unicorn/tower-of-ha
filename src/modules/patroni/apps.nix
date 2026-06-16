@@ -25,7 +25,7 @@
 
       clusterApps = appAttrsToList (
         builtins.zipAttrsWith (_: builtins.head) (
-          builtins.map (machine: machine.meta.database.apps) config.toh.cluster.machinea
+          builtins.map (machine: machine.meta.database.apps) config.toh.meta.cluster.machinea
         )
       );
 
@@ -63,6 +63,7 @@
           {
             ${app.name} = pkgs.writeText "${app.name}-patroni-init-file" ''
               \c ${app.name}
+              SET ROLE ${app.name};
 
               ${builtins.readFile app.init.sql.file}
             '';
@@ -75,6 +76,7 @@
           {
             ${app.name} = ''
               \c ${app.name}
+              SET ROLE ${app.name};
 
               ${app.init.sql.script}
             '';

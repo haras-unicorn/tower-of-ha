@@ -27,7 +27,7 @@ in
         overlays = lib.mkOption {
           default = { };
           description = "Attrset of ToH overlays with dependencies";
-          type = lib.types.attrsOf (tohLib.types.overlay);
+          type = lib.types.attrsOf tohLib.types.overlay;
         };
       };
 
@@ -52,10 +52,6 @@ in
           in
           assert lib.assertMsg noUndefinedDepsAssertion.assertion noUndefinedDepsAssertion.message;
           [ composedNixpkgsOverlay ];
-
-        nixpkgs.config = {
-          allowUnfree = true;
-        };
       };
     };
 }

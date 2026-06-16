@@ -26,10 +26,10 @@
       adminPort = 3903;
       rpcPort = 3901;
 
-      owner = tohLib.garage.defaultUser.user;
-      group = tohLib.garage.defaultUser.group;
+      owner = tohLib.garage.user;
+      group = tohLib.garage.group;
 
-      rpcSecret = config.sops.secrets."garage-rpc-secret".path;
+      rpcSecret = config.toh.meta.sops.secrets."garage-rpc-secret".path;
 
       proxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.garage.endpoint;
 
@@ -96,7 +96,7 @@
 
               admin = {
                 api_bind_addr = "${config.toh.meta.network.ip}:${builtins.toString adminPort}";
-                admin_token_file = config.sops.secrets."garage-admin-token".path;
+                admin_token_file = config.toh.meta.sops.secrets."garage-admin-token".path;
               };
             };
           };
@@ -112,7 +112,7 @@
             description = "Garage config file generation";
             wantedBy = [ "garage.service" ];
             before = [ "garage.service" ];
-            unitConfig.ConditionPathExists = config.sops.secrets."garage-node-key".path;
+            unitConfig.ConditionPathExists = config.toh.meta.sops.secrets."garage-node-key".path;
             serviceConfig = {
               Type = "oneshot";
               RemainAfterExit = true;
@@ -121,13 +121,13 @@
               pkgs.tohPackages.writeNushellApplication {
                 name = "garage-config";
                 text = ''
-                  open -r ${config.sops.secrets."garage-node-key".path}
+                  open -r ${config.toh.meta.sops.secrets."garage-node-key".path}
                     | decode hex
                     | save -fr /run/secrets/garage-node-key-decoded
                   chown ${owner}:${group} /run/secrets/garage-node-key-decoded
                   chmod 0400 /run/secrets/garage-node-key-decoded
 
-                  open -r ${config.sops.secrets."garage-node-id".path}
+                  open -r ${config.toh.meta.sops.secrets."garage-node-id".path}
                     | decode hex
                     | save -fr /run/secrets/garage-node-id-decoded
                   chown ${owner}:${group} /run/secrets/garage-node-id-decoded
@@ -143,7 +143,7 @@
                     /run/secrets/garage-node-id-decoded
                     "${config.services.garage.settings.metadata_dir}/node_key.pub")
 
-                  open -r ${config.sops.secrets."garage-bootstrap-peers".path} /etc/garage.toml
+                  open -r ${config.toh.meta.sops.secrets."garage-bootstrap-peers".path} /etc/garage.toml
                     | str join "\n"
                     | save -fr /run/secrets/garage.toml
                   chown ${owner}:${group} /run/secrets/garage.toml
@@ -173,7 +173,7 @@
             ];
           };
 
-          systemd.targets.toh-s3-initialized = {
+          systemd.targets.toh-s3-online = {
             wantedBy = [ "garage.service" ];
             bindsTo = [ "garage.service" ];
             after = [ "garage.service" ];
@@ -202,32 +202,32 @@
             };
           };
 
-          sops.secrets."garage-rpc-secret" = {
+          toh.meta.sops.secrets."garage-rpc-secret" = {
             inherit owner group;
             mode = "0400";
           };
 
-          sops.secrets."garage-admin-token" = {
+          toh.meta.sops.secrets."garage-admin-token" = {
             inherit owner group;
             mode = "0400";
           };
 
-          sops.secrets."garage-node-key" = {
+          toh.meta.sops.secrets."garage-node-key" = {
             inherit owner group;
             mode = "0400";
           };
 
-          sops.secrets."garage-node-id" = {
+          toh.meta.sops.secrets."garage-node-id" = {
             inherit owner group;
             mode = "0400";
           };
 
-          sops.secrets."garage-bootstrap-peers" = {
+          toh.meta.sops.secrets."garage-bootstrap-peers" = {
             inherit owner group;
             mode = "0400";
           };
 
-          toh.cryl.machine = [
+          toh.meta.cryl.machine = [
             {
               garage = {
                 generations = [
@@ -302,7 +302,7 @@
             }
           ];
 
-          toh.cryl.cluster = [
+          toh.meta.cryl.cluster = [
             {
               garage = {
                 generations = [

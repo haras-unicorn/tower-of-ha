@@ -28,7 +28,7 @@
         (lib.mkIf cfg.installCa {
           toh.services.patroni.generateCa = true;
 
-          sops.secrets."patroni-ca-public" = {
+          toh.meta.sops.secrets."patroni-ca-public" = {
             path = ca;
             owner = config.services.patroni.user;
             group = config.services.patroni.group;
@@ -36,7 +36,7 @@
           };
         })
         (lib.mkIf cfg.generateCa {
-          toh.cryl.machine = [
+          toh.meta.cryl.machine = [
             {
               patroni-ca = {
                 generations = [
@@ -52,7 +52,7 @@
             }
           ];
 
-          toh.cryl.cluster = lib.mkBefore [
+          toh.meta.cryl.cluster = lib.mkBefore [
             {
               patroni-ca = {
                 generations = [

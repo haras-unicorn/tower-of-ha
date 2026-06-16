@@ -69,7 +69,7 @@
               ];
 
               nodes.machine = {
-                toh.ssl.installCa = true;
+                toh.pki.installCa = true;
                 toh.meta.domains.machineSecret = domainSecret;
                 toh.services.ddns-updater = {
                   enable = true;

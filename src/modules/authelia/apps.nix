@@ -38,7 +38,7 @@
 
       clusterApps = appAttrsToList (
         builtins.zipAttrsWith (_: builtins.head) (
-          builtins.map (machine: machine.meta.oidc.apps) config.toh.cluster.machinea
+          builtins.map (machine: machine.meta.oidc.apps) config.toh.meta.cluster.machinea
         )
       );
     in
@@ -48,7 +48,7 @@
         {
           ${name} = {
             clientId = name;
-            clientSecret = config.sops.secrets."authelia-oidc-${name}-secret-plaintext".path;
+            clientSecret = config.toh.meta.sops.secrets."authelia-oidc-${name}-secret-plaintext".path;
             issuerUrl = proxyUrl;
             inherit redirectUris;
           };
@@ -62,7 +62,9 @@
             {
               client_id = name;
               client_name = name;
-              client_secret = ''{{ secret "${config.sops.secrets."authelia-oidc-${name}-secret".path}" }}'';
+              client_secret = ''{{ secret "${
+                config.toh.meta.sops.secrets."authelia-oidc-${name}-secret".path
+              }" }}'';
               public = false;
               redirect_uris = redirectUris;
               id_token_signed_response_alg = "ES256";
@@ -83,7 +85,7 @@
         );
       };
 
-      sops.secrets = lib.mkMerge [
+      toh.meta.sops.secrets = lib.mkMerge [
         (mergeByClusterApps (
           { name, ... }:
           {
@@ -106,7 +108,7 @@
         ))
       ];
 
-      toh.cryl.machine = lib.mkMerge [
+      toh.meta.cryl.machine = lib.mkMerge [
         (mergeByClusterApps (
           { name, ... }:
           [
@@ -145,7 +147,7 @@
         ))
       ];
 
-      toh.cryl.cluster = mergeByClusterApps (
+      toh.meta.cryl.cluster = mergeByClusterApps (
         { name, ... }:
         [
           {

@@ -26,7 +26,7 @@
 
         # TODO: actually try sending and reading when himalaya in v2
         toh.test.commands.perNodeInCluster.node = [
-          ''command_node.wait_until_succeeds("systemctl is-active toh-email-initialized.target", timeout=300)''
+          ''command_node.wait_until_succeeds("systemctl is-active toh-email-online.target", timeout=300)''
           ''command_node.succeed("toh email maddy envelope list")''
         ];
       };

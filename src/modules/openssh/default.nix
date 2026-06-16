@@ -51,45 +51,45 @@
           "d ${config.toh.meta.user.home}/.ssh 0700 ${user} ${user} - -"
         ];
         # NOTE: a bit hacky but the "official" options are too static
-        sops.secrets."ssh-authorized-keys" = {
+        toh.meta.sops.secrets."ssh-authorized-keys" = {
           path = "${config.toh.meta.user.home}/.ssh/toh_authorized_keys";
           owner = user;
           group = user;
           mode = "0644";
         };
         # NOTE: a bit hacky but the "official" options are too static
-        sops.secrets."ssh-known-hosts" = {
+        toh.meta.sops.secrets."ssh-known-hosts" = {
           path = "${config.toh.meta.user.home}/.ssh/toh_known_hosts";
           owner = user;
           group = user;
           mode = "0644";
         };
-        sops.secrets."ssh-public" = {
+        toh.meta.sops.secrets."ssh-public" = {
           path = "${config.toh.meta.user.home}/.ssh/toh.pub";
           owner = user;
           group = user;
           mode = "0644";
         };
-        sops.secrets."ssh-private" = {
+        toh.meta.sops.secrets."ssh-private" = {
           path = "${config.toh.meta.user.home}/.ssh/toh";
           owner = user;
           group = user;
           mode = "0600";
         };
-        sops.secrets."ssh-server-public" = {
+        toh.meta.sops.secrets."ssh-server-public" = {
           path = "/etc/ssh/ssh_host_toh.pub";
           owner = "root";
           group = "root";
           mode = "0644";
         };
-        sops.secrets."ssh-server-private" = {
+        toh.meta.sops.secrets."ssh-server-private" = {
           path = "/etc/ssh/ssh_host_toh";
           owner = "root";
           group = "root";
           mode = "0600";
         };
 
-        toh.cryl.machine = [
+        toh.meta.cryl.machine = [
           {
             openssh = {
               generations = [
@@ -172,7 +172,7 @@
           }
         ];
 
-        toh.cryl.cluster = [
+        toh.meta.cryl.cluster = [
           {
             openssh = {
               generations = builtins.concatMap (machine: [

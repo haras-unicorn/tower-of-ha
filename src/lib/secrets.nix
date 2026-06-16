@@ -7,9 +7,19 @@
     };
 
     keys = {
-      cluster = "kv/toh/cluster";
-      machines = "kv/toh/machines";
-      external = "kv/toh/external";
+      mount = "kv";
+      cluster = "toh/cluster";
+      machines = "toh/machines";
+      external = "toh/external";
+      root = "toh/root";
+      age = "age-private";
+    };
+
+    files = {
+      token = "token.txt";
+      response = "response.txt";
+      metadata = "metadata.json";
+      root = "root.json";
     };
   };
 }

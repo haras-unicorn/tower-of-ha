@@ -4,7 +4,7 @@
   toh.lib.nixosModules.meta-cryl =
     { lib, ... }:
     {
-      options.toh = {
+      options.toh.meta = {
         cryl = {
           cluster = lib.mkOption {
             type = lib.types.listOf (

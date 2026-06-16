@@ -30,7 +30,7 @@
         };
 
         toh.test.commands.perNode = [
-          ''command_node.wait_until_succeeds("systemctl is-active toh-auth-oidc-initialized.target", timeout=300)''
+          ''command_node.wait_until_succeeds("systemctl is-active toh-oidc-online.target", timeout=300)''
           ''
             command_node.wait_until_succeeds("""
               curl -f https://authelia.service.toh/api/health | grep -q '"status":"OK"'

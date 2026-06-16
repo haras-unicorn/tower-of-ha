@@ -1,5 +1,5 @@
 {
-  toh.lib.nixosModules.ssl =
+  toh.lib.nixosModules.pki =
     {
       lib,
       tohLib,
@@ -8,13 +8,13 @@
       ...
     }:
     let
-      cfg = config.toh.ssl;
+      cfg = config.toh.pki;
     in
     {
       options.toh = {
-        ssl = {
-          installCa = lib.mkEnableOption "ToH SSL CA installation";
-          generateCa = lib.mkEnableOption "ToH SSL CA generation";
+        pki = {
+          installCa = lib.mkEnableOption "ToH PKI SSL CA installation";
+          generateCa = lib.mkEnableOption "ToH PKI SSL CA generation";
         };
       };
 
@@ -25,19 +25,19 @@
           ];
         }
         (lib.mkIf cfg.installCa {
-          toh.ssl.generateCa = true;
+          toh.pki.generateCa = true;
 
-          security.pki.certificatePaths = [ config.sops.secrets."openssl-ca-public".path ];
-          security.pki.buildOnActivation = true;
+          security.pki.certificatePaths = [ config.toh.meta.sops.secrets."openssl-ca-public".path ];
+          security.pki.buildWithService = true;
 
-          sops.secrets."openssl-ca-public" = {
+          toh.meta.sops.secrets."openssl-ca-public" = {
             owner = "root";
             group = "root";
             mode = "0644";
           };
         })
         (lib.mkIf cfg.generateCa {
-          toh.cryl.machine = [
+          toh.meta.cryl.machine = [
             {
               openssl = {
                 generations = [
@@ -53,7 +53,7 @@
             }
           ];
 
-          toh.cryl.cluster = lib.mkBefore [
+          toh.meta.cryl.cluster = lib.mkBefore [
             {
               openssl = {
                 generations = [

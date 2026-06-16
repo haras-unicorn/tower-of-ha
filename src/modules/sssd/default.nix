@@ -47,8 +47,8 @@
           description = "SSSD LDAP bind password environment file";
           wantedBy = [ "sssd.service" ];
           before = [ "sssd.service" ];
-          requires = [ "toh-auth-ldap-initialized.target" ];
-          after = [ "toh-auth-ldap-initialized.target" ];
+          requires = [ "toh-ldap-online.target" ];
+          after = [ "toh-ldap-online.target" ];
           unitConfig.ConditionPathExists = ldapConfig.users.${name}.password;
           serviceConfig = {
             Type = "oneshot";
@@ -130,9 +130,9 @@
         };
 
         systemd.services.sssd = {
-          wantedBy = [ "toh-auth-ldap-initialized.target" ];
-          requires = [ "toh-auth-ldap-initialized.target" ];
-          after = [ "toh-auth-ldap-initialized.target" ];
+          wantedBy = [ "toh-ldap-online.target" ];
+          requires = [ "toh-ldap-online.target" ];
+          after = [ "toh-ldap-online.target" ];
         };
 
         toh.meta.ldap.apps.${name} = {

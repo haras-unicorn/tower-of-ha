@@ -88,7 +88,7 @@ in
           builtins.map (
             { name, value }:
             lib.mkIf value.enable (
-              tohLib.dns.unbound.routeToIp value.domains config.nodes."http-${name}".toh.meta.network.ip
+              tohLib.dns.routeToIp value.domains config.nodes."http-${name}".toh.meta.network.ip
             )
           ) (lib.attrsToList config.toh.test.http)
         );
@@ -139,8 +139,8 @@ in
 
         ${lib.optionalString cfg.ssl ''
           HTTPS_PORT = ${builtins.toString httpsPort}
-          SSL_CERT = "${config.sops.secrets."http-public".path}"
-          SSL_KEY = "${config.sops.secrets."http-private".path}"
+          SSL_CERT = "${config.toh.meta.sops.secrets."http-public".path}"
+          SSL_KEY = "${config.toh.meta.sops.secrets."http-private".path}"
         ''}
 
         LOG_FILE = "/var/lib/${stateDir}/log.jsonl"
@@ -340,19 +340,19 @@ in
 
         users.groups.http = { };
 
-        sops.secrets."http-public" = lib.mkIf cfg.ssl {
+        toh.meta.sops.secrets."http-public" = lib.mkIf cfg.ssl {
           owner = "http";
           group = "http";
           mode = "0400";
         };
 
-        sops.secrets."http-private" = lib.mkIf cfg.ssl {
+        toh.meta.sops.secrets."http-private" = lib.mkIf cfg.ssl {
           owner = "http";
           group = "http";
           mode = "0400";
         };
 
-        toh.cryl.machine = lib.mkIf cfg.ssl [
+        toh.meta.cryl.machine = lib.mkIf cfg.ssl [
           {
             http = {
               generations = [
@@ -383,7 +383,7 @@ in
           }
         ];
 
-        toh.ssl.generateCa = lib.mkIf cfg.ssl true;
+        toh.pki.generateCa = lib.mkIf cfg.ssl true;
       };
     };
 }

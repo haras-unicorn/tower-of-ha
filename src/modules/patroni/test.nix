@@ -16,7 +16,7 @@
         };
 
         toh.test.commands.perNodeInCluster.node = [
-          ''command_node.wait_until_succeeds("systemctl is-active toh-database-initialized.target", timeout=300)''
+          ''command_node.wait_until_succeeds("systemctl is-active toh-database-online.target", timeout=300)''
           (
             node:
             let
@@ -44,7 +44,7 @@
         };
 
         toh.test.commands.perNodeInCluster.node = [
-          ''command_node.wait_until_succeeds("systemctl is-active toh-database-initialized.target", timeout=300)''
+          ''command_node.wait_until_succeeds("systemctl is-active toh-database-online.target", timeout=300)''
           (
             node:
             let
@@ -73,7 +73,7 @@
         };
 
         toh.test.commands.perNodeInCluster.node = [
-          ''command_node.wait_until_succeeds("systemctl is-active toh-database-initialized.target", timeout=300)''
+          ''command_node.wait_until_succeeds("systemctl is-active toh-database-online.target", timeout=300)''
           ''command_node.succeed("toh psql postgres -d __toh_initialization -c 'select * from initializations;'")''
         ];
       };
@@ -100,7 +100,7 @@
         };
 
         toh.test.commands.perNodeInCluster.node = [
-          ''command_node.wait_until_succeeds("systemctl is-active toh-database-initialized.target", timeout=300)''
+          ''command_node.wait_until_succeeds("systemctl is-active toh-database-online.target", timeout=300)''
           ''command_node.succeed("toh psql test -d test -c \"insert into test values ('test');\"")''
           ''command_node.succeed("toh psql test -d test -c \"select test from test where test = 'test';\"")''
         ];

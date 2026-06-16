@@ -219,7 +219,7 @@
           };
         };
 
-        systemd.targets.toh-auth-ldap-initialized = {
+        systemd.targets.toh-ldap-online = {
           wantedBy = [ "lldap-initialization.service" ];
           bindsTo = [ "lldap-initialization.service" ];
           after = [ "lldap-initialization.service" ];

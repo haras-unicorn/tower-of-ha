@@ -68,14 +68,14 @@
               etcd3 = {
                 host = "${etcdProxyAttrs.host}:${builtins.toString etcdProxyAttrs.port}";
                 protocol = etcdProxyAttrs.protocol;
-                cacert = config.sops.secrets."patroni-etcd-ca".path;
-                cert = config.sops.secrets."patroni-etcd-public".path;
-                key = config.sops.secrets."patroni-etcd-private".path;
+                cacert = config.toh.meta.sops.secrets."patroni-etcd-ca".path;
+                cert = config.toh.meta.sops.secrets."patroni-etcd-public".path;
+                key = config.toh.meta.sops.secrets."patroni-etcd-private".path;
               };
 
               restapi = {
-                certfile = config.sops.secrets."patroni-restapi-public".path;
-                keyfile = config.sops.secrets."patroni-restapi-private".path;
+                certfile = config.toh.meta.sops.secrets."patroni-restapi-public".path;
+                keyfile = config.toh.meta.sops.secrets."patroni-restapi-private".path;
               };
 
               postgresql = {
@@ -108,9 +108,9 @@
 
                 parameters = {
                   ssl = "on";
-                  ssl_cert_file = config.sops.secrets."patroni-ssl-public".path;
-                  ssl_key_file = config.sops.secrets."patroni-ssl-private".path;
-                  ssl_ca_file = config.sops.secrets."patroni-ssl-ca".path;
+                  ssl_cert_file = config.toh.meta.sops.secrets."patroni-ssl-public".path;
+                  ssl_key_file = config.toh.meta.sops.secrets."patroni-ssl-private".path;
+                  ssl_ca_file = config.toh.meta.sops.secrets."patroni-ssl-ca".path;
                   log_line_prefix = "%m [%p] %a ";
                 };
 
@@ -142,22 +142,22 @@
           ];
 
           systemd.services.patroni.wantedBy = [
-            "toh-config-initialized.target"
+            "toh-config-online.target"
             "toh-network-online.target"
             "toh-time-synchronized.target"
           ];
           systemd.services.patroni.after = [
-            "toh-config-initialized.target"
+            "toh-config-online.target"
             "toh-network-online.target"
             "toh-time-synchronized.target"
           ];
           systemd.services.patroni.requires = [
-            "toh-config-initialized.target"
+            "toh-config-online.target"
             "toh-network-online.target"
             "toh-time-synchronized.target"
           ];
 
-          systemd.targets.toh-database-initialized = {
+          systemd.targets.toh-database-online = {
             wantedBy = [ "patroni.service" ];
             bindsTo = [ "patroni.service" ];
             after = [ "patroni.service" ];
@@ -187,42 +187,42 @@
             };
           };
 
-          sops.secrets."patroni-etcd-ca" = {
+          toh.meta.sops.secrets."patroni-etcd-ca" = {
             inherit owner group;
             key = "openssl-ca-public";
             mode = "0644";
           };
-          sops.secrets."patroni-etcd-public" = {
+          toh.meta.sops.secrets."patroni-etcd-public" = {
             inherit owner group;
             mode = "0644";
           };
-          sops.secrets."patroni-etcd-private" = {
+          toh.meta.sops.secrets."patroni-etcd-private" = {
             inherit owner group;
             mode = "0400";
           };
-          sops.secrets."patroni-restapi-public" = {
+          toh.meta.sops.secrets."patroni-restapi-public" = {
             inherit owner group;
             mode = "0644";
           };
-          sops.secrets."patroni-restapi-private" = {
+          toh.meta.sops.secrets."patroni-restapi-private" = {
             inherit owner group;
             mode = "0400";
           };
-          sops.secrets."patroni-ssl-ca" = {
+          toh.meta.sops.secrets."patroni-ssl-ca" = {
             key = "patroni-ca-public";
             inherit owner group;
             mode = "0644";
           };
-          sops.secrets."patroni-ssl-public" = {
+          toh.meta.sops.secrets."patroni-ssl-public" = {
             inherit owner group;
             mode = "0644";
           };
-          sops.secrets."patroni-ssl-private" = {
+          toh.meta.sops.secrets."patroni-ssl-private" = {
             inherit owner group;
             mode = "0400";
           };
 
-          toh.cryl.machine = [
+          toh.meta.cryl.machine = [
             {
               patroni = {
                 generations = [
@@ -305,7 +305,7 @@
           );
 
           toh.services.patroni.generateCa = true;
-          toh.ssl.generateCa = true;
+          toh.pki.generateCa = true;
         })
       ];
     };

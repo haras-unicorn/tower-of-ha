@@ -257,23 +257,23 @@
 
           systemd.services.maddy = {
             wantedBy = [
-              "toh-database-initialized.target"
-              "toh-auth-ldap-initialized.target"
-              "toh-s3-initialized.target"
+              "toh-database-online.target"
+              "toh-ldap-online.target"
+              "toh-s3-online.target"
             ];
             requires = [
-              "toh-database-initialized.target"
-              "toh-auth-ldap-initialized.target"
-              "toh-s3-initialized.target"
+              "toh-database-online.target"
+              "toh-ldap-online.target"
+              "toh-s3-online.target"
             ];
             after = [
-              "toh-database-initialized.target"
-              "toh-auth-ldap-initialized.target"
-              "toh-s3-initialized.target"
+              "toh-database-online.target"
+              "toh-ldap-online.target"
+              "toh-s3-online.target"
             ];
           };
 
-          systemd.targets.toh-email-initialized = {
+          systemd.targets.toh-email-online = {
             wantedBy = [ "maddy.service" ];
             bindsTo = [ "maddy.service" ];
             after = [ "maddy.service" ];

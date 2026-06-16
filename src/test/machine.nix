@@ -9,7 +9,7 @@
       ...
     }:
     {
-      toh.cluster = tohLib.cluster.fromTestNodes nodes;
+      toh.meta.cluster = tohLib.cluster.fromTestNodes nodes;
 
       toh.meta.machine.name = config.virtualisation.test.nodeName;
       toh.meta.machine.index = config.virtualisation.test.nodeNumber;
@@ -61,6 +61,7 @@
         pkgs.dig
         pkgs.socat
         pkgs.helix
+        pkgs.nushell
         pkgs.usql
       ];
     };

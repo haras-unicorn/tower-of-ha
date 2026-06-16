@@ -59,7 +59,7 @@
 
         services.ddns-updater.enable = true;
         services.ddns-updater.environment = {
-          CONFIG_FILEPATH = config.sops.secrets."ddns-updater-settings".path;
+          CONFIG_FILEPATH = config.toh.meta.sops.secrets."ddns-updater-settings".path;
           LISTENING_ADDRESS = ":${builtins.toString httpPort}";
           HEALTH_SERVER_ADDRESS = ":${builtins.toString healthPort}";
           # NOTE: keeping this here for easier debug later
@@ -95,13 +95,13 @@
           endpoint.http.port = httpPort;
         };
 
-        sops.secrets."ddns-updater-settings" = {
+        toh.meta.sops.secrets."ddns-updater-settings" = {
           owner = "ddns-updater";
           group = "ddns-updater";
           mode = "0400";
         };
 
-        toh.cryl.machine = lib.mkMerge [
+        toh.meta.cryl.machine = lib.mkMerge [
           [
             {
               ddns-updater-settings = {

@@ -39,16 +39,16 @@
       config = lib.mkMerge [
         (lib.mkIf cfg.installAdminSecret {
           services.lldap.environment = {
-            LLDAP_LDAP_USER_PASS_FILE = config.sops.secrets."lldap-admin-pass".path;
+            LLDAP_LDAP_USER_PASS_FILE = config.toh.meta.sops.secrets."lldap-admin-pass".path;
           };
 
           toh.meta.ldap = {
             # NOTE: all users are under ou=people + base DN
             adminDistinguishedName = "uid=admin,ou=people,${config.toh.meta.ldap.baseDistinguishedName}";
-            adminPassword = config.sops.secrets."lldap-admin-pass".path;
+            adminPassword = config.toh.meta.sops.secrets."lldap-admin-pass".path;
           };
 
-          sops.secrets."lldap-admin-pass" = {
+          toh.meta.sops.secrets."lldap-admin-pass" = {
             inherit owner group;
             mode = "0400";
           };
@@ -57,7 +57,7 @@
           toh.services.lldap.generateAdminSecret = true;
         })
         (lib.mkIf cfg.generateAdminSecret {
-          toh.cryl.machine = [
+          toh.meta.cryl.machine = [
             {
               lldap-admin = {
                 generations = [
@@ -73,7 +73,7 @@
             }
           ];
 
-          toh.cryl.cluster = [
+          toh.meta.cryl.cluster = [
             {
               lldap-admin = {
                 generations = [

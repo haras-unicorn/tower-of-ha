@@ -159,7 +159,7 @@
               ]
         );
 
-        systemd.targets.toh-filesystem-initialized =
+        systemd.targets.toh-filesystem-online =
           let
             services = [ fsEnsureService ] ++ allDaemonServices;
           in
@@ -276,7 +276,7 @@
                       ceph-mon -i "${name}" \
                         --mkfs \
                         --monmap "$monmap" \
-                        --keyring "${config.sops.secrets.${keyring}.path}"
+                        --keyring "${config.toh.meta.sops.secrets.${keyring}.path}"
                     fi
                   '';
                 serviceConfig = {
@@ -300,7 +300,7 @@
                       (
                         otherKeyringPath:
                         let
-                          keyringPath = config.sops.secrets.${keyring}.path;
+                          keyringPath = config.toh.meta.sops.secrets.${keyring}.path;
                         in
                         ''ceph -n mon. -k "${keyringPath}" auth import -i "${otherKeyringPath}"''
                       )
@@ -309,7 +309,7 @@
                           lib.attrsToList (
                             lib.filterAttrs (
                               name: value: lib.hasPrefix "cephfs" name && lib.hasSuffix "keyring" name && name != keyring
-                            ) config.sops.secrets
+                            ) config.toh.meta.sops.secrets
                           )
                         )
                       )
@@ -369,7 +369,7 @@
           ) daemons
         );
 
-        sops.secrets = lib.mkMerge (
+        toh.meta.sops.secrets = lib.mkMerge (
           builtins.map (
             {
               stateDirectory,
@@ -396,7 +396,7 @@
           ) daemons
         );
 
-        toh.cryl.machine = [
+        toh.meta.cryl.machine = [
           {
             cephfs = {
               generations = builtins.concatMap (
@@ -465,7 +465,7 @@
           }
         ];
 
-        toh.cryl.cluster = [
+        toh.meta.cryl.cluster = [
           {
             cephfs = {
               generations = builtins.concatMap (
