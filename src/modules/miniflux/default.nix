@@ -42,7 +42,7 @@
           ${lib.getExe pkgs.tohPackages.mustacheRenderer} \
             --variables '{
               "DATABASE_MINIFLUX_URL": "${instance.url}",
-              "ADMIN_PASSWORD": "${config.sops.secrets."miniflux-admin-password".path}"
+              "ADMIN_PASSWORD": "${config.toh.meta.sops.secrets."miniflux-admin-password".path}"
             }' \
             --template 'DATABASE_URL="{{DATABASE_MINIFLUX_URL}}"
           ADMIN_USERNAME="miniflux"
@@ -67,9 +67,9 @@
           };
         };
 
-        systemd.services.miniflux.wantedBy = [ "toh-database-initialized.target" ];
-        systemd.services.miniflux.requires = [ "toh-database-initialized.target" ];
-        systemd.services.miniflux.after = [ "toh-database-initialized.target" ];
+        systemd.services.miniflux.wantedBy = [ "toh-database-online.target" ];
+        systemd.services.miniflux.requires = [ "toh-database-online.target" ];
+        systemd.services.miniflux.after = [ "toh-database-online.target" ];
 
         networking.firewall.allowedTCPPorts = [ port ];
 
@@ -83,12 +83,12 @@
           group = config.systemd.services.miniflux.serviceConfig.User;
         };
 
-        sops.secrets."miniflux-admin-password" = {
+        toh.meta.sops.secrets."miniflux-admin-password" = {
           inherit owner group;
           mode = "0400";
         };
 
-        toh.cryl.machine = [
+        toh.meta.cryl.machine = [
           {
             miniflux = {
               generations = [
@@ -104,7 +104,7 @@
           }
         ];
 
-        toh.cryl.cluster = [
+        toh.meta.cryl.cluster = [
           {
             miniflux = {
               generations = [

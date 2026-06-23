@@ -36,7 +36,7 @@
 
       config = lib.mkIf testConfig.toh.test.s3.enable {
         toh.test.commands.prefix = lib.mkBefore ''
-          s3.wait_for_unit("toh-test-s3-initialized.target")
+          s3.wait_for_unit("toh-test-s3-online.target")
         '';
 
         nodes.s3 =
@@ -89,7 +89,7 @@
               '';
             };
 
-            systemd.targets.toh-test-s3-initialized = {
+            systemd.targets.toh-test-s3-online = {
               description = "ToH test S3 initialized";
               requires = lib.mkMerge [
                 (lib.mkIf (testConfig.toh.test.s3.buckets != [ ]) [ "minio-bucket-init.service" ])

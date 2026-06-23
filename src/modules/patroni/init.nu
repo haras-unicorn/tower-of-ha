@@ -395,7 +395,6 @@ def "main" [
         let output = (
           timeout $"($script_timeout)s"
             psql
-              -d __toh_initialization
               --set=ON_ERROR_STOP=on
               -f $script.path
         ) | complete

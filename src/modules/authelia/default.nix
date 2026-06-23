@@ -74,14 +74,16 @@
                     jwks:
                       - algorithm: RS256
                         key: |
-                {{ secret "${config.sops.secrets."authelia-jwks-rsa-key".path}" | indent 10 }}
+                {{ secret "${config.toh.meta.sops.secrets."authelia-jwks-rsa-key".path}" | indent 10 }}
                         certificate_chain: |
-                {{ secret "${config.sops.secrets."authelia-jwks-rsa-certificate-chain".path}" | indent 10 }}
+                {{ secret "${
+                  config.toh.meta.sops.secrets."authelia-jwks-rsa-certificate-chain".path
+                }" | indent 10 }}
                       - algorithm: ES256
                         key: |
-                {{ secret "${config.sops.secrets."authelia-jwks-key".path}" | indent 10 }}
+                {{ secret "${config.toh.meta.sops.secrets."authelia-jwks-key".path}" | indent 10 }}
                         certificate_chain: |
-                {{ secret "${config.sops.secrets."authelia-jwks-certificate-chain".path}" | indent 10 }}
+                {{ secret "${config.toh.meta.sops.secrets."authelia-jwks-certificate-chain".path}" | indent 10 }}
               '')
               (pkgs.writeText "authelia-config-database.yaml" ''
                 storage:
@@ -204,11 +206,12 @@
               X_AUTHELIA_CONFIG_FILTERS = "template";
               AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD_FILE = ldapConfig.users.authelia.password;
               AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE =
-                config.sops.secrets."authelia-jwt-secret".path;
-              AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE = config.sops.secrets."authelia-storage-encryption-key".path;
-              AUTHELIA_SESSION_SECRET_FILE = config.sops.secrets."authelia-session-secret".path;
+                config.toh.meta.sops.secrets."authelia-jwt-secret".path;
+              AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE =
+                config.toh.meta.sops.secrets."authelia-storage-encryption-key".path;
+              AUTHELIA_SESSION_SECRET_FILE = config.toh.meta.sops.secrets."authelia-session-secret".path;
               AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET_FILE =
-                config.sops.secrets."authelia-oidc-hmac-secret".path;
+                config.toh.meta.sops.secrets."authelia-oidc-hmac-secret".path;
             };
           };
 
@@ -232,20 +235,20 @@
               Group = lib.mkForce group;
             };
             wantedBy = [
-              "toh-database-initialized.target"
-              "toh-auth-ldap-initialized.target"
+              "toh-database-online.target"
+              "toh-ldap-online.target"
             ];
             requires = [
-              "toh-database-initialized.target"
-              "toh-auth-ldap-initialized.target"
+              "toh-database-online.target"
+              "toh-ldap-online.target"
             ];
             after = [
-              "toh-database-initialized.target"
-              "toh-auth-ldap-initialized.target"
+              "toh-database-online.target"
+              "toh-ldap-online.target"
             ];
           };
 
-          systemd.targets.toh-auth-oidc-initialized = {
+          systemd.targets.toh-oidc-online = {
             wantedBy = [ "authelia-authelia.service" ];
             bindsTo = [ "authelia-authelia.service" ];
             after = [ "authelia-authelia.service" ];
@@ -253,40 +256,40 @@
 
           networking.firewall.allowedTCPPorts = [ port ];
 
-          sops.secrets."authelia-jwt-secret" = {
+          toh.meta.sops.secrets."authelia-jwt-secret" = {
             inherit owner group;
             mode = "0400";
           };
-          sops.secrets."authelia-session-secret" = {
+          toh.meta.sops.secrets."authelia-session-secret" = {
             inherit owner group;
             mode = "0400";
           };
-          sops.secrets."authelia-storage-encryption-key" = {
+          toh.meta.sops.secrets."authelia-storage-encryption-key" = {
             inherit owner group;
             mode = "0400";
           };
-          sops.secrets."authelia-oidc-hmac-secret" = {
+          toh.meta.sops.secrets."authelia-oidc-hmac-secret" = {
             inherit owner group;
             mode = "0400";
           };
-          sops.secrets."authelia-jwks-key" = {
+          toh.meta.sops.secrets."authelia-jwks-key" = {
             inherit owner group;
             mode = "0400";
           };
-          sops.secrets."authelia-jwks-certificate-chain" = {
+          toh.meta.sops.secrets."authelia-jwks-certificate-chain" = {
             inherit owner group;
             mode = "0400";
           };
-          sops.secrets."authelia-jwks-rsa-key" = {
+          toh.meta.sops.secrets."authelia-jwks-rsa-key" = {
             inherit owner group;
             mode = "0400";
           };
-          sops.secrets."authelia-jwks-rsa-certificate-chain" = {
+          toh.meta.sops.secrets."authelia-jwks-rsa-certificate-chain" = {
             inherit owner group;
             mode = "0400";
           };
 
-          toh.cryl.machine = [
+          toh.meta.cryl.machine = [
             {
               authelia = {
                 generations = [
@@ -351,7 +354,7 @@
             }
           ];
 
-          toh.cryl.cluster = [
+          toh.meta.cryl.cluster = [
             {
               authelia = {
                 generations = [

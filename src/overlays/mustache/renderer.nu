@@ -1,24 +1,24 @@
 def "main" [
   --template: string
-  --template_file: string
   --variables: string
-  --variables_file: string
   --out: string
   --chown: string
   --chmod: string
 ] {
-  let variables = ($variables | default "{ }")
-    | from json
+  let variables = if ($variables | path exists) {
+    open --raw $variables | from toml
+  } else {
+    $variables | from toml
+  }
+  let variables = $variables
     | transpose key value
     | each { { key: $in.key value: (open --raw $in.value) } }
     | transpose -ird
-    | merge (if $variables_file == null { { } } else {
-        open --raw $variables_file | from toml
-      })
-  let template = ($template | default "")
-    + (if $template_file == null { "" } else {
-      open --raw $template_file
-    })
+  let template = if ($template | path exists) {
+    open --raw $template
+  } else {
+    $template
+  }
   if $out == null {
     return (with-env $variables { $template | mo /dev/stdin })
   }

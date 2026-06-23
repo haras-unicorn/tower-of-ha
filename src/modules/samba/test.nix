@@ -51,7 +51,7 @@
                 };
               in
               [
-                ''command_node.wait_until_succeeds("systemctl is-active toh-filesystem-initialized.target", timeout=300)''
+                ''command_node.wait_until_succeeds("systemctl is-active toh-filesystem-online.target", timeout=300)''
                 (
                   node:
                   let

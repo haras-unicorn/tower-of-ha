@@ -62,9 +62,9 @@
         services.nebula.networks.toh = {
           enable = true;
           isLighthouse = isLighthouseAndRelay;
-          ca = config.sops.secrets."nebula-ca-public".path;
-          cert = config.sops.secrets."nebula-public".path;
-          key = config.sops.secrets."nebula-private".path;
+          ca = config.toh.meta.sops.secrets."nebula-ca-public".path;
+          cert = config.toh.meta.sops.secrets."nebula-public".path;
+          key = config.toh.meta.sops.secrets."nebula-private".path;
         };
 
         systemd.services."nebula@toh" = {
@@ -98,9 +98,9 @@
         ];
         environment.etc."nebula/config.d/config.yaml".text = ''
           pki:
-            ca: ${config.sops.secrets."nebula-ca-public".path}
-            cert: ${config.sops.secrets."nebula-public".path}
-            key: ${config.sops.secrets."nebula-private".path}
+            ca: ${config.toh.meta.sops.secrets."nebula-ca-public".path}
+            cert: ${config.toh.meta.sops.secrets."nebula-public".path}
+            key: ${config.toh.meta.sops.secrets."nebula-private".path}
           listen:
             host: '[::]'
             port: ${if isLighthouseAndRelay then "4242" else "0"}
@@ -148,29 +148,29 @@
           };
         };
 
-        sops.secrets."nebula-ca-public" = {
+        toh.meta.sops.secrets."nebula-ca-public" = {
           owner = "nebula-toh";
           group = "nebula-toh";
           mode = "0644";
         };
-        sops.secrets."nebula-public" = {
+        toh.meta.sops.secrets."nebula-public" = {
           owner = "nebula-toh";
           group = "nebula-toh";
           mode = "0644";
         };
-        sops.secrets."nebula-private" = {
+        toh.meta.sops.secrets."nebula-private" = {
           owner = "nebula-toh";
           group = "nebula-toh";
           mode = "0400";
         };
-        sops.secrets."nebula-static-host-map" = {
+        toh.meta.sops.secrets."nebula-static-host-map" = {
           path = "/etc/nebula/config.d/static-host-map.yaml";
           owner = "nebula-toh";
           group = "nebula-toh";
           mode = "0400";
         };
 
-        toh.cryl.machine = [
+        toh.meta.cryl.machine = [
           {
             nebula = {
               generations = [
@@ -226,7 +226,7 @@
           }
         ];
 
-        toh.cryl.cluster = lib.mkBefore [
+        toh.meta.cryl.cluster = lib.mkBefore [
           {
             nebula = {
               generations = [

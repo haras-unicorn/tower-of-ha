@@ -18,7 +18,7 @@
         };
 
         toh.test.commands.perNodeInCluster.node = [
-          ''command_node.wait_until_succeeds("systemctl is-active toh-auth-ldap-initialized.target", timeout=300)''
+          ''command_node.wait_until_succeeds("systemctl is-active toh-ldap-online.target", timeout=300)''
           ''command_node.wait_until_succeeds("curl -f https://lldap.service.toh/health", timeout=30)''
           ''
             command_node.succeed("""

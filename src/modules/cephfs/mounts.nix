@@ -156,7 +156,7 @@
         ]
       );
 
-      systemd.targets.toh-filesystem-initialized = mergeByMount (
+      systemd.targets.toh-filesystem-online = mergeByMount (
         {
           preMount,
           postMount,

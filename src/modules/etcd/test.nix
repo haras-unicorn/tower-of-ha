@@ -12,7 +12,7 @@
 
         toh.test.commands.enable = true;
         toh.test.commands.perNode = [
-          ''command_node.wait_until_succeeds("systemctl is-active toh-config-initialized.target", timeout=180)''
+          ''command_node.wait_until_succeeds("systemctl is-active toh-config-online.target", timeout=180)''
           ''command_node.succeed("systemctl is-active etcd.service")''
           (
             node:

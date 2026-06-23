@@ -99,16 +99,16 @@
           };
 
           services.lldap.environment = {
-            LLDAP_KEY_SEED_FILE = config.sops.secrets."lldap-key-seed".path;
-            LLDAP_JWT_SECRET_FILE = config.sops.secrets."lldap-jwt-secret".path;
+            LLDAP_KEY_SEED_FILE = config.toh.meta.sops.secrets."lldap-key-seed".path;
+            LLDAP_JWT_SECRET_FILE = config.toh.meta.sops.secrets."lldap-jwt-secret".path;
             LLDAP_DATABASE_URL_FILE = config.toh.meta.database.instances.lldap.url;
             RUST_LOG = "warn";
           };
 
           systemd.services.lldap = {
-            wantedBy = [ "toh-database-initialized.target" ];
-            requires = [ "toh-database-initialized.target" ];
-            after = [ "toh-database-initialized.target" ];
+            wantedBy = [ "toh-database-online.target" ];
+            requires = [ "toh-database-online.target" ];
+            after = [ "toh-database-online.target" ];
             serviceConfig = {
               DynamicUser = lib.mkForce false;
               User = lib.mkForce owner;
@@ -116,7 +116,7 @@
             };
           };
 
-          systemd.targets.toh-auth-ldap-initialized = {
+          systemd.targets.toh-ldap-online = {
             wantedBy = [ "lldap.service" ];
             bindsTo = [ "lldap.service" ];
             after = [ "lldap.service" ];
@@ -146,16 +146,16 @@
             };
           };
 
-          sops.secrets."lldap-jwt-secret" = {
+          toh.meta.sops.secrets."lldap-jwt-secret" = {
             inherit owner group;
             mode = "0400";
           };
-          sops.secrets."lldap-key-seed" = {
+          toh.meta.sops.secrets."lldap-key-seed" = {
             inherit owner group;
             mode = "0400";
           };
 
-          toh.cryl.machine = [
+          toh.meta.cryl.machine = [
             {
               lldap = {
                 generations = [
@@ -178,7 +178,7 @@
             }
           ];
 
-          toh.cryl.cluster = [
+          toh.meta.cryl.cluster = [
             {
               lldap = {
                 generations = [

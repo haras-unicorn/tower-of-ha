@@ -16,7 +16,7 @@
         };
 
         toh.test.commands.perNodeInCluster.node = [
-          ''command_node.wait_until_succeeds("systemctl is-active toh-s3-initialized.target", timeout=300)''
+          ''command_node.wait_until_succeeds("systemctl is-active toh-s3-online.target", timeout=300)''
           ''command_node.succeed("toh s3 admin ls s3://admin")''
           (
             node:

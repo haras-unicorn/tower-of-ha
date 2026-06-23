@@ -36,7 +36,7 @@
             );
 
         mustacheRenderer = final.tohPackages.writeNushellApplication {
-          name = "toh-mustache-renderer";
+          name = "mustache-renderer";
           runtimeInputs = [ final.mo ];
           text = builtins.readFile ./renderer.nu;
         };

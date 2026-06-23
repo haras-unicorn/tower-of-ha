@@ -7,6 +7,30 @@
 {
   toh.lib.cli.makeOverlay = tohLib.cli.makeOverrideOverlay "cli";
 
+  toh.lib.cli.makeOverlays =
+    {
+      name,
+      attr ? name,
+      deps ? [ ],
+      runtimeInputs ? [ ],
+      text ? "",
+      textFile ? null,
+      textDir ? null,
+      textVariables ? null,
+    }:
+    {
+      "${attr}-package" = tohLib.cli.makeBaseOverlay "${attr}";
+      "${attr}" = tohLib.cli.makeFinalOverlay "${attr}";
+      "${attr}-impl" = tohLib.cli.makeOverrideOverlay "${attr}" {
+        inherit name deps;
+        extraRuntimeInputs = runtimeInputs;
+        extraText = text;
+        extraTextFile = textFile;
+        extraTextDir = textDir;
+        extraTextVariables = textVariables;
+      };
+    };
+
   toh.lib.cli.makeOverrideOverlay =
     attr:
     {

@@ -38,14 +38,14 @@
         services.automatic-timezoned.enable = true;
 
         # NOTE: https://github.com/NixOS/nixpkgs/issues/293212#issuecomment-2319051915
-        # sops.secrets."geoclue-static-geolocation" = {
+        # toh.meta.sops.secrets."geoclue-static-geolocation" = {
         #   path = "/etc/geolocation";
         #   owner = "geoclue";
         #   group = "geoclue";
         #   mode = "0440";
         # };
 
-        toh.cryl.machine = [
+        toh.meta.cryl.machine = [
           {
             geoclue = {
               generations = [

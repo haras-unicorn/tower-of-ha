@@ -38,7 +38,7 @@
             '';
           };
 
-          sops.secrets."cephfs-admin-keyring" = {
+          toh.meta.sops.secrets."cephfs-admin-keyring" = {
             path = "/etc/ceph/ceph.client.admin.keyring";
             owner = "ceph";
             group = "ceph";
@@ -46,7 +46,7 @@
           };
         })
         (lib.mkIf cfg.generateAdminKeyring {
-          toh.cryl.machine = [
+          toh.meta.cryl.machine = [
             {
               cephfs-admin = {
                 generations = [
@@ -76,7 +76,7 @@
             }
           ];
 
-          toh.cryl.cluster = [
+          toh.meta.cryl.cluster = [
             {
               cephfs-admin = {
                 generations = [

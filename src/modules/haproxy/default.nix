@@ -25,8 +25,8 @@
 
       serviceDomain = config.toh.meta.domains.service;
 
-      certFile = config.sops.secrets."haproxy-pem".path;
-      caFile = config.sops.secrets."haproxy-ca-public".path;
+      certFile = config.toh.meta.sops.secrets."haproxy-pem".path;
+      caFile = config.toh.meta.sops.secrets."haproxy-ca-public".path;
 
       httpPort = 443;
       submitPort = 25;
@@ -39,7 +39,7 @@
         services: (tohLib.services.endpoint.toAttrs (builtins.head services).endpoint).port + tcpPortOffset;
 
       serviceNamesToMachineServices = lib.zipAttrs (
-        builtins.map (machine: machine.meta.services) config.toh.cluster.machinea
+        builtins.map (machine: machine.meta.services) config.toh.meta.cluster.machinea
       );
 
       filterServiceNamesToMachineNames =
@@ -223,7 +223,7 @@
         '') tcpServiceNamesToMachineServices
       );
 
-      submitFrontend = ''
+      submitFrontend = lib.optionalString (submitServiceMachineServices != [ ]) ''
         frontend submit_any
           mode tcp
           bind ${config.toh.meta.network.ip}:${builtins.toString submitPort} ssl crt ${certFile}
@@ -231,7 +231,7 @@
           default_backend submit_backend
       '';
 
-      submitBackend = ''
+      submitBackend = lib.optionalString (submitServiceMachineServices != [ ]) ''
         backend submit_backend
           mode tcp
           balance leastconn
@@ -320,20 +320,20 @@
           ]
           ++ (builtins.map mapTcpPortFromServices (builtins.attrValues tcpServiceNamesToMachineServices));
 
-          sops.secrets."haproxy-ca-public" = {
+          toh.meta.sops.secrets."haproxy-ca-public" = {
             key = "openssl-ca-public";
             owner = config.systemd.services.haproxy.serviceConfig.User;
             group = config.systemd.services.haproxy.serviceConfig.Group;
             mode = "0400";
           };
 
-          sops.secrets."haproxy-pem" = {
+          toh.meta.sops.secrets."haproxy-pem" = {
             owner = config.systemd.services.haproxy.serviceConfig.User;
             group = config.systemd.services.haproxy.serviceConfig.Group;
             mode = "0400";
           };
 
-          toh.cryl.machine = [
+          toh.meta.cryl.machine = [
             {
               haproxy = {
                 generations = [
@@ -375,7 +375,7 @@
             }
           ];
 
-          toh.ssl.installCa = true;
+          toh.pki.installCa = true;
         })
       ];
     };

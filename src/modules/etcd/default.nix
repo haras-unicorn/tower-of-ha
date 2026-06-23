@@ -55,12 +55,12 @@
           initialAdvertisePeerUrls = [ "https://${config.toh.meta.network.ip}:${peerPortString}" ];
           initialClusterToken = "toh";
 
-          certFile = config.sops.secrets."etcd-public".path;
-          keyFile = config.sops.secrets."etcd-private".path;
-          trustedCaFile = config.sops.secrets."etcd-ca-public".path;
-          peerCertFile = config.sops.secrets."etcd-public".path;
-          peerKeyFile = config.sops.secrets."etcd-private".path;
-          peerTrustedCaFile = config.sops.secrets."etcd-ca-public".path;
+          certFile = config.toh.meta.sops.secrets."etcd-public".path;
+          keyFile = config.toh.meta.sops.secrets."etcd-private".path;
+          trustedCaFile = config.toh.meta.sops.secrets."etcd-ca-public".path;
+          peerCertFile = config.toh.meta.sops.secrets."etcd-public".path;
+          peerKeyFile = config.toh.meta.sops.secrets."etcd-private".path;
+          peerTrustedCaFile = config.toh.meta.sops.secrets."etcd-ca-public".path;
         };
 
         # Open ports for client and peer communication
@@ -82,7 +82,7 @@
           "toh-time-synchronized.target"
         ];
 
-        systemd.targets.toh-config-initialized = {
+        systemd.targets.toh-config-online = {
           wantedBy = [ "etcd.service" ];
           bindsTo = [ "etcd.service" ];
           after = [ "etcd.service" ];
@@ -110,24 +110,24 @@
           };
         };
 
-        sops.secrets."etcd-ca-public" = {
+        toh.meta.sops.secrets."etcd-ca-public" = {
           key = "openssl-ca-public";
           owner = config.systemd.services.etcd.serviceConfig.User;
           group = config.systemd.services.etcd.serviceConfig.User;
           mode = "0644";
         };
-        sops.secrets."etcd-public" = {
+        toh.meta.sops.secrets."etcd-public" = {
           owner = config.systemd.services.etcd.serviceConfig.User;
           group = config.systemd.services.etcd.serviceConfig.User;
           mode = "0644";
         };
-        sops.secrets."etcd-private" = {
+        toh.meta.sops.secrets."etcd-private" = {
           owner = config.systemd.services.etcd.serviceConfig.User;
           group = config.systemd.services.etcd.serviceConfig.User;
           mode = "0400";
         };
 
-        toh.cryl.machine = [
+        toh.meta.cryl.machine = [
           {
             etcd = {
               generations = [
@@ -158,7 +158,7 @@
           }
         ];
 
-        toh.ssl.generateCa = true;
+        toh.pki.generateCa = true;
       };
     };
 }

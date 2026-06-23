@@ -34,8 +34,8 @@ Everything lives under the `toh` namespace:
 - `toh.lib` — library functions and types.
 - `toh.meta` — cluster metadata and declarative service wiring.
 - `toh.services.<name>` — feature flags for individual services.
-- `toh.cryl` — secret generation configuration (never mutate secrets manually;
-  use `cryl` generators).
+- `toh.meta.cryl` — secret generation configuration (never mutate secrets
+  manually; use `cryl` generators).
 
 ## Directory layout
 
@@ -69,8 +69,9 @@ Everything lives under the `toh` namespace:
 - Service endpoints **must** be declared via `toh.meta.services.<name>` using
   `tohLib.services.endpoint` helpers. Do not hard-code hostnames or ports in
   service configs.
-- Secrets **must** be declared via `toh.cryl.machine` and `toh.cryl.cluster`
-  generators. Do not embed raw secret strings in Nix expressions.
+- Secrets **must** be declared via `toh.meta.cryl.machine` and
+  `toh.meta.cryl.cluster` generators. Do not embed raw secret strings in Nix
+  expressions.
 - Use `lib.mkIf cfg.enable` to guard all config produced by a module.
 - Use `lib.mkMerge` to combine multiple conditional configuration blocks.
 - Use `lib.mkBefore` / `lib.mkAfter` when ordering matters inside lists.
@@ -97,8 +98,8 @@ time.
 4. Implement the service config inside `lib.mkIf cfg.enable { ... }`.
 5. Register endpoints in `toh.meta.services.<service>` with protocol, port, and
    health checks.
-6. If the service needs secrets, add `toh.cryl.machine` and/or
-   `toh.cryl.cluster` generators.
+6. If the service needs secrets, add `toh.meta.cryl.machine` and/or
+   `toh.meta.cryl.cluster` generators.
 7. Create `src/modules/<service>/test.nix` with NixOS tests using
    `pkgs.tohPackages.testers.runToHTest`.
 8. If the service exposes CLI commands, add Nushell scripts under

@@ -39,7 +39,7 @@
       ];
 
       cli = pkgs.tohPackages.cli.override (prev: {
-        name = "dev-toh";
+        name = "dev";
         extraRuntimeInputs = prev.extraRuntimeInputs ++ externalPackages;
         extraText =
           prev.extraText
@@ -75,7 +75,7 @@
           }
           ''
             cd "$src"
-            dev-toh lint
+            dev lint
             touch "$out"
           '';
     };

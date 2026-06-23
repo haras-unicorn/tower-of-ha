@@ -60,18 +60,15 @@
       };
 
       config = lib.mkIf cfg.init.enable {
-        toh.overlays = {
-          garage-init-package = tohLib.cli.makeBaseOverlay "garage-init";
-          garage-init = tohLib.cli.makeFinalOverlay "garage-init";
-          garage-init-impl = tohLib.cli.makeOverrideOverlay "garage-init" {
-            extraRuntimeInputs = (pkgs: [ pkgs.garage ]);
-            extraTextFile = ./init.nu;
-            extraTextVariables = {
-              TOH_GARAGE_INIT_KEYS = builtins.toJSON cfg.init.keys;
-              TOH_GARAGE_INIT_BUCKETS = builtins.toJSON cfg.init.buckets;
-              TOH_GARAGE_INIT_LAYOUT_VERSION = "1";
-              TOH_GARAGE_INIT_CAPACITY = "${builtins.toString cfg.capacityInMB}MB";
-            };
+        toh.overlays = tohLib.cli.makeOverlays {
+          name = "garage-init";
+          runtimeInputs = (pkgs: [ pkgs.garage ]);
+          textFile = ./init.nu;
+          textVariables = {
+            TOH_GARAGE_INIT_KEYS = builtins.toJSON cfg.init.keys;
+            TOH_GARAGE_INIT_BUCKETS = builtins.toJSON cfg.init.buckets;
+            TOH_GARAGE_INIT_LAYOUT_VERSION = "1";
+            TOH_GARAGE_INIT_CAPACITY = "${builtins.toString cfg.capacityInMB}MB";
           };
         };
 
@@ -80,21 +77,22 @@
           wantedBy = [ "garage.service" ];
           bindsTo = [ "garage.service" ];
           after = [ "garage.service" ];
+          path = [ pkgs.tohPackages.garage-init ];
+          script = "garage-init";
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
             StandardOutput = "journal";
             TimeoutStartSec = "infinity";
             Restart = "on-failure";
-            ExecStart = lib.getExe pkgs.tohPackages.garage-init;
           };
           environment = {
-            GARAGE_RPC_SECRET_FILE = config.sops.secrets."garage-rpc-secret".path;
-            GARAGE_ADMIN_TOKEN_FILE = config.sops.secrets."garage-admin-token".path;
+            GARAGE_RPC_SECRET_FILE = config.toh.meta.sops.secrets."garage-rpc-secret".path;
+            GARAGE_ADMIN_TOKEN_FILE = config.toh.meta.sops.secrets."garage-admin-token".path;
           };
         };
 
-        systemd.targets.toh-s3-initialized = {
+        systemd.targets.toh-s3-online = {
           wantedBy = [ "garage-initialization.service" ];
           bindsTo = [ "garage-initialization.service" ];
           after = [ "garage-initialization.service" ];

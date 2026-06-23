@@ -7,9 +7,7 @@
       secretKey = "secret.txt";
     };
 
-    defaultUser = {
-      user = "garage";
-      group = "garage";
-    };
+    user = "garage";
+    group = "garage";
   };
 }

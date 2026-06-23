@@ -23,7 +23,7 @@
         };
     in
     {
-      options.toh = {
+      options.toh.meta = {
         cluster = {
           machines = lib.mkOption {
             type = lib.types.attrsOf (lib.types.submodule machineSubmodule);

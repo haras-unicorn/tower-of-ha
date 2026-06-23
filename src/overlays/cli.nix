@@ -1,11 +1,8 @@
 { tohLib, ... }:
 
 {
-  toh.overlays.cli-package = tohLib.cli.makeBaseOverlay "cli";
-
-  toh.overlays.cli-name = tohLib.cli.makeOverrideOverlay "cli" {
+  toh.overlays = tohLib.cli.makeOverlays {
+    attr = "cli";
     name = "toh";
   };
-
-  toh.overlays.cli = tohLib.cli.makeFinalOverlay "cli";
 }

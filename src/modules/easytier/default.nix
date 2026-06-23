@@ -55,7 +55,7 @@
 
         services.easytier.instances.${instance} = {
           environmentFiles = [
-            config.sops.secrets.${envSecret}.path
+            config.toh.meta.sops.secrets.${envSecret}.path
           ];
           extraArgs = [
             (lib.mkIf hasDomain "--need-p2p")
@@ -124,13 +124,13 @@
           };
         };
 
-        sops.secrets.${envSecret} = {
+        toh.meta.sops.secrets.${envSecret} = {
           owner = user;
           group = group;
           mode = "0400";
         };
 
-        toh.cryl.machine = [
+        toh.meta.cryl.machine = [
           {
             easytier = {
               generations =
@@ -191,7 +191,7 @@
           }
         ];
 
-        toh.cryl.cluster = [
+        toh.meta.cryl.cluster = [
           {
             easytier = {
               generations = [

@@ -29,7 +29,7 @@
 
       clusterApps = appAttrsToList (
         builtins.zipAttrsWith (_: builtins.head) (
-          builtins.map (machine: machine.meta.ldap.apps) config.toh.cluster.machinea
+          builtins.map (machine: machine.meta.ldap.apps) config.toh.meta.cluster.machinea
         )
       );
 
@@ -45,7 +45,7 @@
         {
           ${name} = {
             dn = "uid=${name},ou=people,${config.toh.meta.ldap.baseDistinguishedName}";
-            password = config.sops.secrets."lldap-user-${name}-pass".path;
+            password = config.toh.meta.sops.secrets."lldap-user-${name}-pass".path;
           };
         }
       );
@@ -56,7 +56,7 @@
           {
             id = name;
             email = "${name}@${config.toh.meta.email.domain}";
-            password_file = config.sops.secrets."lldap-app-${name}-pass".path;
+            password_file = config.toh.meta.sops.secrets."lldap-app-${name}-pass".path;
             displayName = name;
             groups = builtins.filter (permission: permission != null) (
               builtins.map (
@@ -73,7 +73,7 @@
         ]
       );
 
-      sops.secrets = lib.mkMerge [
+      toh.meta.sops.secrets = lib.mkMerge [
         (mergeByClusterApps (
           { name, ... }:
           {
@@ -96,7 +96,7 @@
         ))
       ];
 
-      toh.cryl.machine = lib.mkMerge [
+      toh.meta.cryl.machine = lib.mkMerge [
         (mergeByClusterApps (
           { name, ... }:
           [
@@ -135,7 +135,7 @@
         ))
       ];
 
-      toh.cryl.cluster = mergeByClusterApps (
+      toh.meta.cryl.cluster = mergeByClusterApps (
         { name, ... }:
         [
           {

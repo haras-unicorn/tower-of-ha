@@ -25,7 +25,7 @@
 
       clusterApps = appAttrsToList (
         builtins.zipAttrsWith (_: builtins.head) (
-          builtins.map (machine: machine.meta.kv.apps) config.toh.cluster.machinea
+          builtins.map (machine: machine.meta.kv.apps) config.toh.meta.cluster.machinea
         )
       );
 

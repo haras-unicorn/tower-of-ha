@@ -162,7 +162,7 @@
           '';
         };
 
-        systemd.targets.toh-filesystem-initialized = {
+        systemd.targets.toh-filesystem-online = {
           wantedBy = services;
           after = services;
           requires = services;

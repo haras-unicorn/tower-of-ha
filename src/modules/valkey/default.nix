@@ -82,7 +82,7 @@
                   tls-auth-clients = false;
                   tls-replication = true;
                   replica-serve-stale-data = false;
-                  aclfile = config.sops.secrets."valkey-acl".path;
+                  aclfile = config.toh.meta.sops.secrets."valkey-acl".path;
                   replicaof = lib.mkIf (!isBootstrapPrimary) "${bootstrapPrimaryIp} ${builtins.toString valkeyPort}";
                 };
               };
@@ -111,7 +111,7 @@
                   tls-ca-cert-file = sentinel.ca;
                   tls-auth-clients = false;
                   tls-replication = true;
-                  aclfile = config.sops.secrets."valkey-acl".path;
+                  aclfile = config.toh.meta.sops.secrets."valkey-acl".path;
                 };
               };
             };
@@ -155,7 +155,7 @@
             ];
           };
 
-          systemd.targets.toh-kv-initialized = {
+          systemd.targets.toh-kv-online = {
             wantedBy = [
               "redis-valkey.service"
               "redis-valkey-sentinel.service"
@@ -237,7 +237,7 @@
 
           toh.services.valkey.createUserGroup = true;
 
-          toh.ssl.installCa = true;
+          toh.pki.installCa = true;
         })
       ];
     };

@@ -43,9 +43,9 @@
           ENABLE_WEBSOCKET = false;
           DOMAIN = "https://vaultwarden.${config.toh.meta.domains.service}";
         };
-        systemd.services.vaultwarden.wantedBy = [ "toh-database-initialized.target" ];
-        systemd.services.vaultwarden.requires = [ "toh-database-initialized.target" ];
-        systemd.services.vaultwarden.after = [ "toh-database-initialized.target" ];
+        systemd.services.vaultwarden.wantedBy = [ "toh-database-online.target" ];
+        systemd.services.vaultwarden.requires = [ "toh-database-online.target" ];
+        systemd.services.vaultwarden.after = [ "toh-database-online.target" ];
         services.vaultwarden.environmentFile = envFilePath;
         systemd.services.vaultwarden.serviceConfig = {
           Restart = lib.mkForce "always";
@@ -53,7 +53,7 @@
             ${lib.getExe pkgs.tohPackages.mustacheRenderer} \
               --variables '{
                   "DATABASE_VAULTWARDEN_URL": "${config.toh.meta.database.instances.vaultwarden.url}",
-                  "ADMIN_TOKEN": "${config.sops.secrets."vaultwarden-admin-pass".path}"
+                  "ADMIN_TOKEN": "${config.toh.meta.sops.secrets."vaultwarden-admin-pass".path}"
                 }' \
               --template 'DATABASE_URL="{{{DATABASE_VAULTWARDEN_URL}}}"
             ADMIN_TOKEN="{{ADMIN_TOKEN}}"
@@ -71,17 +71,17 @@
           health.endpoint.http.path = "alive";
         };
 
-        sops.secrets."vaultwarden-admin-pass" = {
+        toh.meta.sops.secrets."vaultwarden-admin-pass" = {
           inherit owner group;
           mode = "0400";
         };
-        sops.secrets."vaultwarden-auth-key" = {
+        toh.meta.sops.secrets."vaultwarden-auth-key" = {
           inherit owner group;
           path = "${dataDir}/rsa_key.pem";
           mode = "0400";
         };
 
-        toh.cryl.machine = [
+        toh.meta.cryl.machine = [
           {
             vaultwarden = {
               generations = [
@@ -104,7 +104,7 @@
           }
         ];
 
-        toh.cryl.cluster = [
+        toh.meta.cryl.cluster = [
           {
             vaultwarden = {
               generations = [
@@ -135,7 +135,7 @@
             name = "vaultwarden-init";
             templateFile = ./init.nu;
             variables = {
-              TOH_VAULTWARDEN_INIT_ENV_PATH = config.sops.secrets."vaultwarden-env".path;
+              TOH_VAULTWARDEN_INIT_ENV_PATH = config.toh.meta.sops.secrets."vaultwarden-env".path;
               TOH_VAULTWARDEN_INIT_DATA_DIR = dataDir;
               TOH_VAULTWARDEN_INIT_USER = vaultwardenUser;
               TOH_VAULTWARDEN_INIT_EXE = lib.getExe package;
