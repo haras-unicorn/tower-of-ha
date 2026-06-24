@@ -116,6 +116,7 @@
                 NAME = dbInstance.dbName;
                 USER = dbInstance.dbUser;
                 SSL_MODE = "verify-full";
+                AUTO_MIGRATION = false;
               };
 
               repository = {
