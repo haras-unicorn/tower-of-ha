@@ -209,7 +209,7 @@
             mode = "0400";
           };
           toh.meta.sops.secrets."patroni-ssl-ca" = {
-            key = "patroni-ca-public";
+            key = "openssl-ca-public";
             inherit owner group;
             mode = "0644";
           };
@@ -285,9 +285,9 @@
                       request_config = "patroni-ssl-cert-request-config";
                       private = "patroni-ssl-private";
                       request = "patroni-ssl-cert-request";
-                      ca_private = "cluster/patroni-ca-private";
-                      ca_public = "cluster/patroni-ca-public";
-                      serial = "cluster/patroni-ca-serial";
+                      ca_private = "cluster/openssl-ca-private";
+                      ca_public = "cluster/openssl-ca-public";
+                      serial = "cluster/openssl-ca-serial";
                       public = "patroni-ssl-public";
                       renew = true;
                     };
@@ -304,7 +304,6 @@
             }) (builtins.attrValues tohLib.patroni.superusers)
           );
 
-          toh.services.patroni.generateCa = true;
           toh.pki.generateCa = true;
         })
       ];

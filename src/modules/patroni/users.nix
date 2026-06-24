@@ -171,7 +171,7 @@
           lib.mkIf installSecrets {
             "patroni-${user}-ca" = {
               inherit owner group;
-              key = "patroni-ca-public";
+              key = "openssl-ca-public";
               path = ca;
               mode = "0644";
             };
@@ -247,9 +247,9 @@
                       request_config = "patroni-${user}-cert-request-config";
                       private = "patroni-${user}-private";
                       request = "patroni-${user}-cert-request";
-                      ca_private = "cluster/patroni-ca-private";
-                      ca_public = "cluster/patroni-ca-public";
-                      serial = "cluster/patroni-ca-serial";
+                      ca_private = "cluster/openssl-ca-private";
+                      ca_public = "cluster/openssl-ca-public";
+                      serial = "cluster/openssl-ca-serial";
                       public = "patroni-${user}-public";
                       renew = true;
                     };
@@ -378,9 +378,9 @@
                       request_config = "patroni-${user}-cert-request-config";
                       private = "patroni-${user}-private";
                       request = "patroni-${user}-cert-request";
-                      ca_private = "patroni-ca-private";
-                      ca_public = "patroni-ca-public";
-                      serial = "patroni-ca-serial";
+                      ca_private = "openssl-ca-private";
+                      ca_public = "openssl-ca-public";
+                      serial = "openssl-ca-serial";
                       public = "patroni-${user}-public";
                       renew = true;
                     };
@@ -395,9 +395,7 @@
           { installSecrets, ... }: lib.mkIf installSecrets true
         );
 
-        toh.services.patroni.generateCa = mergeByUser (
-          { generateSecrets, ... }: lib.mkIf generateSecrets true
-        );
+        toh.pki.generateCa = mergeByUser ({ generateSecrets, ... }: lib.mkIf generateSecrets true);
       };
     };
 }
