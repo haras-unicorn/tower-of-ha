@@ -62,8 +62,8 @@
         lib.mkIf (app.init.sql.file != null) [
           {
             ${app.name} = pkgs.writeText "${app.name}-patroni-init-file" ''
-              \c ${app.name}
-              SET ROLE ${app.name};
+              \c ${app.dbName}
+              SET ROLE ${app.dbUser};
 
               ${builtins.readFile app.init.sql.file}
             '';
@@ -75,8 +75,8 @@
         lib.mkIf (app.init.sql.script != null) [
           {
             ${app.name} = ''
-              \c ${app.name}
-              SET ROLE ${app.name};
+              \c ${app.dbName}
+              SET ROLE ${app.dbUser};
 
               ${app.init.sql.script}
             '';
@@ -113,11 +113,18 @@
           name,
           user,
           group,
+          dbName,
+          dbUser,
           ...
         }:
         {
           ${name} = {
-            inherit user group;
+            inherit
+              user
+              group
+              dbName
+              dbUser
+              ;
             installSecrets = true;
           };
         }

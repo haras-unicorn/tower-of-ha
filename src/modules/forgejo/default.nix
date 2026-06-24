@@ -13,6 +13,7 @@
       anyMachines = tohLib.anyServiceMachines "forgejo";
 
       httpPort = 3000;
+      sshPort = 2222;
 
       dbConfig = config.toh.meta.database;
       dbInstance = config.toh.meta.database.instances.forgejo;
@@ -20,15 +21,32 @@
       s3Config = config.toh.meta.s3;
       s3BucketConfig = config.toh.meta.s3.buckets.forgejo;
 
-      kvConfig = config.toh.meta.kv;
-      kvInstance = config.toh.meta.kv.instances.forgejo;
+      kvSessionInstance = config.toh.meta.kv.instances.forgejo-session;
+      kvCacheInstance = config.toh.meta.kv.instances.forgejo-cache;
+      kvQueueInstance = config.toh.meta.kv.instances.forgejo-queue;
 
       emailConfig = config.toh.meta.email;
 
-      proxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-http.endpoint;
+      proxyHttpAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-http.endpoint;
 
       owner = "forgejo";
       group = "forgejo";
+
+      s3StorageSettings =
+        endpoint: basePath:
+        {
+          STORAGE_TYPE = "minio";
+          SERVE_DIRECT = true;
+          MINIO_ENDPOINT = "${s3Config.host}:${builtins.toString s3Config.port}";
+          MINIO_ACCESS_KEY_ID_FILE = s3BucketConfig.keyId;
+          MINIO_SECRET_ACCESS_KEY_FILE = s3BucketConfig.secretKey;
+          MINIO_BUCKET = "forgejo";
+          MINIO_LOCATION = s3Config.region;
+          MINIO_USE_SSL = true;
+        }
+        // lib.optionalAttrs (basePath != null) {
+          MINIO_BASE_PATH = basePath;
+        };
     in
     {
       options.toh.services = {
@@ -40,14 +58,14 @@
       config = lib.mkMerge [
         (lib.mkIf anyMachines {
           toh.meta.git = {
-            host = proxyAttrs.host;
-            httpPort = proxyAttrs.port;
-            url = "https://${proxyAttrs.host}";
+            host = proxyHttpAttrs.host;
+            httpPort = proxyHttpAttrs.port;
+            sshPort = 22;
+            url = "https://${proxyHttpAttrs.host}";
           };
         })
         (lib.mkIf cfg.enable {
           environment.systemPackages = [
-            pkgs.tohPackages.cli
             pkgs.forgejo-cli
           ];
 
@@ -59,11 +77,11 @@
             useWizard = false;
 
             database = {
-              type = "postgres";
+              type = if dbConfig.protocol == "postgresql" then "postgres" else dbConfig.protocol;
               host = dbConfig.host;
               port = dbConfig.port;
-              name = "forgejo";
-              user = "forgejo";
+              name = config.toh.meta.database.apps.forgejo.dbName;
+              user = config.toh.meta.database.apps.forgejo.dbUser;
               createDatabase = false;
               passwordFile = lib.mkDefault dbInstance.password;
             };
@@ -73,22 +91,19 @@
             repositoryRoot = "/var/lib/forgejo/repositories";
 
             settings = {
-              DEFAULT = {
-                RUN_MODE = "prod";
-                APP_NAME = "ToH Git";
-              };
-
               server = {
-                DOMAIN = proxyAttrs.host;
-                ROOT_URL = "https://${proxyAttrs.host}/";
+                DOMAIN = proxyHttpAttrs.host;
+                ROOT_URL = "https://${proxyHttpAttrs.host}/";
                 HTTP_ADDR = config.toh.meta.network.ip;
                 HTTP_PORT = httpPort;
                 PROTOCOL = "http";
-                DISABLE_SSH = true;
                 OFFLINE_MODE = true;
                 LFS_START_SERVER = true;
-                LANDING_PAGE = "explore";
-                STATIC_CACHE_TIME = "24h";
+                SSH_PORT = sshPort;
+                START_SSH_SERVER = true;
+                SSH_LISTEN_PORT = sshPort;
+                SSH_LISTEN_HOST = config.toh.meta.network.ip;
+                BUILTIN_SSH_SERVER_USER = owner;
               };
 
               database = {
@@ -96,142 +111,50 @@
               };
 
               repository = {
-                ENABLE_PUSH_CREATE_USER = true;
-                ENABLE_PUSH_CREATE_ORG = true;
-                PREFERRED_LICENSES = "Apache-2.0,MIT,AGPL-3.0,GPL-3.0";
                 DEFAULT_BRANCH = "main";
-              };
-
-              "repository.signing" = {
-                INITIAL_COMMIT = "always";
-                DEFAULT_TRUST_MODEL = "committer";
-                CRUD_ACTIONS = "pubkey,twofa,parentsigned";
-                MERGES = "pubkey,twofa,basesigned,commitssigned";
-              };
-
-              service = {
-                DISABLE_REGISTRATION = true;
-                ENABLE_NOTIFY_MAIL = true;
-                DEFAULT_KEEP_EMAIL_PRIVATE = true;
-                REQUIRE_SIGNIN_VIEW = false;
               };
 
               mailer = {
                 ENABLED = true;
-                PROTOCOL = "sendmail";
+                PROTOCOL = "smtp";
+                SMTP_ADDR = emailConfig.domain;
+                SMTP_PORT = 25;
                 FROM = "forgejo@${emailConfig.domain}";
-              };
-
-              packages = {
-                ENABLED = true;
               };
 
               actions = {
                 ENABLED = true;
               };
 
-              federation = {
-                ENABLED = false;
-              };
-
               other = {
                 SHOW_FOOTER_VERSION = false;
               };
 
-              attachment = {
-                STORAGE_TYPE = "minio";
-                SERVE_DIRECT = true;
-                MINIO_ENDPOINT = "${s3Config.host}:${builtins.toString s3Config.port}";
-                MINIO_ACCESS_KEY_ID_FILE = s3BucketConfig.keyId;
-                MINIO_SECRET_ACCESS_KEY_FILE = s3BucketConfig.secretKey;
-                MINIO_BUCKET = "forgejo";
-                MINIO_LOCATION = s3Config.region;
-                MINIO_USE_SSL = true;
-              };
-
-              lfs = {
-                STORAGE_TYPE = "minio";
-                SERVE_DIRECT = true;
-                MINIO_ENDPOINT = "${s3Config.host}:${builtins.toString s3Config.port}";
-                MINIO_ACCESS_KEY_ID_FILE = s3BucketConfig.keyId;
-                MINIO_SECRET_ACCESS_KEY_FILE = s3BucketConfig.secretKey;
-                MINIO_BUCKET = "forgejo";
-                MINIO_LOCATION = s3Config.region;
-                MINIO_USE_SSL = true;
-                MINIO_BASE_PATH = "lfs/";
-              };
-
-              avatar = {
-                STORAGE_TYPE = "minio";
-                SERVE_DIRECT = true;
-                MINIO_ENDPOINT = "${s3Config.host}:${builtins.toString s3Config.port}";
-                MINIO_ACCESS_KEY_ID_FILE = s3BucketConfig.keyId;
-                MINIO_SECRET_ACCESS_KEY_FILE = s3BucketConfig.secretKey;
-                MINIO_BUCKET = "forgejo";
-                MINIO_LOCATION = s3Config.region;
-                MINIO_USE_SSL = true;
-              };
-
-              "repo-avatar" = {
-                STORAGE_TYPE = "minio";
-                SERVE_DIRECT = true;
-                MINIO_ENDPOINT = "${s3Config.host}:${builtins.toString s3Config.port}";
-                MINIO_ACCESS_KEY_ID_FILE = s3BucketConfig.keyId;
-                MINIO_SECRET_ACCESS_KEY_FILE = s3BucketConfig.secretKey;
-                MINIO_BUCKET = "forgejo";
-                MINIO_LOCATION = s3Config.region;
-                MINIO_USE_SSL = true;
-              };
-
-              "repo-archive" = {
-                STORAGE_TYPE = "minio";
-                SERVE_DIRECT = true;
-                MINIO_ENDPOINT = "${s3Config.host}:${builtins.toString s3Config.port}";
-                MINIO_ACCESS_KEY_ID_FILE = s3BucketConfig.keyId;
-                MINIO_SECRET_ACCESS_KEY_FILE = s3BucketConfig.secretKey;
-                MINIO_BUCKET = "forgejo";
-                MINIO_LOCATION = s3Config.region;
-                MINIO_USE_SSL = true;
-              };
-
-              "storage.actions_log" = {
-                STORAGE_TYPE = "minio";
-                SERVE_DIRECT = true;
-                MINIO_ENDPOINT = "${s3Config.host}:${builtins.toString s3Config.port}";
-                MINIO_ACCESS_KEY_ID_FILE = s3BucketConfig.keyId;
-                MINIO_SECRET_ACCESS_KEY_FILE = s3BucketConfig.secretKey;
-                MINIO_BUCKET = "forgejo";
-                MINIO_LOCATION = s3Config.region;
-                MINIO_USE_SSL = true;
-              };
-
-              "actions.artifacts" = {
-                STORAGE_TYPE = "minio";
-                SERVE_DIRECT = true;
-                MINIO_ENDPOINT = "${s3Config.host}:${builtins.toString s3Config.port}";
-                MINIO_ACCESS_KEY_ID_FILE = s3BucketConfig.keyId;
-                MINIO_SECRET_ACCESS_KEY_FILE = s3BucketConfig.secretKey;
-                MINIO_BUCKET = "forgejo";
-                MINIO_LOCATION = s3Config.region;
-                MINIO_USE_SSL = true;
-              };
+              attachment = s3StorageSettings "attachment" null;
+              lfs = s3StorageSettings "lfs" "lfs/";
+              avatar = s3StorageSettings "avatar" null;
+              "repo-avatar" = s3StorageSettings "repo-avatar" null;
+              "repo-archive" = s3StorageSettings "repo-archive" null;
+              "storage.actions_log" = s3StorageSettings "actions_log" null;
+              "actions.artifacts" = s3StorageSettings "artifacts" null;
             };
           };
 
           toh.meta.filesystem.mounts."/var/lib/forgejo/repositories" = {
-            directory = "forgejo/repositories";
             user = owner;
             group = group;
             mode = "0750";
           };
 
-          networking.firewall.allowedTCPPorts = [ httpPort ];
+          networking.firewall.allowedTCPPorts = [
+            httpPort
+            sshPort
+          ];
 
           users.groups.${group} = { };
           users.users.${owner} = {
             group = group;
             isSystemUser = true;
-            home = "/var/lib/forgejo";
           };
 
           systemd.tmpfiles.rules = [
@@ -255,13 +178,9 @@
 
           systemd.services.forgejo = {
             preStart = lib.mkAfter ''
-              url_file="${kvInstance.url}"
-              redis_url="$(<"$url_file")"
-              redis_rest="''${redis_url#*://}"
-              redis_pass="''${redis_rest#*:}"
-              redis_pass="''${redis_pass%%@*}"
-              redis_hostport="''${redis_rest#*@}"
-              redis_hostport="''${redis_hostport%%\?*}"
+              session_url="$(<"${kvSessionInstance.url}")"
+              cache_url="$(<"${kvCacheInstance.url}")"
+              queue_url="$(<"${kvQueueInstance.url}")"
 
               config="${config.services.forgejo.customDir}/conf/app.ini"
               chmod u+w "$config"
@@ -270,15 +189,15 @@
 
               [session]
               PROVIDER = redis
-              PROVIDER_CONFIG = rediss://:''${redis_pass}@''${redis_hostport}/0?pool_size=100&idle_timeout=180s
+              PROVIDER_CONFIG = ''${session_url}
 
               [cache]
               ADAPTER = redis
-              HOST = rediss://:''${redis_pass}@''${redis_hostport}/1?pool_size=100&idle_timeout=180s
+              HOST = ''${cache_url}
 
               [queue]
               TYPE = redis
-              CONN_STR = rediss://:''${redis_pass}@''${redis_hostport}/2
+              CONN_STR = ''${queue_url}
               APPINIEOF
 
               chmod u-w "$config"
@@ -313,6 +232,22 @@
             health.endpoint.http = {
               inherit httpPort;
               path = "/api/healthz";
+            };
+          };
+
+          toh.meta.services.forgejo-ssh = {
+            endpoint.tcp = {
+              port = sshPort;
+              sslTermination = "passthrough";
+            };
+            health.endpoint.tcp = {
+              port = sshPort;
+              packets = [
+                {
+                  send = null;
+                  expect = "SSH";
+                }
+              ];
             };
           };
 
@@ -417,6 +352,8 @@
           toh.meta.database.apps.forgejo = {
             user = owner;
             group = group;
+            dbName = "forgejo";
+            dbUser = "forgejo";
           };
 
           toh.meta.s3.apps.forgejo = {
@@ -424,11 +361,27 @@
             group = group;
           };
 
-          toh.meta.kv.apps.forgejo = {
+          toh.meta.kv.apps.forgejo-session = {
             user = owner;
             group = group;
             database = httpPort;
-            prefix = "forgejo:";
+            prefix = "all";
+            permissions = [ tohLib.kv.permissions.all ];
+          };
+
+          toh.meta.kv.apps.forgejo-cache = {
+            user = owner;
+            group = group;
+            database = httpPort + 1;
+            prefix = "all";
+            permissions = [ tohLib.kv.permissions.all ];
+          };
+
+          toh.meta.kv.apps.forgejo-queue = {
+            user = owner;
+            group = group;
+            database = httpPort + 2;
+            prefix = "all";
             permissions = [ tohLib.kv.permissions.all ];
           };
 
@@ -441,19 +394,13 @@
             user = owner;
             group = group;
             redirectUris = [
-              "https://${proxyAttrs.host}/user/oauth2/authelia/callback"
-              "https://${proxyAttrs.host}/user/oauth2/forgejo/callback"
+              "https://${proxyHttpAttrs.host}/user/oauth2/authelia/callback"
+              "https://${proxyHttpAttrs.host}/user/oauth2/forgejo/callback"
             ];
           };
 
           toh.pki.installCa = true;
-
-          toh.services.forgejo.runner.enable = lib.mkDefault true;
         })
-      ];
-
-      imports = [
-        ./runner.nix
       ];
     };
 }

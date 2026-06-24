@@ -44,6 +44,18 @@
                       description = "Application secrets owner linux group";
                     };
 
+                    dbName = lib.mkOption {
+                      type = lib.types.str;
+                      default = name;
+                      description = "Database name";
+                    };
+
+                    dbUser = lib.mkOption {
+                      type = lib.types.str;
+                      default = name;
+                      description = "Database user name";
+                    };
+
                     init = {
                       sql = {
                         script = lib.mkOption {
