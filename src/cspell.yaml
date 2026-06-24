@@ -294,3 +294,12 @@ ignoreWords:
   - sysinit
   - fileset
   - dependants
+  - twofa
+  - parentsigned
+  - basesigned
+  - commitssigned
+  - hostport
+  - APPINIEOF
+  - gnused
+  - gitea
+  - forgejo
