@@ -70,7 +70,7 @@
             ssh = {
               host = proxySshAttrs.host;
               port = proxySshAttrs.port;
-              user = "forgejo";
+              user = owner;
             };
           };
         })
@@ -144,75 +144,7 @@
             };
           };
 
-          toh.meta.filesystem.mounts."/var/lib/forgejo/repositories" = {
-            user = owner;
-            group = group;
-            mode = "0750";
-          };
-
-          networking.firewall.allowedTCPPorts = [
-            httpPort
-            sshPort
-          ];
-
-          users.groups.${group} = { };
-          users.users.${owner} = {
-            group = group;
-            isSystemUser = true;
-          };
-
-          systemd.tmpfiles.rules = [
-            "d /var/lib/forgejo 0750 ${owner} ${group} -"
-            "d /var/lib/forgejo/custom 0750 ${owner} ${group} -"
-            "d /var/lib/forgejo/custom/conf 0750 ${owner} ${group} -"
-            "d /var/lib/forgejo/data 0750 ${owner} ${group} -"
-            "d /var/lib/forgejo/log 0750 ${owner} ${group} -"
-          ];
-
           systemd.services.forgejo-secrets.enable = lib.mkForce false;
-
-          systemd.services.forgejo-db-migrate = {
-            description = "Forgejo database migration";
-            path = [
-              forgejoCfg.package
-              pkgs.git
-              pkgs.gnupg
-            ];
-            script = ''
-              session_url="$(<"${kvSessionInstance.url}")"
-              cache_url="$(<"${kvCacheInstance.url}")"
-              queue_url="$(<"${kvQueueInstance.url}")"
-
-              config="${forgejoCfg.customDir}/conf/app.ini"
-              cp -f '${pkgs.formats.ini { }.generate "app.ini" forgejoCfg.settings}' "$config"
-              chmod u+w "$config"
-              ${lib.getExe' forgejoCfg.package "environment-to-ini"} --config "$config"
-
-              cat >> "$config" <<APPINIEOF
-
-              [session]
-              PROVIDER = redis
-              PROVIDER_CONFIG = ''${session_url}
-
-              [cache]
-              ADAPTER = redis
-              HOST = ''${cache_url}
-
-              [queue]
-              TYPE = redis
-              CONN_STR = ''${queue_url}
-              APPINIEOF
-
-              chmod u-w "$config"
-
-              ${forgejoExe} migrate
-            '';
-            serviceConfig = {
-              User = owner;
-              Group = group;
-              Type = "oneshot";
-            };
-          };
 
           systemd.services.forgejo = {
             preStart = lib.mkForce ''
@@ -269,6 +201,27 @@
               "toh-filesystem-online.target"
             ];
           };
+
+          networking.firewall.allowedTCPPorts = [
+            httpPort
+            sshPort
+          ];
+
+          users.groups.${group} = { };
+          users.users.${owner} = {
+            home = forgejoCfg.stateDir;
+            useDefaultShell = true;
+            group = group;
+            isSystemUser = true;
+          };
+
+          systemd.tmpfiles.rules = [
+            "d /var/lib/forgejo 0750 ${owner} ${group} -"
+            "d /var/lib/forgejo/custom 0750 ${owner} ${group} -"
+            "d /var/lib/forgejo/custom/conf 0750 ${owner} ${group} -"
+            "d /var/lib/forgejo/data 0750 ${owner} ${group} -"
+            "d /var/lib/forgejo/log 0750 ${owner} ${group} -"
+          ];
 
           programs.rust-motd.settings.service_status.Forgejo = "forgejo";
 
@@ -395,6 +348,55 @@
               };
             }
           ];
+
+          toh.meta.filesystem.mounts."/var/lib/forgejo/repositories" = {
+            user = owner;
+            group = group;
+            mode = "0750";
+          };
+
+          systemd.services.forgejo-db-migrate = {
+            description = "Forgejo database migration";
+            path = [
+              forgejoCfg.package
+              pkgs.git
+              pkgs.gnupg
+            ];
+            script = ''
+              session_url="$(<"${kvSessionInstance.url}")"
+              cache_url="$(<"${kvCacheInstance.url}")"
+              queue_url="$(<"${kvQueueInstance.url}")"
+
+              config="${forgejoCfg.customDir}/conf/app.ini"
+              cp -f '${pkgs.formats.ini { }.generate "app.ini" forgejoCfg.settings}' "$config"
+              chmod u+w "$config"
+              ${lib.getExe' forgejoCfg.package "environment-to-ini"} --config "$config"
+
+              cat >> "$config" <<APPINIEOF
+
+              [session]
+              PROVIDER = redis
+              PROVIDER_CONFIG = ''${session_url}
+
+              [cache]
+              ADAPTER = redis
+              HOST = ''${cache_url}
+
+              [queue]
+              TYPE = redis
+              CONN_STR = ''${queue_url}
+              APPINIEOF
+
+              chmod u-w "$config"
+
+              ${forgejoExe} migrate
+            '';
+            serviceConfig = {
+              User = owner;
+              Group = group;
+              Type = "oneshot";
+            };
+          };
 
           toh.meta.database.apps.forgejo = {
             user = owner;
