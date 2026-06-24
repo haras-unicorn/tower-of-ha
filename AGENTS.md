@@ -109,24 +109,24 @@ time.
 ## Testing
 
 - Unit tests: `nix-unit --flake .#tests`
-- NixOS integration tests: `nix flake check` or `dev-toh test nixos <test-name>`
+- NixOS integration tests: `nix flake check` or `dev test nixos <test-name>`
 - Only use the built-in CLI wrappers for these tasks:
-  - `dev-toh lint` — run all linters and formatters.
-  - `dev-toh test` — run all tests.
-  - `dev-toh format` — auto-format the repository.
+  - `dev lint` — run all linters and formatters.
+  - `dev test` — run all tests.
+  - `dev format` — auto-format the repository.
 
 Do **not** run tools directly (e.g. do not invoke `prettier` or `nixfmt`
 manually) unless you are fixing a bug in the wrapper itself.
 
 ## Linting & formatting
 
-The development shell provides `dev-toh`. The only commands an agent should use
-for quality assurance are:
+The development shell provides `dev`. The only commands an agent should use for
+quality assurance are:
 
 ```bash
-dev-toh format   # auto-format everything
-dev-toh lint     # check formatting, spelling, markdown style
-dev-toh test     # run nix-unit and NixOS tests
+dev format   # auto-format everything
+dev lint     # check formatting, spelling, markdown style
+dev test     # run nix-unit and NixOS tests
 ```
 
 ## Guardrails
