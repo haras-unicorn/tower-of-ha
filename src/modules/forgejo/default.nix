@@ -26,14 +26,19 @@
       kvQueueInstance = config.toh.meta.kv.instances.forgejo-queue;
 
       emailConfig = config.toh.meta.email;
+      emailInstance = config.toh.meta.email.emails.forgejo;
 
       proxyHttpAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-http.endpoint;
+      proxySshAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-ssh.endpoint;
+
+      forgejoCfg = config.services.forgejo;
+      forgejoExe = lib.getExe forgejoCfg.package;
 
       owner = "forgejo";
       group = "forgejo";
 
       s3StorageSettings =
-        endpoint: basePath:
+        basePath:
         {
           STORAGE_TYPE = "minio";
           SERVE_DIRECT = true;
@@ -58,10 +63,15 @@
       config = lib.mkMerge [
         (lib.mkIf anyMachines {
           toh.meta.git = {
-            host = proxyHttpAttrs.host;
-            httpPort = proxyHttpAttrs.port;
-            sshPort = 22;
-            url = "https://${proxyHttpAttrs.host}";
+            http = {
+              host = proxyHttpAttrs.host;
+              port = proxyHttpAttrs.port;
+            };
+            ssh = {
+              host = proxySshAttrs.host;
+              port = proxySshAttrs.port;
+              user = "forgejo";
+            };
           };
         })
         (lib.mkIf cfg.enable {
@@ -77,13 +87,7 @@
             useWizard = false;
 
             database = {
-              type = if dbConfig.protocol == "postgresql" then "postgres" else dbConfig.protocol;
-              host = dbConfig.host;
-              port = dbConfig.port;
-              name = config.toh.meta.database.apps.forgejo.dbName;
-              user = config.toh.meta.database.apps.forgejo.dbUser;
               createDatabase = false;
-              passwordFile = lib.mkDefault dbInstance.password;
             };
 
             lfs.enable = true;
@@ -107,7 +111,11 @@
               };
 
               database = {
-                SSL_MODE = lib.mkForce "verify-full";
+                DB_TYPE = if dbConfig.protocol == "postgresql" then "postgres" else dbConfig.protocol;
+                HOST = "${dbConfig.host}:${builtins.toString dbConfig.port}";
+                NAME = dbInstance.dbName;
+                USER = dbInstance.dbUser;
+                SSL_MODE = "verify-full";
               };
 
               repository = {
@@ -119,24 +127,20 @@
                 PROTOCOL = "smtp";
                 SMTP_ADDR = emailConfig.domain;
                 SMTP_PORT = 25;
-                FROM = "forgejo@${emailConfig.domain}";
+                FROM = emailInstance.address;
               };
 
               actions = {
                 ENABLED = true;
               };
 
-              other = {
-                SHOW_FOOTER_VERSION = false;
-              };
-
-              attachment = s3StorageSettings "attachment" null;
-              lfs = s3StorageSettings "lfs" "lfs/";
-              avatar = s3StorageSettings "avatar" null;
-              "repo-avatar" = s3StorageSettings "repo-avatar" null;
-              "repo-archive" = s3StorageSettings "repo-archive" null;
-              "storage.actions_log" = s3StorageSettings "actions_log" null;
-              "actions.artifacts" = s3StorageSettings "artifacts" null;
+              attachment = s3StorageSettings null;
+              lfs = s3StorageSettings "lfs/";
+              avatar = s3StorageSettings null;
+              "repo-avatar" = s3StorageSettings null;
+              "repo-archive" = s3StorageSettings null;
+              "storage.actions_log" = s3StorageSettings null;
+              "actions.artifacts" = s3StorageSettings null;
             };
           };
 
@@ -165,25 +169,24 @@
             "d /var/lib/forgejo/log 0750 ${owner} ${group} -"
           ];
 
-          systemd.services.forgejo-secrets = lib.mkForce {
-            description = "Forgejo secret bootstrap (managed by cryl)";
-            script = "true";
-            serviceConfig = {
-              Type = "oneshot";
-              RemainAfterExit = true;
-              User = owner;
-              Group = group;
-            };
-          };
+          systemd.services.forgejo-secrets.enable = lib.mkForce false;
 
-          systemd.services.forgejo = {
-            preStart = lib.mkAfter ''
+          systemd.services.forgejo-db-migrate = {
+            description = "Forgejo database migration";
+            path = [
+              forgejoCfg.package
+              pkgs.git
+              pkgs.gnupg
+            ];
+            script = ''
               session_url="$(<"${kvSessionInstance.url}")"
               cache_url="$(<"${kvCacheInstance.url}")"
               queue_url="$(<"${kvQueueInstance.url}")"
 
-              config="${config.services.forgejo.customDir}/conf/app.ini"
+              config="${forgejoCfg.customDir}/conf/app.ini"
+              cp -f '${pkgs.formats.ini { }.generate "app.ini" forgejoCfg.settings}' "$config"
               chmod u+w "$config"
+              ${lib.getExe' forgejoCfg.package "environment-to-ini"} --config "$config"
 
               cat >> "$config" <<APPINIEOF
 
@@ -201,6 +204,49 @@
               APPINIEOF
 
               chmod u-w "$config"
+
+              ${forgejoExe} migrate
+            '';
+            serviceConfig = {
+              User = owner;
+              Group = group;
+              Type = "oneshot";
+            };
+          };
+
+          systemd.services.forgejo = {
+            preStart = lib.mkForce ''
+              config="${forgejoCfg.customDir}/conf/app.ini"
+              cp -f '${pkgs.formats.ini { }.generate "app.ini" forgejoCfg.settings}' "$config"
+              chmod u+w "$config"
+              ${lib.getExe' forgejoCfg.package "environment-to-ini"} --config "$config"
+
+              session_url="$(<"${kvSessionInstance.url}")"
+              cache_url="$(<"${kvCacheInstance.url}")"
+              queue_url="$(<"${kvQueueInstance.url}")"
+
+              cat >> "$config" <<APPINIEOF
+
+              [session]
+              PROVIDER = redis
+              PROVIDER_CONFIG = ''${session_url}
+
+              [cache]
+              ADAPTER = redis
+              HOST = ''${cache_url}
+
+              [queue]
+              TYPE = redis
+              CONN_STR = ''${queue_url}
+              APPINIEOF
+
+              chmod u-w "$config"
+
+              ${forgejoExe} admin regenerate hooks
+
+              if [ -r ${forgejoCfg.stateDir}/.ssh/authorized_keys ]; then
+                ${forgejoExe} admin regenerate keys
+              fi
             '';
 
             wantedBy = [
@@ -214,6 +260,7 @@
               "toh-s3-online.target"
               "toh-kv-online.target"
               "toh-filesystem-online.target"
+              "forgejo-db-migrate.service"
             ];
             requires = [
               "toh-database-online.target"
@@ -254,25 +301,25 @@
           toh.meta.sops.secrets."forgejo-secret-key" = {
             inherit owner group;
             mode = "0400";
-            path = "${config.services.forgejo.customDir}/conf/secret_key";
+            path = "${forgejoCfg.customDir}/conf/secret_key";
           };
 
           toh.meta.sops.secrets."forgejo-internal-token" = {
             inherit owner group;
             mode = "0400";
-            path = "${config.services.forgejo.customDir}/conf/internal_token";
+            path = "${forgejoCfg.customDir}/conf/internal_token";
           };
 
           toh.meta.sops.secrets."forgejo-jwt-secret" = {
             inherit owner group;
             mode = "0400";
-            path = "${config.services.forgejo.customDir}/conf/oauth2_jwt_secret";
+            path = "${forgejoCfg.customDir}/conf/oauth2_jwt_secret";
           };
 
           toh.meta.sops.secrets."forgejo-lfs-jwt-secret" = {
             inherit owner group;
             mode = "0400";
-            path = "${config.services.forgejo.customDir}/conf/lfs_jwt_secret";
+            path = "${forgejoCfg.customDir}/conf/lfs_jwt_secret";
           };
 
           toh.meta.cryl.machine = [
@@ -354,6 +401,7 @@
             group = group;
             dbName = "forgejo";
             dbUser = "forgejo";
+            init.systemd.unit = "forgejo-db-migrate.service";
           };
 
           toh.meta.s3.apps.forgejo = {

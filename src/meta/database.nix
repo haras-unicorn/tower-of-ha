@@ -107,6 +107,16 @@
                 { name, ... }:
                 {
                   options = {
+                    dbName = lib.mkOption {
+                      type = lib.types.str;
+                      description = "Database name";
+                    };
+
+                    dbUser = lib.mkOption {
+                      type = lib.types.str;
+                      description = "Database user name";
+                    };
+
                     password = lib.mkOption {
                       type = lib.types.str;
                       description = "Database user password file path";
