@@ -112,7 +112,7 @@
               };
 
               database = {
-                DB_TYPE = if dbConfig.protocol == "postgresql" then "postgres" else dbConfig.protocol;
+                DB_TYPE = lib.mkForce (if dbConfig.protocol == "postgresql" then "postgres" else dbConfig.protocol);
                 HOST = "${dbConfig.host}:${builtins.toString dbConfig.port}";
                 NAME = dbInstance.dbName;
                 USER = dbInstance.dbUser;
