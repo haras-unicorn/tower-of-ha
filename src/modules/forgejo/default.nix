@@ -12,6 +12,8 @@
 
       anyMachines = tohLib.anyServiceMachines "forgejo";
 
+      settingsFormat = pkgs.formats.ini { };
+
       httpPort = 3000;
       sshPort = 2222;
 
@@ -151,7 +153,7 @@
           systemd.services.forgejo = {
             preStart = lib.mkForce ''
               config="${forgejoCfg.customDir}/conf/app.ini"
-              cp -f '${pkgs.formats.ini { }.generate "app.ini" forgejoCfg.settings}' "$config"
+              cp -f '${settingsFormat.generate "app.ini" forgejoCfg.settings}' "$config"
               chmod u+w "$config"
               ${lib.getExe' forgejoCfg.package "environment-to-ini"} --config "$config"
 
