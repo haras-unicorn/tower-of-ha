@@ -232,7 +232,7 @@
               port = httpPort;
             };
             health.endpoint.http = {
-              inherit httpPort;
+              port = httpPort;
               path = "/api/healthz";
             };
           };
