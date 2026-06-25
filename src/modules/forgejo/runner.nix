@@ -9,8 +9,6 @@
     let
       cfg = config.toh.services.forgejo.runner;
 
-      proxyHttpAttrs = config.toh.lib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-http.endpoint;
-
       owner = "forgejo-runner";
       group = "forgejo-runner";
     in
@@ -28,7 +26,7 @@
           instances.forgejo = {
             enable = true;
             name = config.toh.meta.machine.name;
-            url = "https://${proxyHttpAttrs.host}";
+            url = config.toh.lib.services.endpoint.toUrl config.toh.meta.proxies.forgejo-http.endpoint;
             tokenFile = config.toh.meta.sops.secrets."forgejo-runner-token".path;
             labels = [ "self-hosted:host" ];
             hostPackages = with pkgs; [
@@ -45,13 +43,18 @@
           };
         };
 
+        systemd.services.gitea-runner-forgejo = {
+          serviceConfig = {
+            DynamicUser = lib.mkForce false;
+            User = lib.mkForce owner;
+            Group = lib.mkForce group;
+          };
+        };
+
         toh.meta.sops.secrets."forgejo-runner-token" = {
           user = owner;
           group = group;
-          key = "forgejo-runner-token";
           mode = "0400";
-          path = "/etc/forgejo-runner/token";
-          restartUnits = [ "gitea-runner-forgejo.service" ];
         };
 
         users.groups.${group} = { };

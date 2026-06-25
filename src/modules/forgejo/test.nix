@@ -19,6 +19,7 @@
             toh.services.maddy.enable = true;
             toh.services.authelia.enable = true;
             toh.services.forgejo.enable = true;
+            toh.services.forgejo.runner.enable = true;
           };
         };
 
