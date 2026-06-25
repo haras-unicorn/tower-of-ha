@@ -372,7 +372,7 @@
               queue_url="$(<"${kvQueueInstance.url}")"
 
               config="${forgejoCfg.customDir}/conf/app.ini"
-              cp -f '${pkgs.formats.ini { }.generate "app.ini" forgejoCfg.settings}' "$config"
+              cp -f '${settingsFormat.generate "app.ini" forgejoCfg.settings}' "$config"
               chmod u+w "$config"
               ${lib.getExe' forgejoCfg.package "environment-to-ini"} --config "$config"
 
