@@ -23,7 +23,7 @@
         };
 
         toh.test.commands.perNodeInCluster.node = [
-          ''command_node.wait_until_succeeds("systemctl is-active forgejo.service", timeout=600)''
+          ''command_node.wait_until_succeeds("systemctl is-active forgejo.service", timeout=300)''
           ''command_node.wait_until_succeeds("curl -f http://forgejo.service.toh/api/healthz", timeout=300)''
         ];
       };
@@ -50,7 +50,7 @@
         };
 
         toh.test.commands.perNodeInCluster.node = [
-          ''command_node.wait_until_succeeds("systemctl is-active forgejo.service", timeout=600)''
+          ''command_node.wait_until_succeeds("systemctl is-active forgejo.service", timeout=300)''
           ''command_node.wait_until_succeeds("curl -f http://forgejo.service.toh/api/healthz", timeout=300)''
         ];
       };
