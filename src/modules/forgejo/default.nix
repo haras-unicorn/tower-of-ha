@@ -39,6 +39,18 @@
       forgejoCfg = config.services.forgejo;
       configFile = "/run/secrets/forgejo-config";
       exe = ''${lib.getExe forgejoCfg.package} --config "${configFile}"'';
+      forgejoSettings = settingsFormat.generate "forgejo-config" (
+        builtins.removeAttrs forgejoCfg.settings [ "database" ]
+      );
+      forgejoDbType =
+        if dbConfig.protocol == "postgresql" then
+          "postgres"
+        else if dbConfig.protocol == "mysql" then
+          "mysql"
+        else if dbConfig.protocol == "sqlite" then
+          "sqlite3"
+        else
+          builtins.throw "Forgejo database type not supported";
 
       owner = "forgejo";
       group = "forgejo";
@@ -188,8 +200,8 @@
 
           systemd.services.forgejo-config = {
             script = ''
-              cat '${settingsFormat.generate "forgejo-config" forgejoCfg.settings}' > "${configFile}"
-              cat >> "${configFile}" <<APPINIEOF
+              cat "${forgejoSettings}" > "${configFile}"
+              cat >> "${configFile}" <<EOF
               [session]
               PROVIDER = redis
               PROVIDER_CONFIG = "$(cat "${kvSessionInstance.url}")"
@@ -201,7 +213,16 @@
               [queue]
               TYPE = redis
               CONN_STR = $(cat "${kvQueueInstance.url}")
-              APPINIEOF
+
+              [database]
+              DB_TYPE = ${forgejoDbType}
+              HOST = ${dbConfig.host}:${builtins.toString dbConfig.port}
+              NAME = ${dbInstance.dbName}
+              USER = ${dbInstance.dbUser}
+              SSL_MODE = verify-full
+              AUTO_MIGRATION = false
+              PASSWD = """$(cat ${dbInstance.password})"""
+              EOF
               chmod 640 "${configFile}"
               chown "${owner}:${group}" "${configFile}"
             '';
