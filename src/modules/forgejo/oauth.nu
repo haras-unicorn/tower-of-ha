@@ -1,5 +1,6 @@
-let base_url = r#'{{{TOH_OPENBAO_OAUTH_BASE_URL}}}'#
-let client_secret = r#'{{{TOH_OPENBAO_OAUTH_CLIENT_SECRET}}}'#
+let base_url = r#'{{{TOH_FORGEJO_OAUTH_BASE_URL}}}'#
+let client_secret = r#'{{{TOH_FORGEJO_OAUTH_CLIENT_SECRET}}}'#
+let config = r#'{{{TOH_FORGEJO_CONFIG}}}'#
 
 def "main" [
   --max-attempts: int = 10,
@@ -30,6 +31,7 @@ def "main" [
       let output = (
         timeout $"($timeout)s"
           forgejo admin auth add-oauth
+            --config $config
             $"--auto-discover-url=($base_url)/.well-known/openid-configuration"
             --name=forgejo
             --provider=openidConnect
@@ -69,6 +71,7 @@ def "main" [
       let output = (
         timeout $"($timeout)s"
           forgejo admin auth list
+            --config $config
       ) | complete
 
       if $output.exit_code == 0 {

@@ -38,6 +38,7 @@
 
       forgejoCfg = config.services.forgejo;
       configFile = "/run/secrets/forgejo-config";
+      exe = ''${lib.getExe forgejoCfg.package} --config "${configFile}"'';
 
       owner = "forgejo";
       group = "forgejo";
@@ -89,6 +90,7 @@
             textVariables = {
               TOH_FORGEJO_OAUTH_BASE_URL = oidcConfg.baseUrl;
               TOH_FORGEJO_OAUTH_CLIENT_SECRET = oidcClient.clientSecret;
+              TOH_FORGEJO_CONFIG = configFile;
             };
           };
 
@@ -184,9 +186,9 @@
             };
           };
 
-          systemd.services.forgejo-secrets = {
+          systemd.services.forgejo-config = {
             script = ''
-              cat '${settingsFormat.generate "app.ini" forgejoCfg.settings}' > "${configFile}"
+              cat '${settingsFormat.generate "forgejo-config" forgejoCfg.settings}' > "${configFile}"
               cat >> "${configFile}" <<APPINIEOF
               [session]
               PROVIDER = redis
@@ -219,7 +221,7 @@
               "toh-oidc-online.target"
             ];
             after = [
-              "forgejo-secrets.service"
+              "forgejo-config.service"
               "toh-database-online.target"
               "toh-s3-online.target"
               "toh-kv-online.target"
@@ -228,7 +230,7 @@
               "toh-oidc-online.target"
             ];
             requires = [
-              "forgejo-secrets.service"
+              "forgejo-config.service"
               "toh-database-online.target"
               "toh-s3-online.target"
               "toh-kv-online.target"
@@ -236,6 +238,19 @@
               "toh-email-online.target"
               "toh-oidc-online.target"
             ];
+
+            preStart = lib.mkForce ''
+              ${exe} admin regenerate hooks
+              if [ -r ${forgejoCfg.stateDir}/.ssh/authorized_keys ]; then
+                ${exe} admin regenerate keys
+              fi
+            '';
+
+            serviceConfig = {
+              ExecStart = lib.mkForce ''
+                ${exe} web --pid /run/forgejo/forgejo.pid
+              '';
+            };
           };
 
           systemd.services.forgejo-oauth = {
@@ -255,17 +270,17 @@
 
           systemd.targets.toh-git-online = {
             wantedBy = [
-              "forgejo-secrets.service"
+              "forgejo-config.service"
               "forgejo.service"
               "forgejo-oauth.service"
             ];
             bindsTo = [
-              "forgejo-secrets.service"
+              "forgejo-config.service"
               "forgejo.service"
               "forgejo-oauth.service"
             ];
             after = [
-              "forgejo-secrets.service"
+              "forgejo-config.service"
               "forgejo.service"
               "forgejo-oauth.service"
             ];
@@ -409,8 +424,8 @@
 
           systemd.services.forgejo-db-migrate = {
             description = "Forgejo database migration";
-            after = [ "forgejo-secrets.service" ];
-            requires = [ "forgejo-secrets.service" ];
+            after = [ "forgejo-config.service" ];
+            requires = [ "forgejo-config.service" ];
             path = [
               forgejoCfg.package
               pkgs.git
