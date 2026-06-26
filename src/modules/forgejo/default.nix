@@ -445,7 +445,12 @@
             group = group;
             database = httpPort;
             prefix = "all";
-            permissions = [ tohLib.kv.permissions.all ];
+            permissions = [
+              tohLib.kv.permissions.read
+              tohLib.kv.permissions.write
+              tohLib.kv.permissions.connection
+              tohLib.kv.permissions.keyspace
+            ];
           };
 
           toh.meta.kv.apps.forgejo-cache = {
@@ -453,7 +458,12 @@
             group = group;
             database = httpPort + 1;
             prefix = "all";
-            permissions = [ tohLib.kv.permissions.all ];
+            permissions = [
+              tohLib.kv.permissions.read
+              tohLib.kv.permissions.write
+              tohLib.kv.permissions.connection
+              tohLib.kv.permissions.keyspace
+            ];
           };
 
           toh.meta.kv.apps.forgejo-queue = {
@@ -461,7 +471,12 @@
             group = group;
             database = httpPort + 2;
             prefix = "all";
-            permissions = [ tohLib.kv.permissions.all ];
+            permissions = [
+              tohLib.kv.permissions.read
+              tohLib.kv.permissions.write
+              tohLib.kv.permissions.connection
+              tohLib.kv.permissions.keyspace
+            ];
           };
 
           toh.meta.email.apps.forgejo = {
