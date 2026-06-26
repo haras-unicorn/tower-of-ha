@@ -418,7 +418,7 @@
               pkgs.git
               pkgs.gnupg
             ];
-${configFile}           script = ''forgejo migrate --config "${configFile}"'';
+            script = ''forgejo migrate --config "${configFile}"'';
             serviceConfig = {
               User = owner;
               Group = group;
