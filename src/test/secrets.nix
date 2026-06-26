@@ -213,28 +213,34 @@
               after = [ "sops-install-secrets.service" ];
             };
 
-            systemd.targets.toh-secrets-initialized = {
-              wantedBy = [
-                "openbao-age-key-fetch.service"
-                "sops-install-secrets.service"
-                "build-ca-bundle-and-p11-kit-trust.service"
-                "openbao-age-key-shred.service"
-              ];
-              bindsTo = [
-                "openbao-age-key-fetch.service"
-                "sops-install-secrets.service"
-                "build-ca-bundle-and-p11-kit-trust.service"
-                "openbao-age-key-shred.service"
-              ];
-              after = [
-                "openbao-age-key-fetch.service"
-                "sops-install-secrets.service"
-                "build-ca-bundle-and-p11-kit-trust.service"
-              ];
-              before = [
-                "openbao-age-key-shred.service"
-              ];
-            };
+            systemd.targets.toh-secrets-initialized = lib.mkMerge [
+              {
+                wantedBy = [ "sops-install-secrets.service" ];
+                bindsTo = [ "sops-install-secrets.service" ];
+                after = [ "sops-install-secrets.service" ];
+              }
+              (lib.mkIf config.toh.pki.installCa {
+                wantedBy = [ "build-ca-bundle-and-p11-kit-trust.service" ];
+                bindsTo = [ "build-ca-bundle-and-p11-kit-trust.service" ];
+                after = [ "build-ca-bundle-and-p11-kit-trust.service" ];
+              })
+              (lib.mkIf config.toh.services.openbao.secrets.enable {
+                wantedBy = [
+                  "openbao-age-key-fetch.service"
+                  "openbao-age-key-shred.service"
+                ];
+                bindsTo = [
+                  "openbao-age-key-fetch.service"
+                  "openbao-age-key-shred.service"
+                ];
+                after = [
+                  "openbao-age-key-fetch.service"
+                ];
+                before = [
+                  "openbao-age-key-shred.service"
+                ];
+              })
+            ];
 
             toh.meta.secrets.directories = {
               machines = "${testConfig.cryl.sops.package}/machines";
