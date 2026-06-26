@@ -31,7 +31,7 @@
       emailInstance = config.toh.meta.email.emails.forgejo;
 
       oidcConfg = config.toh.meta.oidc;
-      oidcInstance = config.toh.meta.oidc.instances.forgejo;
+      oidcClient = config.toh.meta.oidc.clients.forgejo;
 
       proxyHttpAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-http.endpoint;
       proxySshAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-ssh.endpoint;
@@ -87,7 +87,7 @@
             textFile = ./oauth.nu;
             textVariables = {
               TOH_FORGEJO_OAUTH_BASE_URL = oidcConfg.baseUrl;
-              TOH_FORGEJO_OAUTH_CLIENT_SECRET = oidcInstance.clientSecret;
+              TOH_FORGEJO_OAUTH_CLIENT_SECRET = oidcClient.clientSecret;
             };
           };
 
