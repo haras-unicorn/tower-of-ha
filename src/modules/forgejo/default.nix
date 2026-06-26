@@ -233,6 +233,7 @@
           };
 
           systemd.services.forgejo = {
+            environment.GODEBUG = "netdns=go+2";
             wantedBy = [
               "toh-database-online.target"
               "toh-s3-online.target"
