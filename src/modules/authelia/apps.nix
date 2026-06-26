@@ -57,30 +57,42 @@
 
       services.authelia.instances.authelia = lib.mkIf cfg.enable {
         settings.identity_providers.oidc.clients = mergeByClusterApps (
-          { name, redirectUris, ... }:
+          {
+            name,
+            redirectUris,
+            pkce,
+            ...
+          }:
           [
-            {
-              client_id = name;
-              client_name = name;
-              client_secret = ''{{ secret "${
-                config.toh.meta.sops.secrets."authelia-oidc-${name}-secret".path
-              }" }}'';
-              public = false;
-              redirect_uris = redirectUris;
-              id_token_signed_response_alg = "ES256";
-              scopes = [
-                "openid"
-                "profile"
-                "email"
-                "groups"
-                "offline_access"
-              ];
-              grant_types = [
-                "refresh_token"
-                "authorization_code"
-              ];
-              response_types = [ "code" ];
-            }
+
+            (lib.mkMerge [
+              {
+                client_id = name;
+                client_name = name;
+                client_secret = ''{{ secret "${
+                  config.toh.meta.sops.secrets."authelia-oidc-${name}-secret".path
+                }" }}'';
+                public = false;
+                redirect_uris = redirectUris;
+                id_token_signed_response_alg = "ES256";
+                scopes = [
+                  "openid"
+                  "profile"
+                  "email"
+                  "groups"
+                  "offline_access"
+                ];
+                grant_types = [
+                  "refresh_token"
+                  "authorization_code"
+                ];
+                response_types = [ "code" ];
+              }
+              (lib.mkIf pkce {
+                require_pkce = true;
+                pkce_challenge_method = "S256";
+              })
+            ])
           ]
         );
       };

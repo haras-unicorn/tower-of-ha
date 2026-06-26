@@ -30,11 +30,13 @@
       emailConfig = config.toh.meta.email;
       emailInstance = config.toh.meta.email.emails.forgejo;
 
+      oidcConfg = config.toh.meta.oidc;
+      oidcInstance = config.toh.meta.oidc.instances.forgejo;
+
       proxyHttpAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-http.endpoint;
       proxySshAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-ssh.endpoint;
 
       forgejoCfg = config.services.forgejo;
-      forgejoExe = lib.getExe forgejoCfg.package;
 
       owner = "forgejo";
       group = "forgejo";
@@ -87,7 +89,10 @@
             package = pkgs.forgejo-lts;
             user = owner;
             group = group;
-            useWizard = false;
+
+            # NOTE: might seem weird but this just means
+            # were the ones managing secrets and not nixpkgs
+            useWizard = true;
 
             database = {
               createDatabase = false;
@@ -113,6 +118,14 @@
                 BUILTIN_SSH_SERVER_USER = owner;
               };
 
+              service = {
+                DISABLE_REGISTRATION = true;
+              };
+
+              repository = {
+                DEFAULT_BRANCH = "main";
+              };
+
               database = {
                 DB_TYPE = lib.mkForce (if dbConfig.protocol == "postgresql" then "postgres" else dbConfig.protocol);
                 HOST = "${dbConfig.host}:${builtins.toString dbConfig.port}";
@@ -120,10 +133,6 @@
                 USER = dbInstance.dbUser;
                 SSL_MODE = "verify-full";
                 AUTO_MIGRATION = false;
-              };
-
-              repository = {
-                DEFAULT_BRANCH = "main";
               };
 
               mailer = {
@@ -138,6 +147,11 @@
                 ENABLED = true;
               };
 
+              openid = {
+                ENABLE_OPENID_SIGNIN = true;
+                WHITELISTED_URIS = oidcConfg.baseUrl;
+              };
+
               attachment = s3StorageSettings null;
               lfs = s3StorageSettings "lfs/";
               avatar = s3StorageSettings null;
@@ -148,61 +162,101 @@
             };
           };
 
-          systemd.services.forgejo-secrets.enable = lib.mkForce false;
-
-          systemd.services.forgejo = {
-            preStart = lib.mkForce ''
+          systemd.services.forgejo-secrets = {
+            script = ''
               config="${forgejoCfg.customDir}/conf/app.ini"
-              cp -f '${settingsFormat.generate "app.ini" forgejoCfg.settings}' "$config"
-              chmod u+w "$config"
-              ${lib.getExe' forgejoCfg.package "environment-to-ini"} --config "$config"
-
-              session_url="$(<"${kvSessionInstance.url}")"
-              cache_url="$(<"${kvCacheInstance.url}")"
-              queue_url="$(<"${kvQueueInstance.url}")"
+              cat '${settingsFormat.generate "app.ini" forgejoCfg.settings}' > "$config"
 
               cat >> "$config" <<APPINIEOF
-
               [session]
               PROVIDER = redis
-              PROVIDER_CONFIG = ''${session_url}
+              PROVIDER_CONFIG = "$(cat "${kvSessionInstance.url}")"
 
               [cache]
               ADAPTER = redis
-              HOST = ''${cache_url}
+              HOST = "$(cat "${kvCacheInstance.url}")"
 
               [queue]
               TYPE = redis
-              CONN_STR = ''${queue_url}
+              CONN_STR = $(cat "${kvQueueInstance.url}")
               APPINIEOF
-
-              chmod u-w "$config"
-
-              ${forgejoExe} admin regenerate hooks
-
-              if [ -r ${forgejoCfg.stateDir}/.ssh/authorized_keys ]; then
-                ${forgejoExe} admin regenerate keys
-              fi
             '';
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              User = owner;
+              Group = group;
+              ReadWritePaths = [ cfg.customDir ];
+              UMask = "0077";
+            };
+          };
 
+          systemd.services.forgejo = {
             wantedBy = [
               "toh-database-online.target"
               "toh-s3-online.target"
               "toh-kv-online.target"
               "toh-filesystem-online.target"
+              "toh-email-online.target"
+              "toh-oidc-online.target"
             ];
             after = [
+              "forgejo-secrets.service"
               "toh-database-online.target"
               "toh-s3-online.target"
               "toh-kv-online.target"
               "toh-filesystem-online.target"
-              "forgejo-db-migrate.service"
+              "toh-email-online.target"
+              "toh-oidc-online.target"
             ];
             requires = [
+              "forgejo-secrets.service"
               "toh-database-online.target"
               "toh-s3-online.target"
               "toh-kv-online.target"
               "toh-filesystem-online.target"
+              "toh-email-online.target"
+              "toh-oidc-online.target"
+            ];
+          };
+
+          systemd.services.forgejo-oauth2 = {
+            path = [ forgejoCfg.package ];
+            after = [ "forgejo.service" ];
+            requires = [ "forgejo.service" ];
+            script = ''
+              forgejo admin auth add-oauth \
+                --auto-discover-url=${config.toh.meta.oidc.baseUrl}/.well-known/openid-configuration \
+                --name=forgejo \
+                --provider=openidConnect \
+                --key=forgejo \
+                "--secret=$(cat ${oidcInstance.clientSecret})" \
+                --scopes='openid email profile groups forgejo' \
+                --attribute-ssh-public-key=sshpubkey
+            '';
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              User = owner;
+              Group = group;
+            };
+          };
+
+          systemd.targets.toh-git-online = {
+            wantedBy = [
+              "forgejo-secrets.service"
+              "forgejo.service"
+              "forgejo-oauth.service"
+            ];
+            bindsTo = [
+              "forgejo-secrets.service"
+              "forgejo.service"
+              "forgejo-oauth.service"
+            ];
+            after = [
+              "forgejo-secrets.service"
+              "forgejo.service"
+              "forgejo-oauth.service"
             ];
           };
 
@@ -218,14 +272,6 @@
             group = group;
             isSystemUser = true;
           };
-
-          systemd.tmpfiles.rules = [
-            "d /var/lib/forgejo 0750 ${owner} ${group} -"
-            "d /var/lib/forgejo/custom 0750 ${owner} ${group} -"
-            "d /var/lib/forgejo/custom/conf 0750 ${owner} ${group} -"
-            "d /var/lib/forgejo/data 0750 ${owner} ${group} -"
-            "d /var/lib/forgejo/log 0750 ${owner} ${group} -"
-          ];
 
           programs.rust-motd.settings.service_status.Forgejo = "forgejo";
 
@@ -258,25 +304,16 @@
           toh.meta.sops.secrets."forgejo-secret-key" = {
             inherit owner group;
             mode = "0400";
-            path = "${forgejoCfg.customDir}/conf/secret_key";
           };
 
           toh.meta.sops.secrets."forgejo-internal-token" = {
             inherit owner group;
             mode = "0400";
-            path = "${forgejoCfg.customDir}/conf/internal_token";
-          };
-
-          toh.meta.sops.secrets."forgejo-jwt-secret" = {
-            inherit owner group;
-            mode = "0400";
-            path = "${forgejoCfg.customDir}/conf/oauth2_jwt_secret";
           };
 
           toh.meta.sops.secrets."forgejo-lfs-jwt-secret" = {
             inherit owner group;
             mode = "0400";
-            path = "${forgejoCfg.customDir}/conf/lfs_jwt_secret";
           };
 
           toh.meta.cryl.machine = [
@@ -361,40 +398,14 @@
 
           systemd.services.forgejo-db-migrate = {
             description = "Forgejo database migration";
+            after = [ "forgejo-secrets.service" ];
+            requires = [ "forgejo-secrets.service" ];
             path = [
               forgejoCfg.package
               pkgs.git
               pkgs.gnupg
             ];
-            script = ''
-              session_url="$(<"${kvSessionInstance.url}")"
-              cache_url="$(<"${kvCacheInstance.url}")"
-              queue_url="$(<"${kvQueueInstance.url}")"
-
-              config="${forgejoCfg.customDir}/conf/app.ini"
-              cp -f '${settingsFormat.generate "app.ini" forgejoCfg.settings}' "$config"
-              chmod u+w "$config"
-              ${lib.getExe' forgejoCfg.package "environment-to-ini"} --config "$config"
-
-              cat >> "$config" <<APPINIEOF
-
-              [session]
-              PROVIDER = redis
-              PROVIDER_CONFIG = ''${session_url}
-
-              [cache]
-              ADAPTER = redis
-              HOST = ''${cache_url}
-
-              [queue]
-              TYPE = redis
-              CONN_STR = ''${queue_url}
-              APPINIEOF
-
-              chmod u-w "$config"
-
-              ${forgejoExe} migrate
-            '';
+            script = "forgejo migrate";
             serviceConfig = {
               User = owner;
               Group = group;
@@ -447,8 +458,8 @@
           toh.meta.oidc.apps.forgejo = {
             user = owner;
             group = group;
+            pkce = true;
             redirectUris = [
-              "https://${proxyHttpAttrs.host}/user/oauth2/authelia/callback"
               "https://${proxyHttpAttrs.host}/user/oauth2/forgejo/callback"
             ];
           };
