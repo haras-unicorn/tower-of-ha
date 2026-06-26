@@ -37,7 +37,7 @@
       proxySshAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-ssh.endpoint;
 
       forgejoCfg = config.services.forgejo;
-      configFile = "${forgejoCfg.customDir}/conf/app.ini";
+      configFile = "/run/secrets/forgejo-config";
 
       owner = "forgejo";
       group = "forgejo";
