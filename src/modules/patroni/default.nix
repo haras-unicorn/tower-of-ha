@@ -99,6 +99,8 @@
                       ];
 
                     makeSubnetAclForDatabaseAndUser = database: user: [
+                      "host ${database} ${user} 127.0.0.1/32 scram-sha-256"
+                      "local ${database} ${user} scram-sha-256"
                       "hostnossl ${database} ${user} ${subnetCidr} reject"
                       "hostssl ${database} ${user} ${subnetCidr} scram-sha-256"
                     ];
