@@ -79,6 +79,18 @@
           };
         })
         (lib.mkIf cfg.enable {
+          toh.overlays = tohLib.cli.makeOverlays {
+            name = "forgejo-oauth";
+            runtimeInputs = pkgs: [
+              forgejoCfg.package
+            ];
+            textFile = ./oauth.nu;
+            textVariables = {
+              TOH_FORGEJO_OAUTH_BASE_URL = oidcConfg.baseUrl;
+              TOH_FORGEJO_OAUTH_CLIENT_SECRET = oidcInstance.clientSecret;
+            };
+          };
+
           environment.systemPackages = [
             pkgs.forgejo-cli
             pkgs.git
@@ -230,24 +242,17 @@
           };
 
           systemd.services.forgejo-oauth2 = {
-            path = [ forgejoCfg.package ];
             after = [ "forgejo.service" ];
             requires = [ "forgejo.service" ];
-            script = ''
-              forgejo admin auth add-oauth \
-                --auto-discover-url=${config.toh.meta.oidc.baseUrl}/.well-known/openid-configuration \
-                --name=forgejo \
-                --provider=openidConnect \
-                --key=forgejo \
-                "--secret=$(cat ${oidcInstance.clientSecret})" \
-                --scopes='openid email profile groups forgejo' \
-                --attribute-ssh-public-key=sshpubkey
-            '';
+            path = [ pkgs.tohPackages.forgejo-oauth ];
+            script = "forgejo-oauth";
             serviceConfig = {
               Type = "oneshot";
               RemainAfterExit = true;
               User = owner;
               Group = group;
+              TimeoutStartSec = "infinity";
+              Restart = "on-failure";
             };
           };
 
