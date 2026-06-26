@@ -200,8 +200,6 @@
               TYPE = redis
               CONN_STR = $(cat "${kvQueueInstance.url}")
               APPINIEOF
-              chmod 400 "${configFile}"
-              chown ${owner}:${group} "${configFile}"
             '';
             serviceConfig = {
               Type = "oneshot";
