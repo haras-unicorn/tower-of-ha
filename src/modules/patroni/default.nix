@@ -85,11 +85,17 @@
                       user: withReplication:
                       [
                         "hostssl all ${user} 127.0.0.1/32 cert"
+                        "host all ${user} 127.0.0.1/32 scram-sha-256"
                         "local all ${user} scram-sha-256"
+                        "hostnossl all ${user} ${subnetCidr} reject"
+                        "hostssl all ${user} ${subnetCidr} cert"
                       ]
                       ++ lib.optionals withReplication [
                         "hostssl replication ${user} 127.0.0.1/32 cert"
+                        "local replication ${user} 127.0.0.1/32 scram-sha-256"
                         "local replication ${user} scram-sha-256"
+                        "hostnossl replication ${user} ${subnetCidr} reject"
+                        "hostssl replication ${user} ${subnetCidr} cert"
                       ];
 
                     makeSubnetAclForDatabaseAndUser = database: user: [
@@ -100,8 +106,7 @@
                   makeSuperuserAcl tohLib.patroni.superusers.superuser false
                   ++ makeSuperuserAcl tohLib.patroni.superusers.replication true
                   ++ makeSuperuserAcl tohLib.patroni.superusers.rewind false
-                  ++ makeSubnetAclForDatabaseAndUser "all" "all"
-                  ++ makeSubnetAclForDatabaseAndUser "replication" tohLib.patroni.superusers.replication;
+                  ++ makeSubnetAclForDatabaseAndUser "all" "all";
 
                 parameters = {
                   ssl = "on";
