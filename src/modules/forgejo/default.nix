@@ -187,7 +187,7 @@
           systemd.services.forgejo-secrets = {
             script = ''
               cat '${settingsFormat.generate "app.ini" forgejoCfg.settings}' > "${configFile}"
-              cat >> "$config" <<APPINIEOF
+              cat >> "${configFile}" <<APPINIEOF
               [session]
               PROVIDER = redis
               PROVIDER_CONFIG = "$(cat "${kvSessionInstance.url}")"
@@ -418,7 +418,7 @@
               pkgs.git
               pkgs.gnupg
             ];
-            script = ''forgejo migrate --config "${configFile}"'';
+${configFile}           script = ''forgejo migrate --config "${configFile}"'';
             serviceConfig = {
               User = owner;
               Group = group;
