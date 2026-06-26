@@ -37,6 +37,7 @@
       proxySshAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-ssh.endpoint;
 
       forgejoCfg = config.services.forgejo;
+      configFile = "${forgejoCfg.customDir}/conf/app.ini";
 
       owner = "forgejo";
       group = "forgejo";
@@ -185,9 +186,7 @@
 
           systemd.services.forgejo-secrets = {
             script = ''
-              config="${forgejoCfg.customDir}/conf/app.ini"
-              cat '${settingsFormat.generate "app.ini" forgejoCfg.settings}' > "$config"
-
+              cat '${settingsFormat.generate "app.ini" forgejoCfg.settings}' > "${configFile}"
               cat >> "$config" <<APPINIEOF
               [session]
               PROVIDER = redis
@@ -201,9 +200,8 @@
               TYPE = redis
               CONN_STR = $(cat "${kvQueueInstance.url}")
               APPINIEOF
-
-              chmod 400 "$config"
-              chown ${owner}:${group} "$config"
+              chmod 400 "${configFile}"
+              chown ${owner}:${group} "${configFile}"
             '';
             serviceConfig = {
               Type = "oneshot";
@@ -242,7 +240,7 @@
             ];
           };
 
-          systemd.services.forgejo-oauth2 = {
+          systemd.services.forgejo-oauth = {
             after = [ "forgejo.service" ];
             requires = [ "forgejo.service" ];
             path = [ pkgs.tohPackages.forgejo-oauth ];
@@ -420,7 +418,7 @@
               pkgs.git
               pkgs.gnupg
             ];
-            script = "forgejo migrate";
+            script = ''forgejo migrate --config "${configFile}"'';
             serviceConfig = {
               User = owner;
               Group = group;
