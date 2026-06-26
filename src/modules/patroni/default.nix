@@ -81,11 +81,6 @@
               postgresql = {
                 pg_hba =
                   let
-                    makeSubnetAclForDatabaseAndUser = database: user: [
-                      "hostnossl ${database} ${user} ${subnetCidr} reject"
-                      "hostssl ${database} ${user} ${subnetCidr} scram-sha-256"
-                    ];
-
                     makeSuperuserAcl =
                       user: withReplication:
                       [
@@ -96,12 +91,17 @@
                         "hostssl replication ${user} 127.0.0.1/32 cert"
                         "local replication ${user} scram-sha-256"
                       ];
+
+                    makeSubnetAclForDatabaseAndUser = database: user: [
+                      "hostnossl ${database} ${user} ${subnetCidr} reject"
+                      "hostssl ${database} ${user} ${subnetCidr} scram-sha-256"
+                    ];
                   in
-                  makeSubnetAclForDatabaseAndUser "all" "all"
-                  ++ makeSubnetAclForDatabaseAndUser "replication" tohLib.patroni.superusers.replication
-                  ++ makeSuperuserAcl tohLib.patroni.superusers.superuser false
+                  makeSuperuserAcl tohLib.patroni.superusers.superuser false
                   ++ makeSuperuserAcl tohLib.patroni.superusers.replication true
-                  ++ makeSuperuserAcl tohLib.patroni.superusers.rewind false;
+                  ++ makeSuperuserAcl tohLib.patroni.superusers.rewind false
+                  ++ makeSubnetAclForDatabaseAndUser "all" "all"
+                  ++ makeSubnetAclForDatabaseAndUser "replication" tohLib.patroni.superusers.replication;
 
                 parameters = {
                   ssl = "on";
