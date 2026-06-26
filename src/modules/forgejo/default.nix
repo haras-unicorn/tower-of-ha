@@ -201,14 +201,15 @@
               TYPE = redis
               CONN_STR = $(cat "${kvQueueInstance.url}")
               APPINIEOF
+
+              chmod 400 "$config"
+              chown ${owner}:${group} "$config"
             '';
             serviceConfig = {
               Type = "oneshot";
               RemainAfterExit = true;
               User = owner;
               Group = group;
-              ReadWritePaths = [ forgejoCfg.customDir ];
-              UMask = "0077";
             };
           };
 
