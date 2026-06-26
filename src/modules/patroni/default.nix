@@ -83,20 +83,20 @@
                   let
                     makeSubnetAclForDatabaseAndUser = database: user: [
                       "hostnossl ${database} ${user} ${subnetCidr} reject"
-                      "hostssl ${database} ${user} ${subnetCidr} cert"
                       "hostssl ${database} ${user} ${subnetCidr} scram-sha-256"
+                      "hostssl ${database} ${user} ${subnetCidr} cert"
                     ];
 
                     makeSuperuserAcl =
                       user: withReplication:
                       [
-                        "hostssl all ${user} 127.0.0.1/32 cert"
                         "host all ${user} 127.0.0.1/32 scram-sha-256"
+                        "hostssl all ${user} 127.0.0.1/32 cert"
                         "local all ${user} scram-sha-256"
                       ]
                       ++ lib.optionals withReplication [
-                        "hostssl replication ${user} 127.0.0.1/32 cert"
                         "host replication ${user} 127.0.0.1/32 scram-sha-256"
+                        "hostssl replication ${user} 127.0.0.1/32 cert"
                         "local replication ${user} scram-sha-256"
                       ];
                   in
