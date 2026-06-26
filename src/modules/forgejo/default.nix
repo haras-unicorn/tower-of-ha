@@ -271,6 +271,7 @@
               ExecStart = lib.mkForce ''
                 ${exe} web --pid /run/forgejo/forgejo.pid
               '';
+              LoadCredential = lib.mkForce [ ];
             };
           };
 
