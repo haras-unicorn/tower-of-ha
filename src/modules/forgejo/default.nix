@@ -207,7 +207,7 @@
               RemainAfterExit = true;
               User = owner;
               Group = group;
-              ReadWritePaths = [ cfg.customDir ];
+              ReadWritePaths = [ forgejoCfg.customDir ];
               UMask = "0077";
             };
           };
