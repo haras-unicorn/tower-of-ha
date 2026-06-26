@@ -92,7 +92,7 @@
                       ]
                       ++ lib.optionals withReplication [
                         "hostssl replication ${user} 127.0.0.1/32 cert"
-                        "local replication ${user} 127.0.0.1/32 scram-sha-256"
+                        "host replication ${user} 127.0.0.1/32 scram-sha-256"
                         "local replication ${user} scram-sha-256"
                         "hostnossl replication ${user} ${subnetCidr} reject"
                         "hostssl replication ${user} ${subnetCidr} cert"
