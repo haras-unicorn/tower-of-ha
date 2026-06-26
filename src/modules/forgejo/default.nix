@@ -202,7 +202,7 @@
               TYPE = redis
               CONN_STR = $(cat "${kvQueueInstance.url}")
               APPINIEOF
-              chmod 400 "${configFile}"
+              chmod 640 "${configFile}"
               chown "${owner}:${group}" "${configFile}"
             '';
             serviceConfig = {
