@@ -12,8 +12,6 @@
     layer7Protocols = proxyProtocols ++ extraLayer7Protocols;
 
     extraLayer7Protocols = [
-      "postgresql"
-      "mysql"
       "smb"
       "ldap"
       "ldaps"
@@ -22,7 +20,8 @@
       "s3"
       "smtp"
       "imap"
-    ];
+    ]
+    ++ tohLib.database.protocols;
 
     sslTermination = [
       "terminate"
@@ -84,12 +83,7 @@
             };
             parameters = query;
           }
-        else if
-          builtins.elem attrs.protocol [
-            "postgresql"
-            "mysql"
-          ]
-        then
+        else if builtins.elem attrs.protocol tohLib.database.protocols then
           {
             user,
             password,

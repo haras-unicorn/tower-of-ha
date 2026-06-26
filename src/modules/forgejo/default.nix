@@ -127,7 +127,16 @@
               };
 
               database = {
-                DB_TYPE = lib.mkForce (if dbConfig.protocol == "postgresql" then "postgres" else dbConfig.protocol);
+                DB_TYPE = lib.mkForce (
+                  if dbConfig.protocol == "postgresql" then
+                    "postgres"
+                  else if dbConfig.protocol == "mysql" then
+                    "mysql"
+                  else if dbConfig.protocol == "sqlite" then
+                    "sqlite3"
+                  else
+                    builtins.throw "Forgejo database type not supported"
+                );
                 HOST = "${dbConfig.host}:${builtins.toString dbConfig.port}";
                 NAME = dbInstance.dbName;
                 USER = dbInstance.dbUser;
