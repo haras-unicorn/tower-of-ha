@@ -75,7 +75,7 @@ def "main" [
       ) | complete
 
       if $output.exit_code == 0 {
-        print "Auth providers listed successfully"
+        print $"Auth providers listed successfully:\n($output.stdout)"
         return $output.stdout
       }
 
