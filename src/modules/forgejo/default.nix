@@ -324,7 +324,7 @@
 
           programs.rust-motd.settings.service_status.Forgejo = "forgejo";
 
-          toh.meta.services.forgejo-http = {
+          toh.meta.services.forgejo-web = {
             endpoint.http = {
               port = httpPort;
             };
@@ -334,7 +334,7 @@
             };
           };
 
-          toh.meta.services.forgejo-ssh = {
+          toh.meta.services.forgejo = {
             endpoint.tcp = {
               port = sshPort;
               sslTermination = "passthrough";
