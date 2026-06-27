@@ -60,7 +60,7 @@
         # Copy this machine's runner secret from cluster
         toh.meta.cryl.machine = [
           {
-            forgejo-runner = {
+            "forgejo-runner-${config.toh.meta.machine.name}" = {
               generations = [
                 {
                   generator = "script";
