@@ -476,10 +476,10 @@
               "forgejo-runner-${m.name}" = {
                 generations = [
                   {
-                    generator = "key";
+                    generator = "script";
                     arguments = {
-                      name = "forgejo-runner-${m.name}-secret";
-                      length = 40;
+                      name = "forgejo-runner-${m.name}-secret-script";
+                      text = "openssl rand -hex 20 | save -f forgejo-runner-${m.name}-secret";
                     };
                   }
                 ];
