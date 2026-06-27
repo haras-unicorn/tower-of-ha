@@ -56,10 +56,7 @@
       owner = "forgejo";
       group = "forgejo";
 
-      runnerMachines = builtins.filter (
-        m: m.config.toh.services.forgejo.runner.enable or false
-      ) config.toh.meta.cluster.machinea;
-      anyRunnerMachines = runnerMachines != [ ];
+      allClusterMachines = config.toh.meta.cluster.machinea;
 
       forgejoWorkDir = "/var/lib/forgejo";
     in
@@ -371,7 +368,7 @@
               mode = "0400";
             };
           }
-          // lib.optionalAttrs anyRunnerMachines (
+          // lib.optionalAttrs (allClusterMachines != [ ]) (
             builtins.listToAttrs (
               builtins.map (m: {
                 name = "forgejo-runner-${m.name}-secret";
@@ -379,7 +376,7 @@
                   inherit owner group;
                   mode = "0400";
                 };
-              }) runnerMachines
+              }) allClusterMachines
             )
           );
 
@@ -419,7 +416,7 @@
               };
             }
           ]
-          ++ lib.optionals anyRunnerMachines (
+          ++ lib.optionals (allClusterMachines != [ ]) (
             builtins.map (m: {
               "forgejo-runner-${m.name}-copy" = {
                 generations = [
@@ -432,7 +429,7 @@
                   }
                 ];
               };
-            }) runnerMachines
+            }) allClusterMachines
           );
 
           toh.meta.cryl.cluster = [
@@ -471,7 +468,7 @@
               };
             }
           ]
-          ++ lib.optionals anyRunnerMachines (
+          ++ lib.optionals (allClusterMachines != [ ]) (
             builtins.map (m: {
               "forgejo-runner-${m.name}" = {
                 generations = [
@@ -484,11 +481,11 @@
                   }
                 ];
               };
-            }) runnerMachines
+            }) allClusterMachines
           );
 
           # Register all runners on this forgejo instance
-          systemd.services.forgejo-runner-register = lib.mkIf anyRunnerMachines {
+          systemd.services.forgejo-runner-register = lib.mkIf (allClusterMachines != [ ]) {
             description = "Forgejo Runner Registration";
             after = [
               "forgejo.service"
@@ -529,7 +526,7 @@
                 SECRETS_DIR="/run/secrets"
                 DB_URL=$(cat "${dbInstance.url}")
 
-                ${lib.concatStringsSep "\n" (builtins.map makeRegisterBlock runnerMachines)}
+                ${lib.concatStringsSep "\n" (builtins.map makeRegisterBlock allClusterMachines)}
 
                 echo "All runners registered successfully."
               '';
@@ -571,7 +568,7 @@
             dbName = "forgejo";
             dbUser = "forgejo";
             init.systemd.unit = "forgejo-db-migrate.service";
-            init.sql.script = lib.mkIf anyRunnerMachines ''
+            init.sql.script = lib.mkIf (allClusterMachines != [ ]) ''
               CREATE TABLE IF NOT EXISTS __toh_action_runners (
                 name TEXT PRIMARY KEY,
                 uuid TEXT NOT NULL
