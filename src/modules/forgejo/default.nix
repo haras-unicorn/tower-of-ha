@@ -571,9 +571,7 @@
             dbName = "forgejo";
             dbUser = "forgejo";
             init.systemd.unit = "forgejo-db-migrate.service";
-          }
-          // lib.optionalAttrs anyRunnerMachines {
-            init.sql.script = ''
+            init.sql.script = lib.mkIf anyRunnerMachines ''
               CREATE TABLE IF NOT EXISTS __toh_action_runners (
                 name TEXT PRIMARY KEY,
                 uuid TEXT NOT NULL
