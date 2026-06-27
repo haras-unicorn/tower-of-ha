@@ -33,6 +33,7 @@
       oidcConfg = config.toh.meta.oidc;
       oidcClient = config.toh.meta.oidc.clients.forgejo;
 
+      makeHttpProxyUrl = tohLib.services.endpoint.toUrl config.toh.meta.proxies.forgejo-http.endpoint;
       proxyHttpAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-http.endpoint;
       proxySshAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-ssh.endpoint;
 
@@ -116,7 +117,7 @@
             settings = {
               server = {
                 DOMAIN = proxyHttpAttrs.host;
-                ROOT_URL = "https://${proxyHttpAttrs.host}/";
+                ROOT_URL = makeHttpProxyUrl { };
                 HTTP_ADDR = config.toh.meta.network.ip;
                 HTTP_PORT = httpPort;
                 PROTOCOL = "http";
@@ -523,7 +524,7 @@
             group = group;
             pkce = true;
             redirectUris = [
-              "https://${proxyHttpAttrs.host}/user/oauth2/forgejo/callback"
+              (makeHttpProxyUrl { path = "user/oauth2/forgejo/callback"; })
             ];
           };
 

@@ -187,10 +187,14 @@
               };
 
               session = {
+                # NOTE: can't be a TLD
                 cookies = [
                   {
-                    # NOTE: can't be a TLD
                     domain = config.toh.meta.domains.service;
+                    authelia_url = proxyUrl;
+                  }
+                  {
+                    domain = proxyAttrs.host;
                     authelia_url = proxyUrl;
                   }
                 ];
