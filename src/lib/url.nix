@@ -19,6 +19,7 @@
       postgresql = 5432;
       mysql = 3306;
       redis = 6379;
+      rediss = 6380;
     };
 
     makePath =
@@ -61,7 +62,7 @@
       )
       + host
       + lib.optionalString (
-        port != (builtins.getAttr protocol tohLib.url.defaultPorts)
+        !(tohLib.url.defaultPorts ? ${protocol}) || port != tohLib.url.defaultPorts.${protocol}
       ) ":${builtins.toString port}"
       + lib.optionalString (path != null && path != "") "/${lib.removePrefix "/" path}"
       + lib.optionalString (parameters != null && parameters != { }) (
