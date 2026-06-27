@@ -29,7 +29,7 @@
       };
 
       checks.test-services-forgejo-runner = pkgs.tohPackages.testers.runToHTest {
-        name = "services-forgejo";
+        name = "services-forgejo-runner";
 
         toh.test.clusters.node = {
           amount = 3;
@@ -51,6 +51,7 @@
 
         toh.test.commands.perNodeInCluster.node = [
           ''command_node.wait_until_succeeds("systemctl is-active forgejo.service", timeout=300)''
+          ''command_node.wait_until_succeeds("systemctl is-active forgejo-runner.service", timeout=300)''
           ''command_node.wait_until_succeeds("curl -f https://forgejo.service.toh/api/healthz", timeout=300)''
         ];
       };
