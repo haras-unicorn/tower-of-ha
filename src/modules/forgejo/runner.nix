@@ -63,10 +63,10 @@
             forgejo-runner = {
               generations = [
                 {
-                  generator = "copy";
+                  generator = "script";
                   arguments = {
-                    from = "cluster/forgejo-runner-${config.toh.meta.machine.name}-secret";
-                    to = "forgejo-runner-secret";
+                    name = "forgejo-runner-secret-script";
+                    text = "openssl rand -hex 20 | save -f forgejo-runner-secret";
                   };
                 }
               ];

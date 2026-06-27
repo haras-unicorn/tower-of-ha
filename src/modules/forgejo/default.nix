@@ -56,8 +56,6 @@
       owner = "forgejo";
       group = "forgejo";
 
-      forgejoMachines = tohLib.serviceMachines "forgejo";
-
       forgejoWorkDir = "/var/lib/forgejo";
     in
     {
@@ -367,16 +365,7 @@
               inherit owner group;
               mode = "0400";
             };
-          }
-          // builtins.listToAttrs (
-            builtins.map (m: {
-              name = "forgejo-runner-${m.name}-secret";
-              value = {
-                inherit owner group;
-                mode = "0400";
-              };
-            }) forgejoMachines
-          );
+          };
 
           toh.meta.cryl.machine = [
             {
@@ -413,22 +402,7 @@
                 ];
               };
             }
-          ]
-          ++ lib.optionals (forgejoMachines != [ ]) (
-            builtins.map (m: {
-              "forgejo-runner-${m.name}-copy" = {
-                generations = [
-                  {
-                    generator = "copy";
-                    arguments = {
-                      from = "cluster/forgejo-runner-${m.name}-secret";
-                      to = "forgejo-runner-${m.name}-secret";
-                    };
-                  }
-                ];
-              };
-            }) forgejoMachines
-          );
+          ];
 
           toh.meta.cryl.cluster = [
             {
@@ -465,25 +439,10 @@
                 ];
               };
             }
-          ]
-          ++ lib.optionals (forgejoMachines != [ ]) (
-            builtins.map (m: {
-              "forgejo-runner-${m.name}" = {
-                generations = [
-                  {
-                    generator = "script";
-                    arguments = {
-                      name = "forgejo-runner-${m.name}-secret-script";
-                      text = "openssl rand -hex 20 | save -f forgejo-runner-${m.name}-secret";
-                    };
-                  }
-                ];
-              };
-            }) forgejoMachines
-          );
+          ];
 
-          # Register all runners on this forgejo instance
-          systemd.services.forgejo-runner-register = lib.mkIf (forgejoMachines != [ ]) {
+          # Register the local runner on this forgejo instance
+          systemd.services.forgejo-runner-register = {
             description = "Forgejo Runner Registration";
             after = [
               "forgejo.service"
@@ -499,35 +458,32 @@
               pkgs.postgresql
             ];
 
-            script =
-              let
-                makeRegisterBlock = m: ''
-                  echo "Registering runner for ${m.name}..."
+            script = ''
+              set -euo pipefail
 
-                  SECRET=$(cat "$SECRETS_DIR/forgejo-runner-${m.name}-secret")
+              FORGEJO_CONFIG="${configFile}"
+              FORGEJO_WORK_DIR="${forgejoWorkDir}"
+              SECRETS_DIR="/run/secrets"
+              DB_URL=$(cat "${dbInstance.url}")
+              NAME="${config.toh.meta.machine.name}"
 
-                  UUID=$(forgejo -c "$FORGEJO_CONFIG" -w "$FORGEJO_WORK_DIR" forgejo-cli actions register \
-                    --name "${m.name}" \
-                    --scope all \
-                    --secret "$SECRET")
+              if [ ! -r "$SECRETS_DIR/forgejo-runner-secret" ]; then
+                echo "No runner secret found, skipping registration"
+                exit 0
+              fi
 
-                  echo "Got UUID: $UUID for ${m.name}"
+              echo "Registering runner for $NAME..."
+              SECRET=$(cat "$SECRETS_DIR/forgejo-runner-secret")
 
-                  psql $DB_URL -c "INSERT INTO __toh_action_runners (name, uuid) VALUES ('${m.name}', '\$UUID') ON CONFLICT (name) DO UPDATE SET uuid = '\$UUID'"
-                '';
-              in
-              ''
-                set -euo pipefail
+              UUID=$(forgejo -c "$FORGEJO_CONFIG" -w "$FORGEJO_WORK_DIR" forgejo-cli actions register \
+                --name "$NAME" \
+                --scope all \
+                --secret "$SECRET")
 
-                FORGEJO_CONFIG="${configFile}"
-                FORGEJO_WORK_DIR="${forgejoWorkDir}"
-                SECRETS_DIR="/run/secrets"
-                DB_URL=$(cat "${dbInstance.url}")
+              echo "Got UUID: $UUID for $NAME"
 
-                ${lib.concatStringsSep "\n" (builtins.map makeRegisterBlock forgejoMachines)}
-
-                echo "All runners registered successfully."
-              '';
+              psql $DB_URL -c "INSERT INTO __toh_action_runners (name, uuid) VALUES ('\$NAME', '\$UUID') ON CONFLICT (name) DO UPDATE SET uuid = '\$UUID'"
+            '';
 
             serviceConfig = {
               Type = "oneshot";
@@ -566,12 +522,12 @@
             dbName = "forgejo";
             dbUser = "forgejo";
             init.systemd.unit = "forgejo-db-migrate.service";
-            init.sql.script = lib.mkIf (forgejoMachines != [ ]) ''
+            init.sql.script = ''
               CREATE TABLE IF NOT EXISTS __toh_action_runners (
                 name TEXT PRIMARY KEY,
                 uuid TEXT NOT NULL
               );
-              GRANT SELECT, INSERT, UPDATE ON __toh_action_runners TO forgejo_runner;
+              GRANT SELECT ON __toh_action_runners TO forgejo_runner;
             '';
           };
 
