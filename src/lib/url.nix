@@ -41,7 +41,7 @@
         + "@"
       )
       + "${host}:${builtins.toString port}"
-      + lib.optionalString (path != null) "/${lib.removePrefix "/" path}"
+      + lib.optionalString (path != null && path != "") "/${lib.removePrefix "/" path}"
       + lib.optionalString (parameters != null && parameters != { }) (
         "?"
         + builtins.concatStringsSep "&" (
