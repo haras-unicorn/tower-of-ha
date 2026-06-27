@@ -21,12 +21,12 @@
 
       config = lib.mkIf cfg.enable {
         services.gitea-actions-runner = {
-          package = pkgs.forgejo-actions-runner;
+          package = pkgs.forgejo-runner;
 
           instances.forgejo = {
             enable = true;
             name = config.toh.meta.machine.name;
-            url = config.toh.lib.services.endpoint.toUrl config.toh.meta.proxies.forgejo-http.endpoint;
+            url = config.toh.lib.services.endpoint.toUrl config.toh.meta.proxies.forgejo-web.endpoint { };
             tokenFile = config.toh.meta.sops.secrets."forgejo-runner-token".path;
             labels = [ "self-hosted:host" ];
             hostPackages = with pkgs; [

@@ -33,9 +33,9 @@
       oidcConfg = config.toh.meta.oidc;
       oidcClient = config.toh.meta.oidc.clients.forgejo;
 
-      makeHttpProxyUrl = tohLib.services.endpoint.toUrl config.toh.meta.proxies.forgejo-web.endpoint;
-      proxyHttpAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-web.endpoint;
-      proxySshAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo.endpoint;
+      makeHttpProxyUrl = tohLib.services.endpoint.toUrl config.toh.meta.proxies.forgejo.endpoint;
+      proxyHttpAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo.endpoint;
+      proxySshAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.git.endpoint;
 
       forgejoCfg = config.services.forgejo;
       configFile = "/run/secrets/forgejo-config";
@@ -324,7 +324,7 @@
 
           programs.rust-motd.settings.service_status.Forgejo = "forgejo";
 
-          toh.meta.services.forgejo-web = {
+          toh.meta.services.forgejo = {
             endpoint.http = {
               port = httpPort;
             };
@@ -334,7 +334,7 @@
             };
           };
 
-          toh.meta.services.forgejo = {
+          toh.meta.services.git = {
             endpoint.tcp = {
               port = sshPort;
               sslTermination = "passthrough";
