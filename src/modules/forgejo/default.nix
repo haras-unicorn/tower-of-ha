@@ -365,15 +365,15 @@
               inherit owner group;
               mode = "0400";
             };
-          } // builtins.listToAttrs (
-              builtins.map (m: {
-                name = "forgejo-runner-${m.name}-secret";
-                value = {
-                  inherit owner group;
-                  mode = "0400";
-                };
-              }) config.toh.meta.cluster.machinea
-            )
+          }
+          // builtins.listToAttrs (
+            builtins.map (m: {
+              name = "forgejo-runner-${m.name}-secret";
+              value = {
+                inherit owner group;
+                mode = "0400";
+              };
+            }) config.toh.meta.cluster.machinea
           );
 
           toh.meta.cryl.machine = [
