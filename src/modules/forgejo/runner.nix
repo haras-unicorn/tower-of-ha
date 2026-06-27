@@ -60,21 +60,18 @@
           requires = [ "forgejo.service" ];
           wantedBy = [ "multi-user.target" ];
           path = [ forgejoPkg ];
-
           script = ''
-              set -euo pipefail
+            SECRET=$(cat "${secretPath}")
+            NAME="${config.toh.meta.machine.name}"
 
-              SECRET=$(cat "${secretPath}")
-              NAME="${config.toh.meta.machine.name}"
+            UUID=$(forgejo --config "${forgejoCfgFile}" forgejo-cli actions register \
+              --name "$NAME" \
+              --scope all \
+              --secret "$SECRET")
 
-              UUID=$(forgejo --config "${forgejoCfgFile}" forgejo-cli actions register \
-                --name "$NAME" \
-                --scope all \
-                --secret "$SECRET")
+            mkdir -p "${configDir}"
 
-              mkdir -p "${configDir}"
-
-              cat > "${configFile}" <<EOF
+            cat > "${configFile}" <<EOF
             log:
               level: info
               job_level: info
@@ -101,8 +98,8 @@
                   token_url: "file:${secretPath}"
             EOF
 
-              chown ${owner}:${group} "${configFile}"
-              chmod 640 "${configFile}"
+            chown ${owner}:${group} "${configFile}"
+            chmod 640 "${configFile}"
           '';
 
           serviceConfig = {
