@@ -9,9 +9,6 @@
     }:
     let
       cfg = config.toh.services.forgejo.runner;
-      forgejoEnabled = config.toh.services.forgejo.enable;
-      forgejoPkg = config.services.forgejo.package;
-      forgejoCfgFile = "/run/secrets/forgejo-config";
 
       owner = "forgejo-runner";
       group = "forgejo-runner";
@@ -23,7 +20,29 @@
       forgejoUrl = tohLib.services.endpoint.toUrl config.toh.meta.proxies.forgejo.endpoint { };
 
       secretPath = config.toh.meta.sops.secrets."forgejo-runner-secret".path;
-      secretDir = builtins.dirOf secretPath;
+
+      yamlFormat = pkgs.formats.yaml { };
+
+      configTemplate = yamlFormat.generate "forgejo-runner-config" {
+        log = {
+          level = "info";
+          job_level = "info";
+        };
+        runner = {
+          file = runnerFile;
+          capacity = 1;
+          timeout = "3h";
+          insecure = false;
+          labels = [ "self-hosted:host" ];
+        };
+        cache.enabled = false;
+        host.workdir_parent = null;
+        server.connections.forgejo = {
+          url = forgejoUrl;
+          uuid = "__RUNNER_UUID__";
+          token_url = "file:${secretPath}";
+        };
+      };
     in
     {
       options.toh.services.forgejo = {
@@ -38,15 +57,16 @@
           mode = "0400";
         };
 
+        # Copy this machine's runner secret from cluster
         toh.meta.cryl.machine = [
           {
             forgejo-runner = {
               generations = [
                 {
-                  generator = "key";
+                  generator = "copy";
                   arguments = {
-                    name = "forgejo-runner-secret";
-                    length = 40;
+                    from = "cluster/forgejo-runner-${config.toh.meta.machine.name}-secret";
+                    to = "forgejo-runner-secret";
                   };
                 }
               ];
@@ -54,49 +74,52 @@
           }
         ];
 
-        systemd.services.forgejo-runner-register = lib.mkIf forgejoEnabled {
-          description = "Forgejo Runner Registration";
-          after = [ "forgejo.service" ];
-          requires = [ "forgejo.service" ];
+        # Database access for the runner to look up its UUID
+        toh.meta.database.apps.forgejo-runner = {
+          user = owner;
+          group = group;
+          dbName = "forgejo";
+          dbUser = "forgejo_runner";
+        };
+
+        # Config generator oneshot: fetches UUID from DB, renders config YAML
+        systemd.services.forgejo-runner-config = {
+          description = "Forgejo Runner Config Generator";
+          after = [
+            "network-online.target"
+            "toh-database-online.target"
+          ];
+          requires = [
+            "network-online.target"
+            "toh-database-online.target"
+          ];
           wantedBy = [ "multi-user.target" ];
-          path = [ forgejoPkg ];
+          path = [ pkgs.postgresql ];
+
           script = ''
-            SECRET=$(cat "${secretPath}")
+            set -euo pipefail
+
+            DB_URL=$(cat "${config.toh.meta.database.instances.forgejo-runner.url}")
             NAME="${config.toh.meta.machine.name}"
+            TEMPLATE="${configTemplate}"
 
-            UUID=$(forgejo --config "${forgejoCfgFile}" forgejo-cli actions register \
-              --name "$NAME" \
-              --scope all \
-              --secret "$SECRET")
+            for i in $(seq 1 30); do
+              UUID=$(psql $DB_URL -t -A -c "SELECT uuid FROM __toh_action_runners WHERE name = '\$NAME'" 2>/dev/null || echo "")
+              if [ -n "$UUID" ]; then
+                break
+              fi
+              echo "Waiting for runner UUID for $NAME (attempt $i/30)..."
+              sleep 2
+            done
 
-            mkdir -p "${configDir}"
+            if [ -z "$UUID" ]; then
+              echo "ERROR: Could not get UUID for $NAME after 30 attempts"
+              exit 1
+            fi
 
-            cat > "${configFile}" <<EOF
-            log:
-              level: info
-              job_level: info
+            echo "Got UUID: $UUID for $NAME"
 
-            runner:
-              file: "${runnerFile}"
-              capacity: 1
-              timeout: 3h
-              insecure: false
-              labels:
-                - self-hosted:host
-
-            cache:
-              enabled: false
-
-            host:
-              workdir_parent:
-
-            server:
-              connections:
-                forgejo:
-                  url: "${forgejoUrl}"
-                  uuid: $UUID
-                  token_url: "file:${secretPath}"
-            EOF
+            sed "s|__RUNNER_UUID__|$UUID|g" "$TEMPLATE" > "${configFile}"
 
             chown ${owner}:${group} "${configFile}"
             chmod 640 "${configFile}"
@@ -111,19 +134,21 @@
           };
         };
 
+        # Runner daemon
         systemd.services.forgejo-runner = {
           description = "Forgejo Actions Runner";
           after = [
             "network-online.target"
-          ]
-          ++ lib.optional forgejoEnabled "forgejo-runner-register.service";
-          requires = lib.optional forgejoEnabled "forgejo-runner-register.service";
+            "forgejo-runner-config.service"
+          ];
+          requires = [
+            "forgejo-runner-config.service"
+          ];
           wants = [ "network-online.target" ];
           wantedBy = [ "multi-user.target" ];
 
           environment = {
             HOME = configDir;
-            CREDENTIALS_DIRECTORY = secretDir;
           };
 
           serviceConfig = {
