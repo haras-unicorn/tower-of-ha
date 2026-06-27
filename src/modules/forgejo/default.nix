@@ -33,9 +33,9 @@
       oidcConfg = config.toh.meta.oidc;
       oidcClient = config.toh.meta.oidc.clients.forgejo;
 
-      makeHttpProxyUrl = tohLib.services.endpoint.toUrl config.toh.meta.proxies.forgejo-http.endpoint;
-      proxyHttpAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-http.endpoint;
-      proxySshAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-ssh.endpoint;
+      makeHttpProxyUrl = tohLib.services.endpoint.toUrl config.toh.meta.proxies.forgejo-web.endpoint;
+      proxyHttpAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo-web.endpoint;
+      proxySshAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo.endpoint;
 
       forgejoCfg = config.services.forgejo;
       configFile = "/run/secrets/forgejo-config";
