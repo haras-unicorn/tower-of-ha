@@ -162,7 +162,7 @@
 
               mailer = {
                 ENABLED = true;
-                PROTOCOL = "smtp";
+                PROTOCOL = "smtps";
                 SMTP_ADDR = emailConfig.domain;
                 SMTP_PORT = 25;
                 FROM = emailInstance.address;
