@@ -1,6 +1,10 @@
 # Run all ToH tests
 def "main test" []: nothing -> nothing {
   cd (flake-root)
+  if (git diff-files --quiet | complete | get exit_code) != 0 {
+    git add .
+    git commit -m wip
+  }
   (nix flake check
     --option max-jobs ([ 1 (((nproc | into int) / 4) | math floor) ] | math max)
     --keep-going
@@ -16,6 +20,10 @@ def --wrapped "main test nixos" [
   ...args: string
 ]: nothing -> nothing {
   cd (flake-root)
+  if (git diff-files --quiet | complete | get exit_code) != 0 {
+    git add .
+    git commit -m wip
+  }
   (nix build
     $".#checks.(toh current system).\"test-($test)\".withSshBackdoor"
     --option extra-sandbox-paths /dev/vhost-vsock
@@ -30,6 +38,10 @@ def --wrapped "main test nixos regex" [
   ...args: string
 ]: nothing -> nothing {
   cd (flake-root)
+  if (git diff-files --quiet | complete | get exit_code) != 0 {
+    git add .
+    git commit -m wip
+  }
   (nix build
     --option max-jobs ([ 1 (((nproc | into int) / 4) | math floor) ] | math max)
     --keep-going
@@ -51,6 +63,10 @@ def --wrapped "main test nixos interactive" [
   ...args: string
 ]: nothing -> nothing {
   cd (flake-root)
+  if (git diff-files --quiet | complete | get exit_code) != 0 {
+    git add .
+    git commit -m wip
+  }
   (nix run
     $".#checks.(toh current system).\"test-($test)\".withSshBackdoor.driverInteractive"
     --option extra-sandbox-paths /dev/vhost-vsock
@@ -65,5 +81,9 @@ def --wrapped "main test unit" [
   ...args: string
 ]: nothing -> nothing {
   cd (flake-root)
+  if (git diff-files --quiet | complete | get exit_code) != 0 {
+    git add .
+    git commit -m wip
+  }
   nix-unit --flake ".#tests" ...($args) out+err>| grep $test
 }
