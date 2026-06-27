@@ -1,7 +1,26 @@
-{ lib, ... }:
+{ lib, tohLib, ... }:
 
 {
   toh.lib.url = {
+    defaultPorts = {
+      http = 80;
+      https = 443;
+      ssh = 22;
+      dns = 53;
+      smtp = 25;
+      submission = 587;
+      smtps = 465;
+      imap = 143;
+      imaps = 993;
+      pop3 = 110;
+      pop3s = 995;
+      ldap = 389;
+      ldaps = 636;
+      postgresql = 5432;
+      mysql = 3306;
+      redis = 6379;
+    };
+
     makePath =
       {
         basePath ? null,
@@ -40,7 +59,10 @@
         + lib.optionalString (password != null) ":${password}"
         + "@"
       )
-      + "${host}:${builtins.toString port}"
+      + host
+      + lib.optionalString (
+        port != (builtins.getAttr protocol tohLib.url.defaultPorts)
+      ) ":${builtins.toString port}"
       + lib.optionalString (path != null && path != "") "/${lib.removePrefix "/" path}"
       + lib.optionalString (parameters != null && parameters != { }) (
         "?"
