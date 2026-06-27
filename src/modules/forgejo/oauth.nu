@@ -43,7 +43,12 @@ def "main" [
 
       if $output.exit_code == 0 {
         print "OAuth provider added successfully"
-        return $output.stdout
+        return
+      }
+
+      if ($output.stderr | str contains "login source already exists") {
+        print "OAuth provider already added, nothing to do"
+        return
       }
 
       if $attempt == $max_attempts {
