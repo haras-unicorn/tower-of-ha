@@ -7,15 +7,18 @@
         basePath ? null,
         relativePath ? null,
       }:
+      let
+        unprefixedBasePath = lib.removePrefix basePath;
+      in
       if relativePath != null then
         if lib.hasPrefix "/" relativePath then
           relativePath
         else if basePath != null then
-          "/${basePath}/${relativePath}"
+          "/${unprefixedBasePath}/${relativePath}"
         else
           "/${relativePath}"
       else if basePath != null then
-        "/${basePath}"
+        "/${unprefixedBasePath}"
       else
         "";
 
