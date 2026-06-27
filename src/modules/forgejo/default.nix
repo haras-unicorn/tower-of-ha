@@ -54,22 +54,6 @@
 
       owner = "forgejo";
       group = "forgejo";
-
-      s3StorageSettings =
-        basePath:
-        {
-          STORAGE_TYPE = "minio";
-          SERVE_DIRECT = true;
-          MINIO_ENDPOINT = "${s3Config.host}:${builtins.toString s3Config.port}";
-          MINIO_ACCESS_KEY_ID_FILE = s3BucketConfig.keyId;
-          MINIO_SECRET_ACCESS_KEY_FILE = s3BucketConfig.secretKey;
-          MINIO_BUCKET = "forgejo";
-          MINIO_LOCATION = s3Config.region;
-          MINIO_USE_SSL = true;
-        }
-        // lib.optionalAttrs (basePath != null) {
-          MINIO_BASE_PATH = basePath;
-        };
     in
     {
       options.toh.services = {
@@ -188,13 +172,16 @@
                 WHITELISTED_URIS = oidcConfg.baseUrl;
               };
 
-              attachment = s3StorageSettings null;
-              lfs = s3StorageSettings "lfs/";
-              avatar = s3StorageSettings null;
-              "repo-avatar" = s3StorageSettings null;
-              "repo-archive" = s3StorageSettings null;
-              "storage.actions_log" = s3StorageSettings null;
-              "actions.artifacts" = s3StorageSettings null;
+              storage = {
+                STORAGE_TYPE = "minio";
+                MINIO_ENDPOINT = "${s3Config.host}:${builtins.toString s3Config.port}";
+                MINIO_ACCESS_KEY_ID_FILE = s3BucketConfig.keyId;
+                MINIO_SECRET_ACCESS_KEY_FILE = s3BucketConfig.secretKey;
+                MINIO_BUCKET = "forgejo";
+                MINIO_LOCATION = s3Config.region;
+                MINIO_USE_SSL = true;
+                MINIO_BASE_PATH = null;
+              };
             };
           };
 
@@ -221,7 +208,16 @@
               USER = ${dbInstance.dbUser}
               SSL_MODE = verify-full
               AUTO_MIGRATION = false
-              PASSWD = """$(cat ${dbInstance.password})"""
+              PASSWD = "$(cat ${dbInstance.password})"
+
+              [storage]
+              STORAGE_TYPE = minio
+              MINIO_ENDPOINT = ${s3Config.host}:${builtins.toString s3Config.port}
+              MINIO_ACCESS_KEY_ID = "$(cat ${s3BucketConfig.keyId})"
+              MINIO_SECRET_ACCESS_KEY = "$(cat ${s3BucketConfig.secretKey})"
+              MINIO_BUCKET = forgejo
+              MINIO_LOCATION = "${s3Config.region}"
+              MINIO_USE_SSL = true
               EOF
               chmod 640 "${configFile}"
               chown "${owner}:${group}" "${configFile}"
