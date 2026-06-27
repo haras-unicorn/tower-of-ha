@@ -137,6 +137,10 @@
                 DEFAULT_BRANCH = "main";
               };
 
+              log = {
+                LEVEL = "Warn";
+              };
+
               database = {
                 DB_TYPE = lib.mkForce (
                   if dbConfig.protocol == "postgresql" then
