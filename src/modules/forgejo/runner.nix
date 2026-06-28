@@ -14,8 +14,8 @@
       group = "forgejo";
 
       stateDir = "/var/lib/forgejo-runner";
-      runDir = "/run/forgejo-runner";
-      configFile = "${runDir}/forgejo-runner-config";
+      configDir = "/run/forgejo-runner-config";
+      configFile = "${configDir}/config.yaml";
       runnerFile = "${stateDir}/.runner";
 
       machineName = config.toh.meta.machine.name;
@@ -42,7 +42,7 @@
           insecure = false;
           labels = [ "self-hosted:host" ];
         };
-        cache.enabled = false;
+        cache.enabled = true;
         host.workdir_parent = null;
         server.connections.forgejo = {
           url = forgejoUrl;
@@ -77,6 +77,10 @@
           };
         };
 
+        systemd.tmpfiles.rules = [
+          "d /run/forgejo-runner-config 0750 ${owner} ${group} -"
+        ];
+
         systemd.services.forgejo-runner-config = {
           path = [ pkgs.tohPackages.forgejo-runner ];
           script = "forgejo-runner";
@@ -85,7 +89,6 @@
             RemainAfterExit = true;
             User = owner;
             Group = group;
-            RuntimeDirectory = builtins.baseNameOf runDir;
           };
         };
 
@@ -101,10 +104,12 @@
             User = owner;
             Group = group;
             StateDirectory = builtins.baseNameOf stateDir;
-            RuntimeDirectory = builtins.baseNameOf runDir;
             WorkingDirectory = stateDir;
             Restart = "on-failure";
             RestartSec = 2;
+          };
+          unitConfig = {
+            ConditionPathExists = configFile;
           };
         };
 
