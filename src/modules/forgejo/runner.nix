@@ -22,7 +22,6 @@
       secretPath = config.toh.meta.sops.secrets."forgejo-runner-secret".path;
 
       yamlFormat = pkgs.formats.yaml { };
-
       configTemplate = yamlFormat.generate "forgejo-runner-config" {
         log = {
           level = "info";
@@ -57,7 +56,6 @@
           mode = "0400";
         };
 
-        # Copy this machine's runner secret from cluster
         toh.meta.cryl.machine = [
           {
             "forgejo-runner-${config.toh.meta.machine.name}" = {
@@ -74,7 +72,6 @@
           }
         ];
 
-        # Database access for the runner to look up its UUID
         toh.meta.database.apps.forgejo-runner = {
           user = owner;
           group = group;
@@ -82,7 +79,6 @@
           dbUser = "forgejo_runner";
         };
 
-        # Config generator oneshot: fetches UUID from DB, renders config YAML
         systemd.services.forgejo-runner-config = {
           description = "Forgejo Runner Config Generator";
           after = [
@@ -134,7 +130,6 @@
           };
         };
 
-        # Runner daemon
         systemd.services.forgejo-runner = {
           description = "Forgejo Actions Runner";
           after = [
