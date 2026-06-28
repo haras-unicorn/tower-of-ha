@@ -380,7 +380,7 @@
           init.sql.script = ''
             CREATE TABLE IF NOT EXISTS __toh_action_runners (
               name TEXT PRIMARY KEY,
-              uuid TEXT NOT NULL
+              id TEXT NOT NULL
             );
           '';
         };
