@@ -19,10 +19,12 @@ def "main" [
   }
 
   (mustache-renderer
-    --variables $"
-      TOH_FORGEJO_RUNNER_ID=\"($id)\"
-      TOH_FORGEJO_RUNNER_SECRET=\"(open --raw $secret)\"
-    "
+    --variables (
+      {
+        TOH_FORGEJO_RUNNER_ID: $id
+        TOH_FORGEJO_RUNNER_SECRET: (open --raw $secret)
+      } | to toml
+    )
     --template $config_template
     --out $config_path
     --chmod 400
@@ -41,8 +43,9 @@ def "main" [
       ) | complete
 
       if $output.exit_code == 0 {
-        print $"Runner id fetched for ($machine_name) successfully"
-        return $output.stdout | str trim
+        let id = $output.stdout | str trim
+        print $"Runner id '($id)' fetched for ($machine_name) successfully"
+        return $id
       }
 
       if $attempt == $max_attempts {
