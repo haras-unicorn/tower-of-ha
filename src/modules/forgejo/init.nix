@@ -80,7 +80,6 @@
             RemainAfterExit = true;
             User = owner;
             Group = group;
-            SupplementaryGroups = "forgejo-config";
             TimeoutStartSec = "infinity";
             Restart = "on-failure";
           };
@@ -96,7 +95,6 @@
             RemainAfterExit = true;
             User = owner;
             Group = group;
-            SupplementaryGroups = "forgejo-config";
             TimeoutStartSec = "infinity";
             Restart = "on-failure";
           };
