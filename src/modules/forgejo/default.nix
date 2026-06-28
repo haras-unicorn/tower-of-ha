@@ -71,7 +71,9 @@
                 ${exeWithConfig} admin regenerate keys
               fi
             '';
-
+            environment = {
+              HOME = forgejoCfg.stateDir;
+            };
             serviceConfig = {
               ExecStart = lib.mkForce ''
                 ${exeWithConfig} web --pid /run/forgejo/forgejo.pid
@@ -82,15 +84,9 @@
           };
 
           systemd.targets.toh-git-online = {
-            wantedBy = [
-              "forgejo.service"
-            ];
-            bindsTo = [
-              "forgejo.service"
-            ];
-            after = [
-              "forgejo.service"
-            ];
+            wantedBy = [ "forgejo.service" ];
+            bindsTo = [ "forgejo.service" ];
+            after = [ "forgejo.service" ];
           };
 
           networking.firewall.allowedTCPPorts = [
@@ -100,8 +96,6 @@
 
           users.groups.${group} = { };
           users.users.${owner} = {
-            home = forgejoCfg.stateDir;
-            useDefaultShell = true;
             group = group;
             isSystemUser = true;
           };
