@@ -49,6 +49,7 @@
         (lib.mkIf cfg.enable {
           environment.systemPackages = [
             pkgs.forgejo-cli
+            pkgs.forgejo
             pkgs.git
           ];
 
