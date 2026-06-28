@@ -49,7 +49,7 @@
           builtins.throw "Forgejo database type not supported";
 
       owner = "forgejo";
-      group = "forgejo-config";
+      group = "forgejo";
 
       serviceTargets = [
         "toh-database-online.target"
@@ -445,7 +445,7 @@
 
         toh.pki.installCa = true;
 
-        users.groups.${group} = { };
+        toh.services.forgejo.createUserGroup = true;
       };
     };
 }

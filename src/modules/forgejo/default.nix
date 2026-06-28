@@ -94,14 +94,6 @@
             sshPort
           ];
 
-          users.groups.${group} = { };
-          users.users.${owner} = {
-            home = lib.mkForce "/var/empty";
-            useDefaultShell = lib.mkForce false;
-            group = group;
-            isSystemUser = true;
-          };
-
           toh.meta.services.forgejo = {
             endpoint.http = {
               port = httpPort;
@@ -127,6 +119,8 @@
               ];
             };
           };
+
+          toh.services.forgejo.createUserGroup = true;
         })
       ];
     };

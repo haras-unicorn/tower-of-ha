@@ -10,8 +10,8 @@
     let
       cfg = config.toh.services.forgejo.runner;
 
-      owner = "forgejo-runner";
-      group = "forgejo-runner";
+      owner = "forgejo";
+      group = "forgejo";
 
       stateDir = "/var/lib/forgejo-runner";
       configFile = "/run/secrets/forgejo-runner-config";
@@ -121,12 +121,6 @@
           ];
         };
 
-        users.groups.${group} = { };
-        users.users.${owner} = {
-          group = group;
-          isSystemUser = true;
-        };
-
         toh.meta.sops.secrets."forgejo-runner-secret" = {
           inherit owner group;
           mode = "0400";
@@ -165,6 +159,8 @@
             };
           }
         ];
+
+        toh.services.forgejo.createUserGroup = true;
       };
     };
 }

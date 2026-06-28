@@ -17,7 +17,7 @@
       configFile = cfg.config.path;
 
       owner = "forgejo";
-      group = "forgejo-config";
+      group = "forgejo";
 
       dbInstance = config.toh.meta.database.instances.forgejo;
 
@@ -157,6 +157,8 @@
             };
           }
         ];
+
+        toh.services.forgejo.createUserGroup = true;
       };
     };
 }
