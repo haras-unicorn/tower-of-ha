@@ -23,8 +23,7 @@
         };
 
         toh.test.commands.perNodeInCluster.node = [
-          ''command_node.wait_until_succeeds("systemctl is-active forgejo.service", timeout=300)''
-          ''command_node.wait_until_succeeds("curl -f https://forgejo.service.toh/api/healthz", timeout=300)''
+          ''command_node.wait_until_succeeds("systemctl is-active toh-git-online.target", timeout=300)''
         ];
       };
 
@@ -50,9 +49,7 @@
         };
 
         toh.test.commands.perNodeInCluster.node = [
-          ''command_node.wait_until_succeeds("systemctl is-active forgejo.service", timeout=300)''
-          ''command_node.wait_until_succeeds("systemctl is-active forgejo-runner.service", timeout=300)''
-          ''command_node.wait_until_succeeds("curl -f https://forgejo.service.toh/api/healthz", timeout=300)''
+          ''command_node.wait_until_succeeds("systemctl is-active toh-git-online.target", timeout=300)''
         ];
       };
     };
