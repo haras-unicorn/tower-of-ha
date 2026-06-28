@@ -13,13 +13,20 @@
       owner = "forgejo-runner";
       group = "forgejo-runner";
 
-      configDir = "/var/lib/forgejo-runner";
-      configFile = "${configDir}/config.yaml";
-      runnerFile = "${configDir}/.runner";
+      stateDir = "/var/lib/forgejo-runner";
+      configFile = "/run/secrets/forgejo-runner-config";
+      runnerFile = "${stateDir}/.runner";
+
+      machineName = config.toh.meta.machine.name;
+      machinea = builtins.filter (
+        machine: machine.config.toh.services.forgejo.runner.enable
+      ) config.toh.meta.cluster.machinea;
 
       forgejoUrl = tohLib.services.endpoint.toUrl config.toh.meta.proxies.forgejo.endpoint { };
 
       secretPath = config.toh.meta.sops.secrets."forgejo-runner-secret".path;
+
+      dbInstance = config.toh.meta.database.instances.forgejo;
 
       yamlFormat = pkgs.formats.yaml { };
       configTemplate = yamlFormat.generate "forgejo-runner-config" {
@@ -38,8 +45,8 @@
         host.workdir_parent = null;
         server.connections.forgejo = {
           url = forgejoUrl;
-          uuid = "__RUNNER_UUID__";
-          token_url = "file:${secretPath}";
+          uuid = "{{{TOH_FORGEJO_RUNNER_ID}}}";
+          token = "{{{TOH_FORGEJO_RUNNER_SECRET}}}";
         };
       };
     in
@@ -51,107 +58,49 @@
       };
 
       config = lib.mkIf cfg.enable {
-        toh.meta.sops.secrets."forgejo-runner-secret" = {
-          inherit owner group;
-          mode = "0400";
-        };
-
-        toh.meta.cryl.machine = [
-          {
-            "forgejo-runner-${config.toh.meta.machine.name}" = {
-              generations = [
-                {
-                  generator = "script";
-                  arguments = {
-                    name = "forgejo-runner-secret-script";
-                    text = "openssl rand -hex 20 | save -f forgejo-runner-secret";
-                  };
-                }
-              ];
-            };
-          }
-        ];
-
-        toh.meta.database.apps.forgejo-runner = {
-          user = owner;
-          group = group;
-          dbName = "forgejo";
-          dbUser = "forgejo_runner";
+        toh.overlays = tohLib.cli.makeOverlays {
+          name = "forgejo-runner";
+          runtimeInputs = pkgs: [
+            pkgs.usql
+            pkgs.tohPackages.mustacheRenderer
+          ];
+          textFile = ./runner.nu;
+          textVariables = {
+            TOH_FORGEJO_RUNNER_CONFIG_TEMPLATE = configTemplate;
+            TOH_FORGEJO_RUNNER_CONFIG_PATH = configFile;
+            TOH_FORGEJO_RUNNER_SECRET = secretPath;
+            TOH_FORGEJO_RUNNER_MACHINE_NAME = machineName;
+            TOH_FORGEJO_RUNNER_USER = owner;
+            TOH_FORGEJO_RUNNER_GROUP = group;
+            TOH_FORGEJO_RUNNER_DB_INSTANCE = dbInstance;
+          };
         };
 
         systemd.services.forgejo-runner-config = {
-          description = "Forgejo Runner Config Generator";
-          after = [
-            "network-online.target"
-            "toh-database-online.target"
-          ];
-          requires = [
-            "network-online.target"
-            "toh-database-online.target"
-          ];
-          wantedBy = [ "multi-user.target" ];
-          path = [ pkgs.postgresql ];
-
-          script = ''
-            set -euo pipefail
-
-            DB_URL=$(cat "${config.toh.meta.database.instances.forgejo-runner.url}")
-            NAME="${config.toh.meta.machine.name}"
-            TEMPLATE="${configTemplate}"
-
-            for i in $(seq 1 30); do
-              UUID=$(psql $DB_URL -t -A -c "SELECT uuid FROM __toh_action_runners WHERE name = '\$NAME'" 2>/dev/null || echo "")
-              if [ -n "$UUID" ]; then
-                break
-              fi
-              echo "Waiting for runner UUID for $NAME (attempt $i/30)..."
-              sleep 2
-            done
-
-            if [ -z "$UUID" ]; then
-              echo "ERROR: Could not get UUID for $NAME after 30 attempts"
-              exit 1
-            fi
-
-            echo "Got UUID: $UUID for $NAME"
-
-            sed "s|__RUNNER_UUID__|$UUID|g" "$TEMPLATE" > "${configFile}"
-
-            chown ${owner}:${group} "${configFile}"
-            chmod 640 "${configFile}"
-          '';
-
+          path = [ pkgs.tohPackages.forgejo-runnner ];
+          script = "forgejo-runner";
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
             User = owner;
             Group = group;
-            StateDirectory = "forgejo-runner";
+            SupplementaryGroups = "forgejo-config";
           };
         };
 
         systemd.services.forgejo-runner = {
           description = "Forgejo Actions Runner";
-          after = [
-            "network-online.target"
-            "forgejo-runner-config.service"
-          ];
-          requires = [
-            "forgejo-runner-config.service"
-          ];
-          wants = [ "network-online.target" ];
-          wantedBy = [ "multi-user.target" ];
-
+          after = [ "forgejo-runner-config.service" ];
+          requires = [ "forgejo-runner-config.service" ];
           environment = {
-            HOME = configDir;
+            HOME = stateDir;
           };
-
           serviceConfig = {
             ExecStart = "${lib.getExe pkgs.forgejo-runner} daemon --config ${configFile}";
             User = owner;
             Group = group;
-            StateDirectory = "forgejo-runner";
-            WorkingDirectory = configDir;
+            StateDirectory = builtins.baseNameOf stateDir;
+            WorkingDirectory = stateDir;
             Restart = "on-failure";
             RestartSec = 2;
           };
@@ -162,6 +111,41 @@
           group = group;
           isSystemUser = true;
         };
+
+        toh.meta.sops.secrets."forgejo-runner-secret" = {
+          inherit owner group;
+          mode = "0400";
+        };
+
+        toh.meta.cryl.machine = [
+          {
+            "forgejo-runner" = {
+              generations = [
+                {
+                  generator = "copy";
+                  arguments = {
+                    from = "cluster/forgejo-runner-machine-${machineName}-secret";
+                    to = "forgejo-runner-secret";
+                  };
+                }
+              ];
+            };
+          }
+        ];
+
+        toh.meta.cryl.cluster = [
+          {
+            "forgejo-runners" = {
+              generations = builtins.map (machine: {
+                generator = "key";
+                arguments = {
+                  name = "forgejo-runner-machine-${machine.name}-secret";
+                  length = 40;
+                };
+              }) machinea;
+            };
+          }
+        ];
       };
     };
 }

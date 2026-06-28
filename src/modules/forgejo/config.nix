@@ -49,7 +49,7 @@
           builtins.throw "Forgejo database type not supported";
 
       owner = "forgejo";
-      group = "forgejo-common";
+      group = "forgejo-config";
 
       serviceTargets = [
         "toh-database-online.target"
@@ -230,6 +230,12 @@
         };
 
         systemd.services.forgejo-runner = {
+          wantedBy = serviceTargets;
+          after = serviceDependencies;
+          requires = serviceDependencies;
+        };
+
+        systemd.services.forgejo-runner-config = {
           wantedBy = serviceTargets;
           after = serviceDependencies;
           requires = serviceDependencies;

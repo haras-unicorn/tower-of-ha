@@ -4,7 +4,7 @@
     let
       cfg = config.toh.services.forgejo;
 
-      name = "forgejo-common";
+      name = "forgejo-config";
       group = name;
     in
     {

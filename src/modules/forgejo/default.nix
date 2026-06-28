@@ -76,7 +76,7 @@
                 ${exe} web --pid /run/forgejo/forgejo.pid
               '';
               LoadCredential = lib.mkForce [ ];
-              SupplementaryGroups = "forgejo-common";
+              SupplementaryGroups = "forgejo-config";
             };
           };
 

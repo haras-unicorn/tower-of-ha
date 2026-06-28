@@ -17,7 +17,7 @@
       configFile = cfg.config.path;
 
       owner = "forgejo";
-      group = "forgejo-common";
+      group = "forgejo-config";
 
       dbInstance = config.toh.meta.database.instances.forgejo;
 
@@ -37,38 +37,66 @@
       };
 
       config = lib.mkIf cfg.init.enable {
-        toh.overlays = tohLib.cli.makeOverlays {
-          name = "forgejo-init";
-          runtimeInputs = pkgs: [
-            forgejoCfg.package
-            pkgs.postgresql
-          ];
-          textFile = ./init.nu;
-          textVariables = {
-            TOH_FORGEJO_OAUTH_BASE_URL = oidcConfg.baseUrl;
-            TOH_FORGEJO_OAUTH_CLIENT_SECRET = oidcClient.clientSecret;
-            TOH_FORGEJO_CONFIG = configFile;
-            TOH_FORGEJO_DB_INSTANCE = builtins.toJSON dbInstance;
-            TOH_FORGEJO_RUNNERS = builtins.toJSON (
-              builtins.map (machine: {
-                name = machine.name;
-                secret = config.toh.meta.sopse.secrets."forgejo-runner-machine-${machine.name}-secret".path;
-              }) runnerMachines
-            );
-          };
-        };
+        toh.overlays = lib.mkMerge [
+          (tohLib.cli.makeOverlays {
+            name = "forgejo-auth";
+            runtimeInputs = pkgs: [
+              forgejoCfg.package
+            ];
+            textFile = ./auth.nu;
+            textVariables = {
+              TOH_FORGEJO_CONFIG = configFile;
+              TOH_FORGEJO_OAUTH_BASE_URL = oidcConfg.baseUrl;
+              TOH_FORGEJO_OAUTH_CLIENT_SECRET = oidcClient.clientSecret;
+            };
+          })
+          (tohLib.cli.makeOverlays {
+            name = "forgejo-actions";
+            runtimeInputs = pkgs: [
+              forgejoCfg.package
+              pkgs.usql
+            ];
+            textFile = ./actions.nu;
+            textVariables = {
+              TOH_FORGEJO_CONFIG = configFile;
+              TOH_FORGEJO_DB_INSTANCE = builtins.toJSON dbInstance;
+              TOH_FORGEJO_RUNNERS = builtins.toJSON (
+                builtins.map (machine: {
+                  name = machine.name;
+                  secret = config.toh.meta.sopse.secrets."forgejo-runner-machine-${machine.name}-secret".path;
+                }) runnerMachines
+              );
+            };
+          })
+        ];
 
-        systemd.services.forgejo-init = {
+        systemd.services.forgejo-auth = {
           after = [ "forgejo.service" ];
           requires = [ "forgejo.service" ];
-          path = [ pkgs.tohPackages.forgejo-init ];
-          script = "forgejo-init";
+          path = [ pkgs.tohPackages.forgejo-auth ];
+          script = "forgejo-auth";
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
             User = owner;
             Group = group;
-            SupplementaryGroups = "forgejo-common";
+            SupplementaryGroups = "forgejo-config";
+            TimeoutStartSec = "infinity";
+            Restart = "on-failure";
+          };
+        };
+
+        systemd.services.forgejo-actions = {
+          after = [ "forgejo.service" ];
+          requires = [ "forgejo.service" ];
+          path = [ pkgs.tohPackages.forgejo-actions ];
+          script = "forgejo-actions";
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            User = owner;
+            Group = group;
+            SupplementaryGroups = "forgejo-config";
             TimeoutStartSec = "infinity";
             Restart = "on-failure";
           };
