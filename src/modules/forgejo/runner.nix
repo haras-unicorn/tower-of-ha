@@ -72,7 +72,7 @@
             TOH_FORGEJO_RUNNER_MACHINE_NAME = machineName;
             TOH_FORGEJO_RUNNER_USER = owner;
             TOH_FORGEJO_RUNNER_GROUP = group;
-            TOH_FORGEJO_RUNNER_DB_INSTANCE = dbInstance;
+            TOH_FORGEJO_RUNNER_DB_INSTANCE = builtins.toJSON dbInstance;
           };
         };
 
