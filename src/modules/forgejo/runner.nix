@@ -85,6 +85,7 @@
             RemainAfterExit = true;
             User = owner;
             Group = group;
+            RuntimeDirectory = builtins.baseNameOf runDir;
           };
         };
 
