@@ -152,10 +152,14 @@
           {
             "forgejo-runners" = {
               generations = builtins.map (machine: {
-                generator = "key";
+                generator = "script";
                 arguments = {
-                  name = "forgejo-runner-machine-${machine.name}-secret";
-                  length = 40;
+                  name = "forgejo-runner-machine-${machine.name}-secret-script";
+                  text = ''
+                    openssl rand -hex 20
+                      | str trim
+                      | save -f forgejo-runner-machine-${machine.name}-secret
+                  '';
                 };
               }) machinea;
             };
