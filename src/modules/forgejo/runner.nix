@@ -14,7 +14,8 @@
       group = "forgejo";
 
       stateDir = "/var/lib/forgejo-runner";
-      configFile = "/run/secrets/forgejo-runner-config";
+      runDir = "/run/forgejo-runner";
+      configFile = "${runDir}/forgejo-runner-config";
       runnerFile = "${stateDir}/.runner";
 
       machineName = config.toh.meta.machine.name;
@@ -99,6 +100,7 @@
             User = owner;
             Group = group;
             StateDirectory = builtins.baseNameOf stateDir;
+            RuntimeDirectory = builtins.baseNameOf runDir;
             WorkingDirectory = stateDir;
             Restart = "on-failure";
             RestartSec = 2;
