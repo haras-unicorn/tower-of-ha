@@ -69,7 +69,6 @@ def "main" [
             --config $config
             --name $name
             --secret $secret
-            --scope all
       ) | complete
 
       if $output.exit_code == 0 {
