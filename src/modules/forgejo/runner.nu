@@ -35,7 +35,7 @@ def "main" [
     for attempt in 1..$max_attempts {
       let output = (
         timeout $"($timeout)s"
-          usql (open --raw $db.url) -c $"
+          usql (open --raw $db.url) --json -c $"
             SELECT id
             FROM __toh_action_runners
             WHERE name = '($machine_name)'
@@ -43,9 +43,12 @@ def "main" [
       ) | complete
 
       if $output.exit_code == 0 {
-        let id = $output.stdout | str trim
-        print $"Runner id '($id)' fetched for ($machine_name) successfully"
-        return $id
+        let rows = $output.stdout | from json
+        if ($rows | length) == 1 {
+          let id = $rows | first | get id
+          print $"Runner id '($id)' fetched for ($machine_name) successfully"
+          return $id
+        }
       }
 
       if $attempt == $max_attempts {
