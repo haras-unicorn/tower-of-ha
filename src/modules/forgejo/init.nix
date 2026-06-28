@@ -14,7 +14,7 @@
       oidcClient = config.toh.meta.oidc.clients.forgejo;
 
       forgejoCfg = config.services.forgejo;
-      configFile = "/run/secrets/forgejo-config";
+      configFile = cfg.config.path;
 
       owner = "forgejo";
       group = "forgejo-common";

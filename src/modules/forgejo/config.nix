@@ -34,7 +34,7 @@
       proxyHttpAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo.endpoint;
 
       forgejoCfg = config.services.forgejo;
-      configFile = "/run/secrets/forgejo-config";
+      configFile = cfg.config.path;
       forgejoSettings = settingsFormat.generate "forgejo-config" (
         builtins.removeAttrs forgejoCfg.settings [ "database" ]
       );

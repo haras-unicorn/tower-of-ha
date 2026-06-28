@@ -19,7 +19,7 @@
       proxySshAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.git.endpoint;
 
       forgejoCfg = config.services.forgejo;
-      configFile = "/run/secrets/forgejo-config";
+      configFile = cfg.config.path;
       exe = ''${lib.getExe forgejoCfg.package} --config "${configFile}"'';
 
       owner = "forgejo";
