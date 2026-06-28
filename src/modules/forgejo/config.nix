@@ -241,7 +241,13 @@
           requires = serviceDependencies;
         };
 
-        systemd.services.forgejo-init = lib.mkIf cfg.init.enable {
+        systemd.services.forgejo-auth = lib.mkIf cfg.init.enable {
+          wantedBy = serviceTargets;
+          after = serviceDependencies;
+          requires = serviceDependencies;
+        };
+
+        systemd.services.forgejo-actions = lib.mkIf cfg.init.enable {
           wantedBy = serviceTargets;
           after = serviceDependencies;
           requires = serviceDependencies;
@@ -370,8 +376,6 @@
         toh.meta.database.apps.forgejo = {
           user = owner;
           group = group;
-          dbName = "forgejo";
-          dbUser = "forgejo";
           init.systemd.unit = "forgejo-db-migrate.service";
           init.sql.script = ''
             CREATE TABLE IF NOT EXISTS __toh_action_runners (
