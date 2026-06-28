@@ -60,7 +60,7 @@ def "main" [
     }
   }
 
-  def "forgejo register runner" [name: string secret: path] {
+  def "forgejo register runner" [name: string secret: string] {
     print $"Registering runner ($name)..."
     for attempt in 1..$max_attempts {
       let output = (
@@ -68,7 +68,7 @@ def "main" [
           forgejo forgejo-cli actions register
             --config $config
             --name $name
-            --secret (open --raw $secret)
+            --secret $secret
             --scope all
       ) | complete
 
