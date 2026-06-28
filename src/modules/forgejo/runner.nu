@@ -42,7 +42,7 @@ def "main" [
 
       if $output.exit_code == 0 {
         print $"Runner id fetched for ($machine_name) successfully"
-        return
+        return $output.stdout | str trim
       }
 
       if $attempt == $max_attempts {
