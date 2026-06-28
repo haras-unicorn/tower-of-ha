@@ -445,7 +445,7 @@
 
         toh.pki.installCa = true;
 
-        toh.services.forgejo.createGroup = true;
+        users.groups.${group} = { };
       };
     };
 }
