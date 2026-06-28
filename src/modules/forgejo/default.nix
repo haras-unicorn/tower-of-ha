@@ -96,6 +96,8 @@
 
           users.groups.${group} = { };
           users.users.${owner} = {
+            home = lib.mkForce "/var/empty";
+            useDefaultShell = lib.mkForce false;
             group = group;
             isSystemUser = true;
           };
