@@ -12,7 +12,17 @@ def "main" [
   }
   let variables = $variables
     | transpose key value
-    | each { { key: $in.key value: (open --raw $in.value) } }
+    | each {
+        {
+          key: $in.key
+          value: (
+            if ($in.value | path exists) {
+              open --raw $in.value
+            } else {
+              $in.value
+            })
+        }
+      }
     | transpose -ird
   let template = if ($template | path exists) {
     open --raw $template
