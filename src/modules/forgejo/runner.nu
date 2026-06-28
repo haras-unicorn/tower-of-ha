@@ -1,5 +1,5 @@
-let config_template = r#'{{{TOH_FORGEJO_RUNNER_CONIFG_TEMPLATE}}}'#
-let config_path = r#'{{{TOH_FORGEJO_RUNNER_CONIFG_PATH}}}'#
+let config_template = r#'{{{TOH_FORGEJO_RUNNER_CONFIG_TEMPLATE}}}'#
+let config_path = r#'{{{TOH_FORGEJO_RUNNER_CONFIG_PATH}}}'#
 let secret = r#'{{{TOH_FORGEJO_RUNNER_SECRET}}}'#
 let machine_name = r#'{{{TOH_FORGEJO_RUNNER_MACHINE_NAME}}}'#
 let user = r#'{{{TOH_FORGEJO_RUNNER_USER}}}'#
