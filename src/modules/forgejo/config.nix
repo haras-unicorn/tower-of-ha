@@ -223,25 +223,25 @@
           };
         };
 
-        systemd.services.forgejo = {
+        systemd.services.forgejo = lib.mkIf cfg.enable {
           wantedBy = serviceTargets;
           after = serviceDependencies;
           requires = serviceDependencies;
         };
 
-        systemd.services.forgejo-runner = {
+        systemd.services.forgejo-runner = lib.mkIf cfg.runner.enable {
           wantedBy = serviceTargets;
           after = serviceDependencies;
           requires = serviceDependencies;
         };
 
-        systemd.services.forgejo-runner-config = {
+        systemd.services.forgejo-runner-config = lib.mkIf cfg.runner.enable {
           wantedBy = serviceTargets;
           after = serviceDependencies;
           requires = serviceDependencies;
         };
 
-        systemd.services.forgejo-init = {
+        systemd.services.forgejo-init = lib.mkIf cfg.init.enable {
           wantedBy = serviceTargets;
           after = serviceDependencies;
           requires = serviceDependencies;
