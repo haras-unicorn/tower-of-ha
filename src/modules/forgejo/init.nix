@@ -63,7 +63,7 @@
               TOH_FORGEJO_RUNNERS = builtins.toJSON (
                 builtins.map (machine: {
                   name = machine.name;
-                  secret = config.toh.meta.sopse.secrets."forgejo-runner-machine-${machine.name}-secret".path;
+                  secret = config.toh.meta.sops.secrets."forgejo-runner-machine-${machine.name}-secret".path;
                 }) runnerMachines
               );
             };
