@@ -101,6 +101,58 @@
             Restart = "on-failure";
           };
         };
+
+        systemd.targets.toh-git-online = {
+          wantedBy = [
+            "forgejo-auth.service"
+            "forgejo-actions.service"
+          ];
+          bindsTo = [
+            "forgejo-auth.service"
+            "forgejo-actions.service"
+          ];
+          after = [
+            "forgejo-auth.service"
+            "forgejo-actions.service"
+          ];
+        };
+
+        toh.meta.sops.secrets = lib.mkMerge (
+          builtins.map (machine: {
+            "forgejo-runner-machine-${machine.name}-secret" = {
+              inherit owner group;
+              mode = "0400";
+            };
+          }) runnerMachines
+        );
+
+        toh.meta.cryl.machine = [
+          {
+            "forgejo-runners" = {
+              generations = builtins.map (machine: {
+                generator = "copy";
+                arguments = {
+                  from = "cluster/forgejo-runner-machine-${machine.name}-secret";
+                  to = "forgejo-runner-machine-${machine.name}-secret";
+                };
+              }) runnerMachines;
+            };
+          }
+        ];
+
+        toh.meta.cryl.cluster = [
+          {
+            "forgejo-runners" = {
+              generations = builtins.map (machine: {
+                generator = "key";
+                arguments = {
+                  name = "forgejo-runner-machine-${machine.name}-secret";
+                  length = 40;
+                };
+              }) runnerMachines;
+            };
+          }
+        ];
       };
     };
 }

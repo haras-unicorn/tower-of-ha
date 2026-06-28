@@ -106,6 +106,21 @@
           };
         };
 
+        systemd.targets.toh-git-online = {
+          wantedBy = [
+            "forgejo-runner-config.service"
+            "forgejo-runner.service"
+          ];
+          bindsTo = [
+            "forgejo-runner-config.service"
+            "forgejo-runner.service"
+          ];
+          after = [
+            "forgejo-runner-config.service"
+            "forgejo-runner.service"
+          ];
+        };
+
         users.groups.${group} = { };
         users.users.${owner} = {
           group = group;
