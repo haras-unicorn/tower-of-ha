@@ -84,7 +84,6 @@
             RemainAfterExit = true;
             User = owner;
             Group = group;
-            SupplementaryGroups = "forgejo-config";
           };
         };
 
