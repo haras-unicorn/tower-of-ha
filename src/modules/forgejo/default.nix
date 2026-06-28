@@ -20,7 +20,7 @@
 
       forgejoCfg = config.services.forgejo;
       configFile = cfg.config.path;
-      exe = ''${lib.getExe forgejoCfg.package} --config "${configFile}"'';
+      exeWithConfig = ''${lib.getExe forgejoCfg.package} --config "${configFile}"'';
 
       owner = "forgejo";
       group = "forgejo";
@@ -65,15 +65,15 @@
 
           systemd.services.forgejo = {
             preStart = lib.mkForce ''
-              ${exe} admin regenerate hooks
+              ${exeWithConfig} admin regenerate hooks
               if [ -r ${forgejoCfg.stateDir}/.ssh/authorized_keys ]; then
-                ${exe} admin regenerate keys
+                ${exeWithConfig} admin regenerate keys
               fi
             '';
 
             serviceConfig = {
               ExecStart = lib.mkForce ''
-                ${exe} web --pid /run/forgejo/forgejo.pid
+                ${exeWithConfig} web --pid /run/forgejo/forgejo.pid
               '';
               LoadCredential = lib.mkForce [ ];
               SupplementaryGroups = "forgejo-config";
