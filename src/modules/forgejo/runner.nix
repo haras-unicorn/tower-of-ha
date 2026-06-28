@@ -77,7 +77,7 @@
         };
 
         systemd.services.forgejo-runner-config = {
-          path = [ pkgs.tohPackages.forgejo-runnner ];
+          path = [ pkgs.tohPackages.forgejo-runner ];
           script = "forgejo-runner";
           serviceConfig = {
             Type = "oneshot";
