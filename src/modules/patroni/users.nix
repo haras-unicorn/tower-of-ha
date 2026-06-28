@@ -104,6 +104,16 @@
                       defaultText = lib.literalExpression ''"${certs}/${tohLib.patroni.certs.key}"'';
                       description = "Path to user Patroni key";
                     };
+                    dbName = lib.mkOption {
+                      type = lib.types.str;
+                      default = name;
+                      description = "Database name for this user";
+                    };
+                    dbUser = lib.mkOption {
+                      type = lib.types.str;
+                      default = name;
+                      description = "Database user name";
+                    };
                   };
 
                   config = {
@@ -161,7 +171,7 @@
           lib.mkIf installSecrets {
             "patroni-${user}-ca" = {
               inherit owner group;
-              key = "patroni-ca-public";
+              key = "openssl-ca-public";
               path = ca;
               mode = "0644";
             };
@@ -206,6 +216,8 @@
             ca,
             crt,
             key,
+            dbName,
+            dbUser,
             ...
           }:
           lib.mkIf generateSecrets [
@@ -235,9 +247,9 @@
                       request_config = "patroni-${user}-cert-request-config";
                       private = "patroni-${user}-private";
                       request = "patroni-${user}-cert-request";
-                      ca_private = "cluster/patroni-ca-private";
-                      ca_public = "cluster/patroni-ca-public";
-                      serial = "cluster/patroni-ca-serial";
+                      ca_private = "cluster/openssl-ca-private";
+                      ca_public = "cluster/openssl-ca-public";
+                      serial = "cluster/openssl-ca-serial";
                       public = "patroni-${user}-public";
                       renew = true;
                     };
@@ -256,7 +268,7 @@
                       template = ''
                         PGHOST="${proxyAttrs.host}"
                         PGPORT="${builtins.toString proxyAttrs.port}"
-                        PGUSER="${user}"
+                        PGUSER="${dbUser}"
                         PGPASSWORD="{{{PATRONI_USER_PASS}}}"
                         PGSSLMODE="verify-full"
                         PGSSLROOTCERT="${ca}"
@@ -264,7 +276,7 @@
                         PGSSLKEY="${key}"
                       ''
                       + (lib.optionalString (!isSuperuser) ''
-                        PGDATABASE="${user}"
+                        PGDATABASE="${dbName}"
                       '');
                     };
                   }
@@ -282,9 +294,9 @@
                       template = tohLib.url.makeUrl {
                         protocol = "postgresql";
                         inherit (proxyAttrs) host port;
-                        inherit user;
+                        user = dbUser;
                         password = "{{{PATRONI_USER_PASS}}}";
-                        path = user;
+                        path = if isSuperuser then null else dbName;
                         parameters = {
                           sslmode = "verify-full";
                           sslrootcert = ca;
@@ -306,25 +318,25 @@
                         };
                       };
                       template = ''
-                        select 'create user ${user} with password '''{{PATRONI_USER_PASS}}''''
-                        where not exists (select from pg_catalog.pg_roles where rolname = '${user}')\gexec
+                        select 'create user ${dbUser} with password '''{{PATRONI_USER_PASS}}''''
+                        where not exists (select from pg_catalog.pg_roles where rolname = '${dbUser}')\gexec
 
-                        select 'create database ${user}'
-                        where not exists (select from pg_database where datname = '${user}')\gexec
+                        select 'create database ${dbName}'
+                        where not exists (select from pg_database where datname = '${dbName}')\gexec
 
-                        \c ${user}
+                        \c ${dbName}
 
-                        alter default privileges in schema public grant all on tables to ${user};
-                        alter default privileges in schema public grant all on sequences to ${user};
-                        alter default privileges in schema public grant all on functions to ${user};
-                        alter default privileges in schema public grant all on types to ${user};
+                        alter default privileges in schema public grant all on tables to ${dbUser};
+                        alter default privileges in schema public grant all on sequences to ${dbUser};
+                        alter default privileges in schema public grant all on functions to ${dbUser};
+                        alter default privileges in schema public grant all on types to ${dbUser};
 
-                        grant usage on schema public to ${user};
-                        grant create on schema public to ${user};
+                        grant usage on schema public to ${dbUser};
+                        grant create on schema public to ${dbUser};
 
-                        grant all on all tables in schema public to ${user};
-                        grant all on all sequences in schema public to ${user};
-                        grant all on all functions in schema public to ${user};
+                        grant all on all tables in schema public to ${dbUser};
+                        grant all on all sequences in schema public to ${dbUser};
+                        grant all on all functions in schema public to ${dbUser};
                       '';
                     };
                   })
@@ -335,7 +347,12 @@
         );
 
         toh.meta.cryl.cluster = mergeByUser (
-          { user, generateSecrets, ... }:
+          {
+            user,
+            generateSecrets,
+            dbUser,
+            ...
+          }:
           lib.mkIf generateSecrets [
             {
               "patroni-${user}" = {
@@ -349,7 +366,7 @@
                   {
                     generator = "tls-leaf";
                     arguments = {
-                      common_name = user;
+                      common_name = dbUser;
                       organization = "ToH";
                       sans = [
                         proxyAttrs.host
@@ -361,9 +378,9 @@
                       request_config = "patroni-${user}-cert-request-config";
                       private = "patroni-${user}-private";
                       request = "patroni-${user}-cert-request";
-                      ca_private = "patroni-ca-private";
-                      ca_public = "patroni-ca-public";
-                      serial = "patroni-ca-serial";
+                      ca_private = "openssl-ca-private";
+                      ca_public = "openssl-ca-public";
+                      serial = "openssl-ca-serial";
                       public = "patroni-${user}-public";
                       renew = true;
                     };
@@ -378,9 +395,7 @@
           { installSecrets, ... }: lib.mkIf installSecrets true
         );
 
-        toh.services.patroni.generateCa = mergeByUser (
-          { generateSecrets, ... }: lib.mkIf generateSecrets true
-        );
+        toh.pki.generateCa = mergeByUser ({ generateSecrets, ... }: lib.mkIf generateSecrets true);
       };
     };
 }

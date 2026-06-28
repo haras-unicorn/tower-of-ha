@@ -35,6 +35,11 @@
                       default = [ ];
                       description = "OIDC client redirect URIs";
                     };
+                    pkce = lib.mkOption {
+                      type = lib.types.bool;
+                      default = false;
+                      description = "OIDC client PKCE";
+                    };
                   };
                 }
               )

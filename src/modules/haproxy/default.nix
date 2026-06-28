@@ -172,6 +172,7 @@
           bind ${config.toh.meta.network.ip}:${builtins.toString httpPort} ssl crt ${certFile}
           bind 127.0.0.1:${builtins.toString httpPort} ssl crt ${certFile}
           use_backend %[req.hdr(host),map_str(${httpHostMap})]
+          http-request set-header X-Forwarded-Proto https
       '';
 
       httpBackends = builtins.concatStringsSep "\n\n" (

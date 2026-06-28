@@ -1,21 +1,44 @@
-{ lib, ... }:
+{ lib, tohLib, ... }:
 
 {
   toh.lib.url = {
+    defaultPorts = {
+      http = 80;
+      https = 443;
+      ssh = 22;
+      dns = 53;
+      smtp = 25;
+      submission = 587;
+      smtps = 465;
+      imap = 143;
+      imaps = 993;
+      pop3 = 110;
+      pop3s = 995;
+      ldap = 389;
+      ldaps = 636;
+      postgresql = 5432;
+      mysql = 3306;
+      redis = 6379;
+      rediss = 6380;
+    };
+
     makePath =
       {
         basePath ? null,
         relativePath ? null,
       }:
+      let
+        unprefixedBasePath = lib.removePrefix basePath;
+      in
       if relativePath != null then
         if lib.hasPrefix "/" relativePath then
           relativePath
         else if basePath != null then
-          "/${basePath}/${relativePath}"
+          "/${unprefixedBasePath}/${relativePath}"
         else
           "/${relativePath}"
       else if basePath != null then
-        "/${basePath}"
+        "/${unprefixedBasePath}"
       else
         "";
 
@@ -37,8 +60,11 @@
         + lib.optionalString (password != null) ":${password}"
         + "@"
       )
-      + "${host}:${builtins.toString port}"
-      + lib.optionalString (path != null) "/${lib.removePrefix "/" path}"
+      + host
+      + lib.optionalString (
+        !(tohLib.url.defaultPorts ? ${protocol}) || port != tohLib.url.defaultPorts.${protocol}
+      ) ":${builtins.toString port}"
+      + lib.optionalString (path != null && path != "") "/${lib.removePrefix "/" path}"
       + lib.optionalString (parameters != null && parameters != { }) (
         "?"
         + builtins.concatStringsSep "&" (

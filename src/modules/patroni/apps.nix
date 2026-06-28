@@ -19,7 +19,7 @@
           value
           // {
             inherit name;
-            dbUser = config.toh.services.patroni.users.${name};
+            userSecrets = config.toh.services.patroni.users.${name};
           }
         ) (lib.attrsToList apps);
 
@@ -39,20 +39,27 @@
     in
     {
       toh.meta.database.instances = mergeByMachineApps (
-        { name, dbUser, ... }:
+        {
+          name,
+          userSecrets,
+          dbName,
+          dbUser,
+          ...
+        }:
         {
           ${name} = {
-            password = dbUser.password;
+            inherit dbName dbUser;
+            password = userSecrets.password;
             parameters = {
               sslmode = "verify-full";
-              sslrootcert = dbUser.ca;
-              sslcert = dbUser.crt;
-              sslkey = dbUser.key;
+              sslrootcert = userSecrets.ca;
+              sslcert = userSecrets.crt;
+              sslkey = userSecrets.key;
             };
-            ssl.ca = dbUser.ca;
-            ssl.crt = dbUser.crt;
-            ssl.key = dbUser.key;
-            url = dbUser.url;
+            ssl.ca = userSecrets.ca;
+            ssl.crt = userSecrets.crt;
+            ssl.key = userSecrets.key;
+            url = userSecrets.url;
           };
         }
       );
@@ -62,8 +69,8 @@
         lib.mkIf (app.init.sql.file != null) [
           {
             ${app.name} = pkgs.writeText "${app.name}-patroni-init-file" ''
-              \c ${app.name}
-              SET ROLE ${app.name};
+              \c ${app.dbName}
+              SET ROLE ${app.dbUser};
 
               ${builtins.readFile app.init.sql.file}
             '';
@@ -75,8 +82,8 @@
         lib.mkIf (app.init.sql.script != null) [
           {
             ${app.name} = ''
-              \c ${app.name}
-              SET ROLE ${app.name};
+              \c ${app.dbName}
+              SET ROLE ${app.dbUser};
 
               ${app.init.sql.script}
             '';
@@ -113,11 +120,18 @@
           name,
           user,
           group,
+          dbName,
+          dbUser,
           ...
         }:
         {
           ${name} = {
-            inherit user group;
+            inherit
+              user
+              group
+              dbName
+              dbUser
+              ;
             installSecrets = true;
           };
         }

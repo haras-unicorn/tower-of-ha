@@ -103,7 +103,8 @@
                 sleep 1
               done
 
-              cephfs-shell "mkdir -p -m ${mode} '${directory}'"
+              output=$(cephfs-shell "mkdir -p -m ${mode} '${directory}'" 2>&1) \
+                || echo "$output" | grep -q 'ObjectExists'
             '';
             serviceConfig = {
               Type = "oneshot";

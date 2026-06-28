@@ -81,30 +81,34 @@
               postgresql = {
                 pg_hba =
                   let
-                    makeSubnetAclForDatabaseAndUser = database: user: [
-                      "hostnossl ${database} ${user} ${subnetCidr} reject"
-                      "hostssl ${database} ${user} ${subnetCidr} cert"
-                      "hostssl ${database} ${user} ${subnetCidr} scram-sha-256"
-                    ];
-
                     makeSuperuserAcl =
                       user: withReplication:
                       [
                         "hostssl all ${user} 127.0.0.1/32 cert"
                         "host all ${user} 127.0.0.1/32 scram-sha-256"
                         "local all ${user} scram-sha-256"
+                        "hostnossl all ${user} ${subnetCidr} reject"
+                        "hostssl all ${user} ${subnetCidr} cert"
                       ]
                       ++ lib.optionals withReplication [
                         "hostssl replication ${user} 127.0.0.1/32 cert"
                         "host replication ${user} 127.0.0.1/32 scram-sha-256"
                         "local replication ${user} scram-sha-256"
+                        "hostnossl replication ${user} ${subnetCidr} reject"
+                        "hostssl replication ${user} ${subnetCidr} cert"
                       ];
+
+                    makeSubnetAclForDatabaseAndUser = database: user: [
+                      "host ${database} ${user} 127.0.0.1/32 scram-sha-256"
+                      "local ${database} ${user} scram-sha-256"
+                      "hostnossl ${database} ${user} ${subnetCidr} reject"
+                      "hostssl ${database} ${user} ${subnetCidr} scram-sha-256"
+                    ];
                   in
-                  makeSubnetAclForDatabaseAndUser "all" "all"
-                  ++ makeSubnetAclForDatabaseAndUser "replication" tohLib.patroni.superusers.replication
-                  ++ makeSuperuserAcl tohLib.patroni.superusers.superuser false
+                  makeSuperuserAcl tohLib.patroni.superusers.superuser false
                   ++ makeSuperuserAcl tohLib.patroni.superusers.replication true
-                  ++ makeSuperuserAcl tohLib.patroni.superusers.rewind false;
+                  ++ makeSuperuserAcl tohLib.patroni.superusers.rewind false
+                  ++ makeSubnetAclForDatabaseAndUser "all" "all";
 
                 parameters = {
                   ssl = "on";
@@ -209,7 +213,7 @@
             mode = "0400";
           };
           toh.meta.sops.secrets."patroni-ssl-ca" = {
-            key = "patroni-ca-public";
+            key = "openssl-ca-public";
             inherit owner group;
             mode = "0644";
           };
@@ -285,9 +289,9 @@
                       request_config = "patroni-ssl-cert-request-config";
                       private = "patroni-ssl-private";
                       request = "patroni-ssl-cert-request";
-                      ca_private = "cluster/patroni-ca-private";
-                      ca_public = "cluster/patroni-ca-public";
-                      serial = "cluster/patroni-ca-serial";
+                      ca_private = "cluster/openssl-ca-private";
+                      ca_public = "cluster/openssl-ca-public";
+                      serial = "cluster/openssl-ca-serial";
                       public = "patroni-ssl-public";
                       renew = true;
                     };
@@ -304,7 +308,6 @@
             }) (builtins.attrValues tohLib.patroni.superusers)
           );
 
-          toh.services.patroni.generateCa = true;
           toh.pki.generateCa = true;
         })
       ];

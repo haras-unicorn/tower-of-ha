@@ -78,7 +78,13 @@
                   ldapConfig.usernameAttribute != null
                 ) "dn_template ${ldapConfig.usernameAttribute}={username},${ldapBaseUsersDn}";
 
-                imapSqlDriver = if dbConfig.protocol == "postgresql" then "postgres" else "mysql";
+                imapSqlDriver =
+                  if dbConfig.protocol == "postgresql" then
+                    "postgres"
+                  else if dbConfig.protocol == "sqlite3" then
+                    "sqlite3"
+                  else
+                    builtins.throw "Unsupported IMAP SQL database";
 
                 imapSqlDsn =
                   "user=maddy"

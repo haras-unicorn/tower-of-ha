@@ -30,7 +30,15 @@
       ldapConfig = config.toh.meta.ldap;
 
       dbConfig = config.toh.meta.database;
-      dbName = if dbConfig.protocol == "postgresql" then "postgres" else "mysql";
+      dbName =
+        if dbConfig.protocol == "postgresql" then
+          "postgres"
+        else if dbConfig.protocol == "mysql" then
+          "mysql"
+        else if dbConfig.protocol == "sqlite" then
+          "local"
+        else
+          builtins.throw "Unsupported Authelia database";
       dbInstance = config.toh.meta.database.instances.${name};
 
       kvConfig = config.toh.meta.kv;
@@ -179,9 +187,9 @@
               };
 
               session = {
+                # NOTE: can't be a TLD
                 cookies = [
                   {
-                    # NOTE: can't be a TLD
                     domain = config.toh.meta.domains.service;
                     authelia_url = proxyUrl;
                   }

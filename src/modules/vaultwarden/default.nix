@@ -24,6 +24,8 @@
       envFilePath = "${dataDir}/toh.env";
       owner = config.systemd.services.vaultwarden.serviceConfig.User;
       group = config.systemd.services.vaultwarden.serviceConfig.Group;
+
+      dbConfig = config.toh.meta.database;
     in
     {
       options.toh.services = {
@@ -35,7 +37,15 @@
       config = lib.mkIf cfg.enable {
         services.vaultwarden.enable = true;
         services.vaultwarden.package = package;
-        services.vaultwarden.dbBackend = config.toh.meta.database.protocol;
+        services.vaultwarden.dbBackend =
+          if dbConfig.protocol == "postgresql" then
+            "postgresql"
+          else if dbConfig.protocol == "mysql" then
+            "mysql"
+          else if dbConfig.protocol == "sqlite" then
+            "sqlite"
+          else
+            builtins.throw "Unsupported vaultwarden database";
         services.vaultwarden.config = {
           ROCKET_ADDRESS = config.toh.meta.network.ip;
           ROCKET_PORT = port;
