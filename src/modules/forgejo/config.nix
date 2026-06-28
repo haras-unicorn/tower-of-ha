@@ -28,7 +28,7 @@
       emailConfig = config.toh.meta.email;
       emailInstance = config.toh.meta.email.emails.forgejo;
 
-      oidcConfg = config.toh.meta.oidc;
+      oidcConfig = config.toh.meta.oidc;
 
       makeHttpProxyUrl = tohLib.services.endpoint.toUrl config.toh.meta.proxies.forgejo.endpoint;
       proxyHttpAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo.endpoint;
@@ -161,7 +161,7 @@
 
             openid = {
               ENABLE_OPENID_SIGNIN = true;
-              WHITELISTED_URIS = oidcConfg.baseUrl;
+              WHITELISTED_URIS = oidcConfig.baseUrl;
             };
 
             storage = {

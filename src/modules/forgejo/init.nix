@@ -10,7 +10,7 @@
     let
       cfg = config.toh.services.forgejo;
 
-      oidcConfg = config.toh.meta.oidc;
+      oidcConfig = config.toh.meta.oidc;
       oidcClient = config.toh.meta.oidc.clients.forgejo;
 
       forgejoCfg = config.services.forgejo;
@@ -46,7 +46,7 @@
             textFile = ./auth.nu;
             textVariables = {
               TOH_FORGEJO_CONFIG = configFile;
-              TOH_FORGEJO_OAUTH_BASE_URL = oidcConfg.baseUrl;
+              TOH_FORGEJO_OAUTH_BASE_URL = oidcConfig.baseUrl;
               TOH_FORGEJO_OAUTH_CLIENT_SECRET = oidcClient.clientSecret;
             };
           })
