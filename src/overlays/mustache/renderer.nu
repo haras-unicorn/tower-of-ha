@@ -12,14 +12,14 @@ def "main" [
   }
   let variables = $variables
     | transpose key value
-    | each {
+    | each { |x|
         {
-          key: $in.key
+          key: $x.key
           value: (
-            if ($in.value | path exists) {
-              open --raw $in.value
+            if ($x.value | path exists) {
+              open --raw $x.value
             } else {
-              $in.value
+              $x.value
             }
           )
         }
