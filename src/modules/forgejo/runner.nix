@@ -106,10 +106,12 @@
             StateDirectory = builtins.baseNameOf stateDir;
             WorkingDirectory = stateDir;
             Restart = "on-failure";
-            RestartSec = 2;
+            RestartSec = 5;
           };
           unitConfig = {
             ConditionPathExists = configFile;
+            StartLimitBurst = 10;
+            StartLimitIntervalSec = 0;
           };
         };
 
