@@ -45,7 +45,7 @@
           else if dbConfig.protocol == "sqlite" then
             "sqlite"
           else
-            builtins.throw "Usupported vaultwarden database";
+            builtins.throw "Unsupported vaultwarden database";
         services.vaultwarden.config = {
           ROCKET_ADDRESS = config.toh.meta.network.ip;
           ROCKET_PORT = port;
