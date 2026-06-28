@@ -20,7 +20,8 @@ def "main" [
               open --raw $in.value
             } else {
               $in.value
-            })
+            }
+          )
         }
       }
     | transpose -ird
