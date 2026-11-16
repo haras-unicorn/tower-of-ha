@@ -2,3 +2,29 @@
 useGitignore: true
 version: "0.2"
 language: en
+words:
+  - authelia
+  - cephfs
+  - chrony
+  - chronyd
+  - coredns
+  - Diátaxis
+  - easytier
+  - geoclue
+  - guestfish
+  - haraspkgs
+  - homeserver
+  - lldap
+  - machinea
+  - maddy
+  - networkmanager
+  - nftables
+  - nspawn
+  - openbao
+  - opencode
+  - sandboxing
+  - setuid
+  - specialisation
+  - sshpass
+  - uids
+  - virtualisation
