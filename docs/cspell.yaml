@@ -9,6 +9,7 @@ words:
   - chronyd
   - coredns
   - Diátaxis
+  - DNSSEC
   - easytier
   - geoclue
   - guestfish

@@ -136,8 +136,9 @@ These stop the stack from being used at all.
 - **Magic values.** Ports, timeouts, retry counts and token lifetimes are
   constants inside modules and scripts, not options.
 - **Style.** `with` (2 files), `rec` (4 files), bare builtins (a few), `TODO`
-  comments (19), and the name `machinea`. `toh.meta.machine.version` is the
-  state version and is pinned to `25.11` in tests.
+  comments (21, listed in [todo.md](./todo.md)), and the name `machinea`.
+  `toh.meta.machine.version` is the state version and is pinned to `25.11` in
+  tests.
 
 ### Container readiness
 
