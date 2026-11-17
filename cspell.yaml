@@ -28,3 +28,6 @@ ignoreWords:
   - nixpkgs
   - openrouter
   - deepseek
+  - haraspkgs
+  - envrc
+  - cooldown

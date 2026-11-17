@@ -307,3 +307,7 @@ ignoreWords:
   - imaps
   - pkce
   - sshpubkey
+  - bubblewrap
+  - treefmt
+  - direnv
+  - dotenv
