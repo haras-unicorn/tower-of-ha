@@ -14,8 +14,8 @@ The repository is a Nix flake built on
 `haraspkgs.lib.makeFlake` over `src/nix`, so every `.nix` file there is a
 flake-parts module.
 
-- `src/nix/lib/`: pure helpers and types, with their unit tests in the same
-  file under `self.unitTests`.
+- `src/nix/lib/`: pure helpers and types, with their unit tests in the same file
+  under `self.unitTests`.
 - `src/nix/meta/`: the `toh.meta.*` options, which describe a machine, the
   cluster and the capabilities services offer each other.
 - `src/nix/modules/`: one folder per service. `default.nix` is the module,

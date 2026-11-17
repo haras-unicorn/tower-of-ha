@@ -1,0 +1,132 @@
+# NOTE: this is nixpkgs' `nixos/modules/security/ca.nix` with one change:
+# `security.pki.caBundle` is read-only upstream, so it cannot point at the
+# bundle that `build.nix` writes at runtime. Here it reads from the internal
+# `security.pki.caBundlePackage`, which `build.nix` overrides. Keep the rest in
+# sync with nixpkgs when it changes.
+
+{
+  toh.lib.nixosModules.pki-ca =
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
+    let
+      cfg = config.security.pki;
+
+      cacertPackage = pkgs.cacert.override {
+        blacklist = cfg.caCertificateBlacklist;
+        extraCertificateFiles = cfg.certificateFiles;
+        extraCertificateStrings = cfg.certificates;
+      };
+      caBundleName = if cfg.useCompatibleBundle then "ca-no-trust-rules-bundle.crt" else "ca-bundle.crt";
+      caBundle = "${cacertPackage}/etc/ssl/certs/${caBundleName}";
+    in
+    {
+      disabledModules = [ "security/ca.nix" ];
+
+      options = {
+        security.pki.installCACerts = lib.mkEnableOption "installing CA certificates to the system" // {
+          default = true;
+          internal = true;
+        };
+
+        security.pki.useCompatibleBundle = lib.mkEnableOption ''
+          usage of a compatibility bundle.
+
+          Such a bundle consists exclusively of `BEGIN CERTIFICATE` and no `BEGIN TRUSTED CERTIFICATE`,
+          which is an OpenSSL specific PEM format.
+
+          It is known to be incompatible with certain software stacks.
+
+          Nevertheless, enabling this will strip all additional trust rules provided by the
+          certificates themselves. This can have security consequences depending on your usecases
+        '';
+
+        security.pki.certificateFiles = lib.mkOption {
+          type = lib.types.listOf lib.types.path;
+          default = [ ];
+          example = lib.literalExpression ''[ "''${pkgs.dn42-cacert}/etc/ssl/certs/dn42-ca.crt" ]'';
+          description = ''
+            A list of files containing trusted root certificates in PEM
+            format. These are concatenated to form
+            {file}`/etc/ssl/certs/ca-certificates.crt`, which is
+            used by many programs that use OpenSSL, such as
+            {command}`curl` and {command}`git`.
+          '';
+        };
+
+        security.pki.certificates = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          example = lib.literalExpression ''
+            [ '''
+                NixOS.org
+                =========
+                -----BEGIN CERTIFICATE-----
+                MIIGUDCCBTigAwIBAgIDD8KWMA0GCSqGSIb3DQEBBQUAMIGMMQswCQYDVQQGEwJJ
+                TDEWMBQGA1UEChMNU3RhcnRDb20gTHRkLjErMCkGA1UECxMiU2VjdXJlIERpZ2l0
+                ...
+                -----END CERTIFICATE-----
+              '''
+            ]
+          '';
+          description = ''
+            A list of trusted root certificates in PEM format.
+          '';
+        };
+
+        security.pki.caCertificateBlacklist = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          example = [
+            "WoSign"
+            "WoSign China"
+            "CA WoSign ECC Root"
+            "Certification Authority of WoSign G2"
+          ];
+          description = ''
+            A list of blacklisted CA certificate names that won't be imported from
+            the Mozilla Trust Store into
+            {file}`/etc/ssl/certs/ca-certificates.crt`. Use the
+            names from that file.
+          '';
+        };
+
+        security.pki.caBundle = lib.mkOption {
+          type = lib.types.path;
+          readOnly = true;
+          description = ''
+            (Read-only) the path to the final bundle of certificate authorities as a single file.
+          '';
+        };
+
+        security.pki.caBundlePackage = lib.mkOption {
+          type = lib.types.path;
+          internal = true;
+        };
+      };
+
+      config = lib.mkMerge [
+        (lib.mkIf cfg.installCACerts {
+
+          # NixOS canonical location + Debian/Ubuntu/Arch/Gentoo compatibility.
+          environment.etc."ssl/certs/ca-certificates.crt".source = caBundle;
+
+          # Old NixOS compatibility.
+          environment.etc."ssl/certs/ca-bundle.crt".source = caBundle;
+
+          # CentOS/Fedora compatibility.
+          environment.etc."pki/tls/certs/ca-bundle.crt".source = caBundle;
+
+          # P11-Kit trust source.
+          environment.etc."ssl/trust-source".source = "${cacertPackage.p11kit}/etc/ssl/trust-source";
+        })
+        {
+          security.pki.caBundlePackage = caBundle;
+          security.pki.caBundle = cfg.caBundlePackage;
+        }
+      ];
+    };
+}
