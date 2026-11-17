@@ -28,7 +28,7 @@
         relativePath ? null,
       }:
       let
-        unprefixedBasePath = lib.removePrefix basePath;
+        unprefixedBasePath = lib.removeSuffix "/" (lib.removePrefix "/" basePath);
       in
       if relativePath != null then
         if lib.hasPrefix "/" relativePath then
@@ -72,4 +72,66 @@
         )
       );
   };
+
+  self.unitTests.url =
+    let
+      makePath = tohLib.url.makePath;
+    in
+    {
+      test-make-path-empty = {
+        expr = makePath { };
+        expected = "";
+      };
+
+      test-make-path-base-only = {
+        expr = makePath { basePath = "/api/"; };
+        expected = "/api";
+      };
+
+      test-make-path-relative-only = {
+        expr = makePath { relativePath = "health"; };
+        expected = "/health";
+      };
+
+      test-make-path-base-and-relative = {
+        expr = makePath {
+          basePath = "/api";
+          relativePath = "health";
+        };
+        expected = "/api/health";
+      };
+
+      test-make-path-absolute-relative-wins = {
+        expr = makePath {
+          basePath = "/api";
+          relativePath = "/health";
+        };
+        expected = "/health";
+      };
+
+      test-make-url-default-port = {
+        expr = tohLib.url.makeUrl {
+          protocol = "https";
+          host = "example.com";
+          port = 443;
+          path = "/api/health";
+          parameters = {
+            verbose = 1;
+          };
+        };
+        expected = "https://example.com/api/health?verbose=1";
+      };
+
+      test-make-url-credentials-and-port = {
+        expr = tohLib.url.makeUrl {
+          protocol = "postgresql";
+          user = "app";
+          password = "secret";
+          host = "db";
+          port = 6432;
+          path = "app";
+        };
+        expected = "postgresql://app:secret@db:6432/app";
+      };
+    };
 }

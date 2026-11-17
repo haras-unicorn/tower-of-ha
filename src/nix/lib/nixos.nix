@@ -9,7 +9,7 @@
           service:
           builtins.filter (
             machine: machine.config.toh.services.${service}.enable
-          ) config.toh.meta.cluster.machinea;
+          ) config.toh.meta.cluster.machineList;
 
         otherServiceMachines =
           service:
@@ -27,7 +27,7 @@
           service:
           builtins.any (
             machine: machine.config.toh.services.${service}.enable
-          ) config.toh.meta.cluster.machinea;
+          ) config.toh.meta.cluster.machineList;
       };
     };
 

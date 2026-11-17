@@ -19,9 +19,9 @@
       runnerFile = "${stateDir}/.runner";
 
       machineName = config.toh.meta.machine.name;
-      machinea = builtins.filter (
+      machineList = builtins.filter (
         machine: machine.config.toh.services.forgejo.runner.enable
-      ) config.toh.meta.cluster.machinea;
+      ) config.toh.meta.cluster.machineList;
 
       forgejoUrl = tohLib.services.endpoint.toUrl config.toh.meta.proxies.forgejo.endpoint { };
 
@@ -164,7 +164,7 @@
                       | save -f forgejo-runner-machine-${machine.name}-secret
                   '';
                 };
-              }) machinea;
+              }) machineList;
             };
           }
         ];

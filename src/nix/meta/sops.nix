@@ -30,12 +30,12 @@
                     };
 
                     owner = lib.mkOption {
-                      type = with lib.types; nullOr str;
+                      type = lib.types.nullOr lib.types.str;
                       default = null;
                     };
 
                     group = lib.mkOption {
-                      type = with lib.types; nullOr str;
+                      type = lib.types.nullOr lib.types.str;
                       default = null;
                     };
 

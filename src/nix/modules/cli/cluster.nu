@@ -14,7 +14,7 @@ def "toh machine current" [--with-secrets] {
 
 def "toh machine pick" [--with-secrets, name?: string] {
   let name = if $name == null {
-    gum choose --header "Pick machine name:" ...(toh cluster machinea | get name )
+    gum choose --header "Pick machine name:" ...(toh cluster machine-list | get name )
   } else {
     $name
   }
@@ -27,12 +27,12 @@ def "toh machine pick" [--with-secrets, name?: string] {
   $machine | insert secrets (toh secrets machine $machine.name)
 }
 
-def "toh cluster machinea" [--with-secrets] {
+def "toh cluster machine-list" [--with-secrets] {
   if $with_secrets {
     toh cluster --with-secrets
   } else {
     toh cluster
-  } | get machinea
+  } | get machineList
 }
 
 def "toh cluster machines" [--with-secrets] {
@@ -49,13 +49,13 @@ def "toh cluster" [--with-secrets] {
   }
 
   let secrets = toh secrets machines
-  let machinea = $cluster.machinea
+  let machineList = $cluster.machineList
     | insert secrets { ($secrets | get -o $in.name) }
 
   $cluster
-    | update machinea $machinea
+    | update machineList $machineList
     | update machines {
-        $machinea
+        $machineList
           | each {
               {
                 key: $in.name

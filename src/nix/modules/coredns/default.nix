@@ -20,7 +20,7 @@
 
     let
       cfg = config.toh.services.coredns;
-      machines = config.toh.meta.cluster.machinea;
+      machines = config.toh.meta.cluster.machineList;
       nodeDomain = config.toh.meta.domains.node;
       serviceDomain = config.toh.meta.domains.service;
       emailDomain = config.toh.meta.email.domain;
@@ -69,7 +69,7 @@
                 bind ${config.toh.meta.network.ip}
                 hosts {
                   ${builtins.concatStringsSep "\n" (
-                    map (m: "${m.config.toh.meta.network.ip} ${m.name}.${nodeDomain}") machines
+                    builtins.map (m: "${m.config.toh.meta.network.ip} ${m.name}.${nodeDomain}") machines
                   )}
                   fallthrough
                 }

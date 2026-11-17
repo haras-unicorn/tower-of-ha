@@ -29,7 +29,7 @@
 
       clusterApps = appAttrsToList (
         builtins.zipAttrsWith (_: builtins.head) (
-          builtins.map (machine: machine.meta.ldap.apps) config.toh.meta.cluster.machinea
+          builtins.map (machine: machine.meta.ldap.apps) config.toh.meta.cluster.machineList
         )
       );
 

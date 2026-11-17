@@ -51,16 +51,26 @@
                 user = "ceph";
                 group = if type == "osd" then "disk" else "ceph";
               }
-              // (lib.optionalAttrs (type == "mon") rec {
-                bootstrapServiceName = "ceph-mon-bootstrap-${daemonName}";
-                bootstrapService = "${bootstrapServiceName}.service";
-                authImportServiceName = "ceph-mon-auth-import-${daemonName}";
-                authImportService = "${authImportServiceName}.service";
-              })
-              // (lib.optionalAttrs (type == "osd") rec {
-                bootstrapServiceName = "ceph-osd-bootstrap-${daemonName}";
-                bootstrapService = "${bootstrapServiceName}.service";
-              })
+              // (lib.optionalAttrs (type == "mon") (
+                let
+                  bootstrapServiceName = "ceph-mon-bootstrap-${daemonName}";
+                  authImportServiceName = "ceph-mon-auth-import-${daemonName}";
+                in
+                {
+                  inherit bootstrapServiceName authImportServiceName;
+                  bootstrapService = "${bootstrapServiceName}.service";
+                  authImportService = "${authImportServiceName}.service";
+                }
+              ))
+              // (lib.optionalAttrs (type == "osd") (
+                let
+                  bootstrapServiceName = "ceph-osd-bootstrap-${daemonName}";
+                in
+                {
+                  inherit bootstrapServiceName;
+                  bootstrapService = "${bootstrapServiceName}.service";
+                }
+              ))
             ) value.daemons
           )
           (

@@ -42,7 +42,7 @@
 
             extraBundle="$tmpdir/extra.crt"
             cat ${extraBundleFile} > "$extraBundle"
-            ${lib.concatStringsSep "\n" (map (f: "cat ${f} >> \"$extraBundle\"") allCertFiles)}
+            ${lib.concatStringsSep "\n" (builtins.map (f: "cat ${f} >> \"$extraBundle\"") allCertFiles)}
 
             mkdir -p "$tmpdir/unbundled"
             mkdir -p "$tmpdir/hashed"

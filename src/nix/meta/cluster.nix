@@ -32,7 +32,7 @@
               Cluster machine attrset.
             '';
           };
-          machinea = lib.mkOption {
+          machineList = lib.mkOption {
             type = lib.types.listOf (lib.types.submodule machineSubmodule);
             default = [ ];
             description = ''

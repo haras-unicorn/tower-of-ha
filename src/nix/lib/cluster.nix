@@ -14,7 +14,7 @@
       in
       {
         inherit machines;
-        machinea = builtins.attrValues machines;
+        machineList = builtins.attrValues machines;
       };
   };
 }

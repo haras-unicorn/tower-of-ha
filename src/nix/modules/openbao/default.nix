@@ -29,7 +29,7 @@
             DATABASE_OPENBAO_URL = "${instance.url}";
           }
         else
-          throw "Unsupported database protocol ${database.protocol} for openbao";
+          builtins.throw "Unsupported database protocol ${database.protocol} for openbao";
       storageTemplate =
         if database.protocol == "postgresql" then
           settingsFormat.generate "openbao-storage-template" {
@@ -39,7 +39,7 @@
             };
           }
         else
-          throw "Unsupported database protocol ${database.protocol} for openbao";
+          builtins.throw "Unsupported database protocol ${database.protocol} for openbao";
       runDirectory = "openbao";
       storageSettingsPath = "/run/${runDirectory}/storage.json";
 
@@ -196,7 +196,7 @@
                 );
               ''
             else
-              throw "Unsupported database protocol ${database.protocol} for openbao";
+              builtins.throw "Unsupported database protocol ${database.protocol} for openbao";
         };
       };
     };

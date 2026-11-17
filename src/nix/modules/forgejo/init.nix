@@ -23,7 +23,7 @@
 
       runnerMachines = builtins.filter (
         machine: machine.config.toh.services.forgejo.runner.enable
-      ) config.toh.meta.cluster.machinea;
+      ) config.toh.meta.cluster.machineList;
     in
     {
       options.toh.services = {

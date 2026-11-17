@@ -95,7 +95,7 @@
                 builtins.map (machine: {
                   name = machine.name;
                   value = builtins.toString config.toh.meta.sops.secrets."openbao-machine-${machine.name}-pass".path;
-                }) config.toh.meta.cluster.machinea
+                }) config.toh.meta.cluster.machineList
               )
             );
             TOH_OPENBAO_ADMIN_PASSWORD = config.toh.meta.sops.secrets."openbao-admin-pass".path;
@@ -139,7 +139,7 @@
               group = group;
               mode = "0400";
             };
-          }) config.toh.meta.cluster.machinea
+          }) config.toh.meta.cluster.machineList
         );
 
         toh.meta.cryl.machine =
@@ -155,7 +155,7 @@
                 }
               ];
             };
-          }) config.toh.meta.cluster.machinea
+          }) config.toh.meta.cluster.machineList
           ++ [
             {
               openbao-admin = {
@@ -184,7 +184,7 @@
                 }
               ];
             };
-          }) config.toh.meta.cluster.machinea
+          }) config.toh.meta.cluster.machineList
           ++ [
             {
               openbao-admin = {

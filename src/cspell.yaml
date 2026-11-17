@@ -184,7 +184,6 @@ ignoreWords:
   - kvmclock
   - clocksource
   - attrset
-  - machinea
   - toposort
   - easytier
   - coredns

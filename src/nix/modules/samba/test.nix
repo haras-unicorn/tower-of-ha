@@ -35,20 +35,25 @@
               let
                 password = "test";
 
-                makeNodeAttrs = node: rec {
-                  name = node.toh.meta.machine.name;
-                  proxyAttrs = node.toh.lib.services.endpoint.toAttrs node.toh.meta.proxies.samba.endpoint;
-                  makeProxyArgs =
-                    share:
-                    "//${proxyAttrs.host}"
-                    + lib.optionalString (share != null) "/${share}"
-                    + " -p ${builtins.toString proxyAttrs.port}"
-                    + " -U ${user}%${password}";
+                makeNodeAttrs =
+                  node:
+                  let
+                    proxyAttrs = node.toh.lib.services.endpoint.toAttrs node.toh.meta.proxies.samba.endpoint;
 
-                  proxyArgs = makeProxyArgs null;
-                  mntArgs = makeProxyArgs mntShare;
-                  shareArgs = makeProxyArgs share;
-                };
+                    makeProxyArgs =
+                      share:
+                      "//${proxyAttrs.host}"
+                      + lib.optionalString (share != null) "/${share}"
+                      + " -p ${builtins.toString proxyAttrs.port}"
+                      + " -U ${user}%${password}";
+                  in
+                  {
+                    name = node.toh.meta.machine.name;
+                    inherit proxyAttrs makeProxyArgs;
+                    proxyArgs = makeProxyArgs null;
+                    mntArgs = makeProxyArgs mntShare;
+                    shareArgs = makeProxyArgs share;
+                  };
               in
               [
                 ''command_node.wait_until_succeeds("systemctl is-active toh-filesystem-online.target", timeout=300)''

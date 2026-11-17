@@ -39,7 +39,7 @@
         services: (tohLib.services.endpoint.toAttrs (builtins.head services).endpoint).port + tcpPortOffset;
 
       serviceNamesToMachineServices = lib.zipAttrs (
-        builtins.map (machine: machine.meta.services) config.toh.meta.cluster.machinea
+        builtins.map (machine: machine.meta.services) config.toh.meta.cluster.machineList
       );
 
       filterServiceNamesToMachineNames =

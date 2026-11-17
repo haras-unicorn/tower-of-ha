@@ -26,7 +26,7 @@
 
       cluster = {
         inherit machines;
-        machinea = builtins.attrValues machines;
+        machineList = builtins.attrValues machines;
       };
 
       ageKeyPathsPerMachine = builtins.mapAttrs (

@@ -1,27 +1,30 @@
 { tohLib, lib, ... }:
 
+let
+  proxyProtocols = [
+    "tcp"
+    "submit"
+    "http"
+    "https"
+  ];
+
+  extraLayer7Protocols = [
+    "smb"
+    "ldap"
+    "ldaps"
+    "redis"
+    "rediss"
+    "s3"
+    "smtp"
+    "imap"
+  ]
+  ++ tohLib.database.protocols;
+in
 {
-  toh.lib.services = rec {
-    proxyProtocols = [
-      "tcp"
-      "submit"
-      "http"
-      "https"
-    ];
+  toh.lib.services = {
+    inherit proxyProtocols extraLayer7Protocols;
 
     layer7Protocols = proxyProtocols ++ extraLayer7Protocols;
-
-    extraLayer7Protocols = [
-      "smb"
-      "ldap"
-      "ldaps"
-      "redis"
-      "rediss"
-      "s3"
-      "smtp"
-      "imap"
-    ]
-    ++ tohLib.database.protocols;
 
     sslTermination = [
       "terminate"

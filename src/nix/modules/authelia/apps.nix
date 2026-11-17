@@ -38,7 +38,7 @@
 
       clusterApps = appAttrsToList (
         builtins.zipAttrsWith (_: builtins.head) (
-          builtins.map (machine: machine.meta.oidc.apps) config.toh.meta.cluster.machinea
+          builtins.map (machine: machine.meta.oidc.apps) config.toh.meta.cluster.machineList
         )
       );
     in

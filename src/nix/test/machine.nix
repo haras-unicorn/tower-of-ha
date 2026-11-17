@@ -13,7 +13,7 @@
 
       toh.meta.machine.name = config.virtualisation.test.nodeName;
       toh.meta.machine.index = config.virtualisation.test.nodeNumber;
-      toh.meta.machine.version = "25.11";
+      toh.meta.machine.version = "26.05";
 
       toh.meta.user.user = "test";
       toh.meta.user.group = "test";

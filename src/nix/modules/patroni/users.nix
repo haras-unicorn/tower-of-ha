@@ -19,16 +19,21 @@
             { name, value }:
             forEachUser (
               value
-              // (rec {
-                user = name;
+              // (
+                let
+                  isSuperuser = builtins.elem name (builtins.attrValues tohLib.patroni.superusers);
+                in
+                {
+                  user = name;
 
-                isSuperuser = builtins.elem name (builtins.attrValues tohLib.patroni.superusers);
+                  inherit isSuperuser;
 
-                isCliUser = !isSuperuser || name == tohLib.patroni.superusers.superuser;
+                  isCliUser = !isSuperuser || name == tohLib.patroni.superusers.superuser;
 
-                owner = if isSuperuser then config.services.patroni.user else value.user;
-                group = if isSuperuser then config.services.patroni.group else value.group;
-              })
+                  owner = if isSuperuser then config.services.patroni.user else value.user;
+                  group = if isSuperuser then config.services.patroni.group else value.group;
+                }
+              )
             )
           ) (lib.attrsToList config.toh.services.patroni.users)
         );
