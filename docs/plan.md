@@ -190,8 +190,10 @@ on the way. Step 2 brings them back.
 4. **One nixpkgs (S).** Replace the two nixpkgs patches with a module override
    and an `overrideAttrs`, and drop the patched import. Done when nothing
    imports nixpkgs at eval time beyond the flake input.
-5. **Free software only (S).** `vault` becomes `bao`, and a check fails when
-   anything in the flake is unfree (invariant 1). Done when that check passes.
+5. **Free software only (S).** `vault` becomes `bao`, the flake's own `pkgs`
+   stops setting `allowUnfree = true` (`src/overlays/nixpkgs/default.nix`), and
+   a check fails when anything in the flake is unfree (invariant 1). Done when
+   that check passes.
 6. **NixOS module suite (L).** Export every module as `self.nixosModules`, with
    `default` importing all of them. Move the sops-nix wiring and the base
    `toh-*-online` targets out of the test modules and into the suite. Add an
