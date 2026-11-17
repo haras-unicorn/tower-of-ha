@@ -26,39 +26,42 @@ main defenses are the VPN and TLS on every connection, even inside the VPN.
 Machines and admins that are part of the cluster get a base amount of trust.
 
 **Decided.** Leaking data from a **physical device** (a stolen disk, a lost Pi)
-is out of scope. The machines are planned to run on
-[stolon](https://github.com/haras-unicorn/stolon), which covers that with an
-encrypted disk, but stolon is not part of this repository.
+is out of scope. ToH is only the highly available service stack. Disks and other
+physical concerns belong to whatever the machines run on.
 
 **Decided.** Access control (ACL) means: which machines, users and services can
 reach which other machines, users and services, no matter how they try (our CLI,
-a service, or someone running `curl`). It should be done at the network level
-and be as good as is reasonable, not perfect.
+a service, or someone running `curl`). It should be as good as is reasonable,
+not perfect. There are three levers, one per level:
+
+- **EasyTier** for the network: who can reach which machine and port.
+- **Envoy** for ports and applications: who can reach which service.
+- **OpenBao** for secrets: who can read which secret.
 
 ## Invariants
 
-These hold for every change. **Proposed** as a set: please confirm, cut or add.
-Where today's code breaks one, the [plan](./plan.md#where-it-stands) says so.
+These hold for every change. **Decided** on 2026-11-17. Where today's code
+breaks one, the [plan](./plan.md#where-it-stands) says so.
 
 1. **Free software only.** No unfree package anywhere in the closure of a
    machine, a test or the CLI.
 2. **Sops is the source of truth for secrets.** The sops files in the repository
    of each deployment hold every secret. Everything else (OpenBao, files on a
-   machine) is a copy made from them. Nothing writes back. (**Decided**.)
+   machine) is a copy made from them. Nothing writes back.
 3. **Least privilege for secrets.** The sops file of a machine holds only the
    secrets that machine uses.
 4. **TLS on every hop.** Every connection between two processes is TLS, also
    inside the VPN and also behind the proxy.
-5. **High availability or a written reason.** Every service runs on more than
-   one machine, or has a documented failover, or says in its docs why it is a
-   single instance.
+5. **High availability, no exceptions.** Every service runs on more than one
+   machine. A service that allows only one active process at a time (like
+   Synapse) gets failover through an etcd lease, and keeps its data in Patroni
+   or Ceph.
 6. **Tests test the real thing.** Tests use the same NixOS modules as a real
    deployment. Nothing that a machine needs to work is defined only in tests.
 7. **Containers first.** Tests run as systemd-nspawn containers. A test runs as
-   a VM only when containers cannot do it, and says why. (**Decided**.)
+   a VM only when containers cannot do it, and says why.
 8. **Contracts, not implementations.** Each capability (VPN, DNS, proxy,
-   database, ...) has tests that any implementation must pass. (**Decided** as
-   step 2.)
+   database, ...) has tests that any implementation must pass.
 9. **Cheap hardware.** A three-Pi cluster runs the default stack.
 10. **No magic values.** Ports, timeouts and similar values are module options
     with defaults, as the coding style asks.
@@ -67,10 +70,10 @@ Where today's code breaks one, the [plan](./plan.md#where-it-stands) says so.
 
 Made on 2026-11-16, when this plan was started.
 
-- **Order of work.** Modernize and move to containers first, then make the tests
-  independent of the services, then add chat and observability, then swap out
-  Nebula and HAProxy, then harden, then the CLI, ACL and workflows. Details are
-  in the [plan](./plan.md#order).
+- **Order of work.** Modernize first, then move the tests to containers and make
+  them independent of the services, then add chat and observability, then swap
+  out Nebula and HAProxy, then harden, then the CLI, ACL and workflows. Details
+  are in the [plan](./plan.md#order).
 - **haraspkgs is the base.** The flake, dev shell, overlays, tests and generated
   files all come from [haraspkgs](https://github.com/haras-unicorn/haraspkgs),
   as in the other repositories.
@@ -85,8 +88,27 @@ Made on 2026-11-16, when this plan was started.
 - **OpenBao only distributes.** It is a server that other devices pull secrets
   from. It is never the source of truth.
 - **The Synapse work restarts in step 3.** The `matrix` branch stays as a
-  reference. Synapse allows only one main process per homeserver, so it needs a
-  failover design first (see [open questions](#open-questions)).
+  reference. Synapse allows only one main process per homeserver, so it gets
+  failover through an etcd lease. Its data lives in Patroni and Ceph.
+
+Made on 2026-11-17, after review.
+
+- **ToH is a suite of NixOS modules.** That is the main way to use it, because
+  NixOS modules are the most stable contract we can offer.
+  `nixosModules.default` imports all of them, as haraspkgs does. Anything on
+  top, like a flake wrapper, is an extra.
+- **cryl renews only on request.** It regenerates a secret only when that secret
+  has `renew = true`. That is enough for re-runs, and cryl needs no change for
+  it.
+- **The age key lives on the machine.** It is put there before the first boot,
+  with guestfish or a similar tool. The fetch over the local network stays.
+- **OpenBao serves the CLI** and holds the per-secret access rules (see
+  [Scope](#scope)). Its current problems get fixed later, not in step 1.
+- **One big pull request, no CI for now.** ToH is not meant to be used yet, so
+  most steps land in one major pull request, and CI stays off until it is worth
+  having.
+- **`TODO` comments go into [todo.md](./todo.md)** for now, since most of them
+  will be fixed in that pull request.
 
 ## Architecture today
 
@@ -196,7 +218,7 @@ Nebula run them.
   `self.overlays` with the `tohPackages` namespace, and our own overlay graph
   code and its tests go away.
 - The NixOS modules become `self.nixosModules` with `flake = true`, so a
-  deployment can import them.
+  deployment can import them. `nixosModules.default` imports all of them.
 - Tests become `self.nixosTests` (containers). Unit tests become
   `self.unitTests`.
 - The dev shell becomes a haraspkgs dev module, which generates `.gitignore`,
@@ -211,68 +233,59 @@ and an issue for haraspkgs, per the Nix style.
 
 ### What a deployment looks like
 
-**Proposed.** A deployment is its own flake, for example the one that will run
-on the Pis. It imports a ToH flake module and describes the cluster once:
+**Decided.** A deployment is a set of NixOS machines, usually in the user's own
+flake. It has:
 
-```nix
-{
-  toh.cluster = {
-    domains.topLevel = "example.org";
-    machines.pi1 = {
-      system = "aarch64-linux";
-      network.ip = "10.69.42.1";
-      services.patroni.enable = true;
-    };
-  };
-}
-```
+- **One shared module**, imported by every machine of the deployment. It imports
+  `nixosModules.default` and sets the options that must be the same everywhere,
+  like the domain.
+- **One module per machine**, which sets what is specific to that machine and
+  picks the services it runs.
+- **The cluster view.** The user passes the configurations of all machines into
+  `toh.meta.cluster.machines`, so each machine can see where every service runs.
+  This is how it works today in the tests, and it stays.
 
-From that, the ToH flake module makes the `nixosConfigurations`, the cryl
-specifications, the deploy targets and the cluster view every machine reads. The
-tests build their clusters through the same module, so tests and real
-deployments cannot drift apart (invariant 6).
+A thin wrapper could later do the parts every ToH flake needs anyway, like
+filling in the cluster view. That comes later and is an extra. The tests build
+their clusters the same way a user would, so tests and real deployments cannot
+drift apart (invariant 6).
 
 ### Secrets flow
 
-**Decided**: sops in the deployment repository is the source of truth.
-**Proposed**: how the pieces fit.
+**Decided**: sops in the deployment repository is the source of truth, and cryl
+makes and renews the secrets.
 
-1. The deployment repository holds one sops file per machine, plus one cluster
-   sops file with the shared secrets (the CA, cluster keys). The cluster file is
-   encrypted to the admins' age keys. Each machine file is encrypted to that
-   machine's age key and to the admins' keys, so an admin can always read and
-   renew it.
-2. The ToH CLI runs cryl. Before it generates anything, it makes the existing
-   secrets available to cryl, so cryl only fills in what is missing and renews
-   what is marked to renew. Without this step a second run would rotate every
-   secret, the CA and the age keys included. How to do it is
-   [open question 1](#open-questions).
+1. The deployment repository holds one sops file per machine. Shared secrets,
+   like the CA, are copied into a machine's file only if that machine uses them.
+2. The ToH CLI runs cryl. cryl only makes secrets that are missing and renews
+   the ones marked `renew = true`.
 3. cryl writes the sops files back into the repository. The admin reviews and
    commits them.
-4. Machines get their sops file with their NixOS configuration and decrypt it
-   with their own age key through sops-nix.
-5. OpenBao, if enabled, gets a copy of what devices need to pull, pushed by the
-   CLI from the sops files. Devices only read it. If OpenBao is lost, it is
-   rebuilt from the sops files and nothing is gone.
+4. Each machine has its own age key on disk, put there before the first boot. It
+   decrypts its sops file with that key through sops-nix.
+5. OpenBao gets a copy of what the CLI and other devices need to pull, made from
+   the sops files. Devices only read it. If OpenBao is lost, it is rebuilt from
+   the sops files and nothing is gone.
 
 ### OpenBao
 
-**Decided**: distribution only. **Open**: which devices pull from it, and what
-they pull ([open question 4](#open-questions)). Whatever it serves, it serves
-over TLS (invariant 4), and it does not keep anything that is not also in a sops
-file (invariant 2). That includes its own recovery material.
+**Decided**: OpenBao serves the CLI and holds the access rules per secret. It
+never holds anything that is not also in a sops file (invariant 2), and it
+serves over TLS (invariant 4). Today it breaks both, see the
+[plan](./plan.md#security). That gets fixed later, not in step 1.
 
 ### Network and ACL
 
-**Decided**: EasyTier carries all traffic between machines and devices. ACL is
-enforced at the network level.
+**Decided**: EasyTier carries all traffic between machines and devices, and the
+ACL uses the three levers in [Scope](#scope).
 
-**Proposed**: ACL rules are declared once, in the cluster description, as who
-may reach what (for example "group `admins` may reach `ssh` on every machine",
-"service `forgejo` may reach capability `database`"). A module turns them into
-EasyTier ACL rules where EasyTier can express them, and into nftables rules on
-each machine where it cannot. The proxy is not the only gate: a backend port is
-closed to everything except the machines that should reach it.
+**Proposed** for step 10: the rules are declared once, in the shared module, as
+who may reach what (for example "group `admins` may reach `ssh` on every
+machine", "service `forgejo` may reach capability `database`"). Modules turn
+them into EasyTier rules, Envoy rules and OpenBao policies, and into nftables
+rules on each machine where EasyTier cannot express them. The proxy is not the
+only gate: a backend port is closed to everything except the machines that
+should reach it.
 
 ### Capabilities and contracts
 
@@ -285,8 +298,10 @@ the same tests.
 
 ### Tests
 
-**Decided**: containers first. Running container tests needs these settings on
-the machine that builds them (from the NixOS 26.05 manual):
+**Decided**: containers first, starting in step 2. Step 1 leaves the tests
+alone, and they may stop working while the modules are ported. Running container
+tests needs these settings on the machine that builds them (from the NixOS 26.05
+manual):
 
 ```nix
 {
@@ -318,34 +333,11 @@ The [plan](./plan.md#container-readiness) sorts every test by this.
 
 ## Open questions
 
-Each has my recommendation first.
+None of these block step 1.
 
-1. **How does cryl see existing secrets on a second run?** Today nothing imports
-   them, so a real deployment would regenerate everything. cryl has no sops
-   importer. Recommendation: the ToH CLI decrypts the sops files into cryl's
-   working directory (in memory) and cryl imports them with its `copy` importer,
-   so cryl needs no change. The alternative is a `sops` importer in cryl. Also
-   needed either way: the sops files must be encrypted to the admin keys too
-   (cryl's `sops` generator already takes several age recipients).
-2. **Where does a machine's age key live?** Today it is meant to be fetched from
-   OpenBao or a local "offerer" at every boot and shredded after. The offerer
-   does not exist, and the fetch accepts any host on the LAN (`curl -k`).
-   Recommendation: the CLI puts the key on the machine once, at install, into a
-   folder that stolon keeps. It stays on the encrypted disk. This removes the
-   whole boot-time fetch.
-3. **What does a deployment flake look like?** Recommendation: the `toh.cluster`
-   flake module sketched [above](#what-a-deployment-looks-like), built in step
-   1, because the tests need it too.
-4. **What is OpenBao for?** Which devices pull from it (friends' phones,
-   machines that do not run NixOS, the CLI on a laptop) and what do they pull?
-   If nothing needs it yet, we could keep it off by default until the step that
-   needs it.
-5. **How does Synapse fail over?** It allows one main process per homeserver.
-   Recommendation: elect the main process the way Patroni elects a primary, with
-   a lease in etcd, and run workers on every machine. To be designed in step 3.
-6. **Is OpenSearch right for Raspberry Pis?** The README lists Fluentd and
-   OpenSearch for observability. OpenSearch is a heavy Java service. To be
-   decided in step 4, against invariant 9.
-7. **Where do the `TODO` comments go?** The coding style says they become
-   issues. Recommendation: GitHub issues on this repository, made once the plan
-   is approved.
+1. **Which observability stack?** It has to be light enough for Raspberry Pis
+   (invariant 9). The README lists Fluentd and OpenSearch, and OpenSearch is a
+   heavy Java service. To be decided in step 4.
+2. **How do the Synapse workers fit the failover?** The main process fails over
+   through an etcd lease. Whether workers run on every machine is to be decided
+   in step 3.

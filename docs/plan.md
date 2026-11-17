@@ -8,17 +8,20 @@ How to read it:
 
 - The work is split into **steps**, in the order below.
 - Each step is split into **chunks**. One chunk is one change that can be
-  reviewed on its own. A chunk is done when it is reviewed and merged.
+  reviewed on its own. A chunk is done when it is reviewed and committed on
+  `fix/modernize`. Most steps land in one big pull request, with CI off (see the
+  [design](./design.md#decisions)).
 - Each chunk says what it does and how we know it is done.
 - Sizes are rough: **S** is an evening, **M** a few sessions, **L** more than a
   week. They are guesses, and will get better after step 1.
 
 ## Order
 
-**Decided** on 2026-11-16.
+**Decided** on 2026-11-16. Changed on 2026-11-17: the move to containers went
+from step 1 to step 2, because step 1 leaves the tests alone.
 
-1. Modernize: haraspkgs, fix the nasty patterns, containers.
-2. Make the tests independent of the services (originally step 6).
+1. Modernize: haraspkgs, fix the nasty patterns, a working NixOS module suite.
+2. Containers, and tests independent of the services (originally step 6).
 3. Matrix.
 4. Observability.
 5. Remove Nebula.
@@ -57,20 +60,14 @@ These stop the stack from being used at all.
   without are defined only in test modules:
   - passing `toh.meta.sops.secrets` to sops-nix (`src/test/secrets.nix:193`),
   - the base definitions of the `toh-*-online` targets (`src/test/targets.nix`).
-- **cryl would rotate every secret on a second run (read).** Nothing imports the
-  existing secrets before cryl generates, so a real deployment would make a new
-  CA, new keys and new age keys every time. This is
-  [open question 1](./design.md#open-questions).
-- **CI does not run the tests (read).** `nix flake check` is commented out in
-  `.github/workflows/check.yaml`.
 
 ### Security
 
 - **The age key fetch trusts the whole LAN (read).** `fetch-age-key` scans the
   local subnets for port 42069 and takes the first answer over `curl -k`, with
   no certificate check (`src/modules/openbao/secrets.nu:97`). The serving side
-  does not exist. [Open question 2](./design.md#open-questions) proposes
-  removing the fetch.
+  does not exist. The fetch itself stays (decided). The certificate check is
+  part of the OpenBao work, see [Parked](#parked).
 - **OpenBao serves plain HTTP (read).** `tls_disable = true`
   (`src/modules/openbao/default.nix:66`). The same holds for several backends
   behind the proxy: Authelia, ddns-updater, Forgejo HTTP, Garage, LLDAP and
@@ -132,9 +129,6 @@ These stop the stack from being used at all.
 - **Modules that add overlays.** NixOS modules set `toh.overlays`, and the CLI
   is put together by gluing script text from every module into one file. Each
   machine gets its own CLI, and none of it can be tested on its own.
-- **Every machine evaluates every machine.** `toh.meta.cluster.machines` holds
-  the full NixOS config of each machine, so each machine's evaluation depends on
-  all the others.
 - **Library helpers that read machine config.** `serviceMachines` and friends
   live in `toh.lib` but depend on the NixOS config they are evaluated in.
 - **HAProxy leaks into `toh.meta`.** The HAProxy module fills `toh.meta.proxies`
@@ -173,65 +167,67 @@ A first sort of the 26 test files. Not tried yet, so all of it is **read**.
 - `AGENTS.md` differs between `main` and `matrix`, and neither describes the
   haraspkgs layout we are moving to.
 - `opencode.json` is still in the repository.
+- CI is off: `nix flake check` is commented out in
+  `.github/workflows/check.yaml`. That stays so for now, on purpose.
 
 ## Step 1: Modernize
 
-The ground everything else stands on. Done when the whole stack evaluates, every
-test that can be a container is one, and a real machine could be built.
+Make the flake workable. Done when the flake evaluates on haraspkgs, nothing in
+it is unfree, and an example cluster built from `nixosModules.default` evaluates
+a `nixosConfiguration` per machine. The NixOS tests are left alone and may break
+on the way. Step 2 brings them back.
 
-1. **haraspkgs flake and dev shell (M).** `makeFlake` over `src/nix`, the dev
+1. **Design docs (S).** This plan, the design and [todo.md](./todo.md), with the
+   answers from the first review.
+2. **haraspkgs flake and dev shell (M).** `makeFlake` over `src/nix`, the dev
    shell as a dev module, generated repository files, the `dev` CLI from
    haraspkgs. `dev test` stops committing. Done when `dev check` and
-   `dev format` pass and nothing else changed.
-2. **`self.lib` and `self.overlays` (M).** Replace `toh.lib` and `toh.overlays`,
+   `dev format` pass.
+3. **`self.lib` and `self.overlays` (M).** Replace `toh.lib` and `toh.overlays`,
    delete our overlay graph and its tests, use the haraspkgs Nushell and
    mustache helpers. Modules stop adding overlays. Done when every unit test
    passes as `self.unitTests`.
-3. **One nixpkgs (S).** Replace the two nixpkgs patches with a module override
+4. **One nixpkgs (S).** Replace the two nixpkgs patches with a module override
    and an `overrideAttrs`, and drop the patched import. Done when nothing
    imports nixpkgs at eval time beyond the flake input.
-4. **Free software only (S).** `vault` becomes `bao`, and a check fails the
-   build when any closure has an unfree package (invariant 1). Done when
-   `nix flake check --no-build` evaluates every test.
-5. **Real machines (L).** Export the NixOS modules. Move the sops-nix wiring and
-   the base targets out of the test modules. Add the `toh.cluster` flake module
-   ([open question 3](./design.md#open-questions)) and build test clusters
-   through it. Done when an example deployment flake in the tests evaluates a
-   `nixosConfiguration` per machine.
-6. **Container harness (M).** Port the test helpers to `self.nixosTests`
+5. **Free software only (S).** `vault` becomes `bao`, and a check fails when
+   anything in the flake is unfree (invariant 1). Done when that check passes.
+6. **NixOS module suite (L).** Export every module as `self.nixosModules`, with
+   `default` importing all of them. Move the sops-nix wiring and the base
+   `toh-*-online` targets out of the test modules and into the suite. Add an
+   example cluster the way a user would write it: one shared module, one module
+   per machine, and `toh.meta.cluster.machines` filled from all of them. Done
+   when the example evaluates a `nixosConfiguration` per machine.
+7. **Style and small bugs (M).** `with`, `rec`, bare builtins, `machinea`, the
+   stale state version. The `makePath` and DNS zone bugs, each with a unit test.
+8. **Docs (S).** README, CONTRIBUTING, AGENTS, a Diátaxis layout for this book,
+   generated option docs, and [todo.md](./todo.md) kept up to date.
+
+## Step 2: Containers and service-independent tests
+
+Done when every test runs again, as containers where it can, and every
+capability has a contract test that every current implementation passes.
+
+1. **Container harness (M).** Port the test helpers to `self.nixosTests`
    containers, with a separate VM path for the tests that need it. Pilot with
    etcd. Done when the etcd test passes as containers.
-7. **Move the tests (L).** Every test from the "should move" list, one or a few
-   per chunk. The rest get a written reason to stay VMs. Done when CI runs
-   `nix flake check` again.
-8. **Fix what was found (M).** The bugs and security findings above that are not
-   fixed by the chunks before, each with a test that would have caught it.
-9. **Docs (S).** README, CONTRIBUTING, AGENTS, a Diátaxis layout for this book,
-   generated option docs. Turn `TODO` comments into issues
-   ([open question 7](./design.md#open-questions)).
-
-The secrets questions ([1 and 2](./design.md#open-questions)) have to be
-answered before chunk 5. Building the full secrets flow could be part of chunk
-5, or wait for step 9 (CLI). Your call.
-
-## Step 2: Service-independent tests
-
-Done when every capability has a contract test, and every current implementation
-passes it.
-
-1. **Contract shape (S).** Write down how a contract test module looks,
+2. **Move the tests (L).** Every test from the "should move" list, one or a few
+   per chunk. The rest get a written reason to stay VMs. Done when
+   `nix flake check` passes.
+3. **Contract shape (S).** Write down how a contract test module looks,
    following `toh.test.mesh` and `toh.test.relay`: it takes the implementation
    as a parameter and checks only behavior.
-2. **Implementation-free meta (M).** Move HAProxy's port scheme out of
+4. **Implementation-free meta (M).** Move HAProxy's port scheme out of
    `toh.meta.proxies` and `toh.meta.relays`, and check every capability's meta
    options for other leaks.
-3. **One contract per chunk (M each).** VPN (exists), DNS, proxy, database,
+5. **One contract per chunk (M each).** VPN (exists), DNS, proxy, database,
    key-value, S3, LDAP, OIDC, email, git, file sharing, secrets, time.
 
 ## Step 3: Matrix
 
-1. **Failover design (S).** Answer [open question 5](./design.md#open-questions)
-   on paper first.
+1. **Failover design (S).** The main process holds an etcd lease. Decide where
+   the workers run ([open question 2](./design.md#open-questions)) on paper
+   first.
 2. **Synapse (L).** Bring the module over from the `matrix` branch, onto the new
    base, with the failover from chunk 1. It must pass a new chat contract.
 3. **Clients and federation (M).** Well-known files, federation through the
@@ -240,7 +236,7 @@ passes it.
 ## Step 4: Observability
 
 1. **Pick the stack (S).** Logs and metrics that fit on Pis
-   ([open question 6](./design.md#open-questions)).
+   ([open question 1](./design.md#open-questions)).
 2. **Build it (L).** Collection on every machine, storage in HA, a contract
    test.
 
@@ -276,13 +272,15 @@ passes it.
    own, instead of script text glued together from modules.
 2. **Commands (L).** Secrets (runs cryl, see the design's secrets flow),
    install, deploy, status, ssh, sql, backup and restore. No secrets on command
-   lines.
+   lines. This also fixes the CLI bugs found above.
 
 ## Step 10: ACL
 
-1. **Model (M).** Declare who may reach what in the cluster description.
-2. **Enforce (L).** EasyTier ACL rules where they fit, nftables on each machine
-   where not. Backend ports closed to everything but their clients.
+1. **Model (M).** Declare who may reach what in the shared module.
+2. **Enforce (L).** With the three levers from the [design](./design.md#scope):
+   EasyTier rules for the network, Envoy rules for services, OpenBao policies
+   for secrets, and nftables on each machine where EasyTier cannot express a
+   rule. Backend ports closed to everything but their clients.
 
 ## Step 11: Workflow tests
 
@@ -293,7 +291,9 @@ passes it.
 ## Parked
 
 - The `matrix` branch, until step 3.
-- stolon, which the machines will use but this repository will not include.
+- **OpenBao fixes**, in a step not picked yet: TLS, keeping root material out of
+  OpenBao, recovering from a failed init, the token timer, the shred, and the
+  certificate check on the age key fetch.
 - Modernizing cryl, which is its own project. Changes that ToH needs from cryl
   (like a fix for `config.flake.cyrl` in its flake module, which is misspelled
   on both `v0.4.1` and `main`) go there as issues.
