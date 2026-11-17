@@ -14,11 +14,4 @@
         '';
       };
     };
-
-  flake.tests = {
-    test-test = {
-      expr = true;
-      expected = true;
-    };
-  };
 }

@@ -22,7 +22,7 @@
         ) domains
       );
 
-  flake.tests.dns =
+  self.unitTests.dns =
     let
       routeToIp = tohLib.dns.routeToIp;
     in

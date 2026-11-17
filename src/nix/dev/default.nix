@@ -115,19 +115,8 @@
           };
         };
 
-        test = pkgs.harasPackages.writeNushellApplication {
-          name = "toh-dev-test";
-          runtimeInputs = [
-            pkgs.nix
-            pkgs.nix-unit
-            pkgs.gnugrep
-          ];
-          text = builtins.readFile ./test.nu;
-        };
-
         external = [
           pkgs.nil
-          pkgs.nix-unit
           pkgs.nix
 
           pkgs.nushell
@@ -302,12 +291,6 @@
         };
 
         cli.commands = {
-          test = {
-            description = "Run the tests (see `dev test --help`).";
-            packages = [ test ];
-            commands = ''toh-dev-test "$@"'';
-          };
-
           docs = {
             description = "Build the documentation.";
             packages = [ pkgs.nix ];

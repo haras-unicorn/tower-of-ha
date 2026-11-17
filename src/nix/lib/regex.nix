@@ -23,7 +23,7 @@
         null;
   };
 
-  flake.tests.regex = {
+  self.unitTests.regex = {
     test-is-regex-unwrapped = {
       expr = tohLib.regex.isRegex "not a regex";
       expected = false;

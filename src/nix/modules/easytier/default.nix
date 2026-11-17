@@ -51,7 +51,6 @@
         ];
 
         services.easytier.enable = true;
-        services.easytier.package = pkgs.tohPackages.unstablePackages.easytier;
 
         services.easytier.instances.${instance} = {
           environmentFiles = [

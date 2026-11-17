@@ -113,7 +113,7 @@
       };
   };
 
-  flake.tests.overlays =
+  self.unitTests.overlays =
     let
       testOverlays = {
         base = {

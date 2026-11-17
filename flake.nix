@@ -4,13 +4,8 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
 
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
-
     haraspkgs.url = "github:haras-unicorn/haraspkgs/v1.5.2";
     haraspkgs.inputs.nixpkgs.follows = "nixpkgs";
-
-    nix-unit.url = "github:nix-community/nix-unit";
-    nix-unit.inputs.nixpkgs.follows = "nixpkgs";
 
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
