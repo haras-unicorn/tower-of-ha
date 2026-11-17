@@ -130,7 +130,6 @@
         toh.overlays.cli-patroni-user = tohLib.cli.makeOverlay {
           extraRuntimeInputs = pkgs: [
             pkgs.postgresql
-            pkgs.vault
           ];
           extraTextFile = ./users.nu;
           extraTextVariables = {

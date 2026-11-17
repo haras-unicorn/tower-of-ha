@@ -20,7 +20,7 @@ def "toh secrets machines" [] {
         }
       | transpose -idr
   } else {
-    vault kv get -format=json $secrets.keys.machines
+    bao kv get -format=json $secrets.keys.machines
       | from json
       | get data.data
   }
@@ -37,7 +37,7 @@ def "toh secrets machine" [name: string] {
         }
       | transpose -idr
   } else {
-    vault kv get -format=json $"($secrets.keys.machines)/($name)"
+    bao kv get -format=json $"($secrets.keys.machines)/($name)"
       | from json
       | get data.data
   }
@@ -49,7 +49,7 @@ def "toh secrets cluster" [] {
       | each { { key: (basename $in.name), value: (open --raw $in.name) } }
       | transpose -dr
   } else {
-    vault kv get -format=json $secrets.keys.cluster
+    bao kv get -format=json $secrets.keys.cluster
       | from json
       | get data.data
   }
@@ -61,7 +61,7 @@ def "toh secrets external" [] {
       | each { { key: (basename $in.name), value: (open --raw $in.name) } }
       | transpose -dr
   } else {
-    vault kv get -format=json $secrets.keys.external
+    bao kv get -format=json $secrets.keys.external
       | from json
       | get data.data
   }

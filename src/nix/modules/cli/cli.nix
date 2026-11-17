@@ -38,7 +38,7 @@
         deps = [ "flake-root" ];
         extraRuntimeInputs = pkgs: [
           pkgs.gum
-          pkgs.vault
+          pkgs.openbao
           pkgs.tohPackages.flake-root
           pkgs.openssh
         ];
