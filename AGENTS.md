@@ -86,9 +86,9 @@ merged contents of `config.toh.lib`. Use it for helper functions (e.g.
 ### Overlays
 
 All overlays are declared in `toh.overlays.*` and wired together by
-`src/nix/overlays/default.nix` and `src/nix/overlays/nixos.nix`. They support explicit
-dependency lists (`deps`) and regex-style matching. Cycles are rejected at eval
-time.
+`src/nix/overlays/default.nix` and `src/nix/overlays/nixos.nix`. They support
+explicit dependency lists (`deps`) and regex-style matching. Cycles are rejected
+at eval time.
 
 ## Adding a new service
 
@@ -135,8 +135,8 @@ dev test     # run nix-unit and NixOS tests
   automated update workflow handle it.
 - **Never** commit secrets, keys, or plain-text passwords.
 - **Never** edit generated files (e.g. files produced by
-  `renderMustacheTemplate`, build outputs in `result*`, ephemeral files). The dev
-  shell generates `.gitignore`, `.gitattributes`, `.editorconfig`, `.envrc`,
+  `renderMustacheTemplate`, build outputs in `result*`, ephemeral files). The
+  dev shell generates `.gitignore`, `.gitattributes`, `.editorconfig`, `.envrc`,
   `LICENSE.md`, `CODE_OF_CONDUCT.md` and `.github/workflows/*`; edit
   `src/nix/dev/default.nix` instead.
 - **Never** create, modify, or delete files outside the repository.

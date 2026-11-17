@@ -49,29 +49,31 @@ is:
 These stop the stack from being used at all.
 
 - **Tests do not evaluate (checked).** The CLI puts `pkgs.vault` on its path
-  (`src/nix/modules/cli/cli.nix:41`). Vault is HashiCorp's BSL-licensed build and
-  unfree, so nixpkgs refuses it. `nix flake check --no-build` stops at the first
-  NixOS test (`test-services-authelia`) with this error. That may also be why
-  the Synapse test never passed. The fix is `pkgs.openbao` and `bao`.
+  (`src/nix/modules/cli/cli.nix:41`). Vault is HashiCorp's BSL-licensed build
+  and unfree, so nixpkgs refuses it. `nix flake check --no-build` stops at the
+  first NixOS test (`test-services-authelia`) with this error. That may also be
+  why the Synapse test never passed. The fix is `pkgs.openbao` and `bao`.
 - **No way to build a real machine (read).** The flake exports no NixOS modules,
-  and `flake.lib` is always empty (`src/nix/lib/default.nix:6` filters on a marker
-  no value sets). The modules work only inside tests.
+  and `flake.lib` is always empty (`src/nix/lib/default.nix:6` filters on a
+  marker no value sets). The modules work only inside tests.
 - **Machines need test code to boot (read).** Two things a machine cannot work
   without are defined only in test modules:
-  - passing `toh.meta.sops.secrets` to sops-nix (`src/nix/test/secrets.nix:193`),
-  - the base definitions of the `toh-*-online` targets (`src/nix/test/targets.nix`).
+  - passing `toh.meta.sops.secrets` to sops-nix
+    (`src/nix/test/secrets.nix:193`),
+  - the base definitions of the `toh-*-online` targets
+    (`src/nix/test/targets.nix`).
 
 ### Security
 
 - **The age key fetch trusts the whole LAN (read).** `fetch-age-key` scans the
   local subnets for port 42069 and takes the first answer over `curl -k`, with
-  no certificate check (`src/nix/modules/openbao/secrets.nu:97`). The serving side
-  does not exist. The fetch itself stays (decided). The certificate check is
-  part of the OpenBao work, see [Parked](#parked).
+  no certificate check (`src/nix/modules/openbao/secrets.nu:97`). The serving
+  side does not exist. The fetch itself stays (decided). The certificate check
+  is part of the OpenBao work, see [Parked](#parked).
 - **OpenBao serves plain HTTP (read).** `tls_disable = true`
-  (`src/nix/modules/openbao/default.nix:66`). The same holds for several backends
-  behind the proxy: Authelia, ddns-updater, Forgejo HTTP, Garage, LLDAP and
-  Vaultwarden take plain HTTP from HAProxy across machines. That breaks
+  (`src/nix/modules/openbao/default.nix:66`). The same holds for several
+  backends behind the proxy: Authelia, ddns-updater, Forgejo HTTP, Garage, LLDAP
+  and Vaultwarden take plain HTTP from HAProxy across machines. That breaks
   invariant 4.
 - **OpenBao keeps its own root material (read).** On init it stores the root
   token and recovery keys in its own key-value store (`init.nu`,
@@ -83,7 +85,8 @@ These stop the stack from being used at all.
   inside every `catch`).
 - **Secrets on command lines (read).** `toh deploy` passes the SSH private key,
   the sudo password and the age key inside `ssh` and `bash -c` arguments
-  (`src/nix/modules/cli/deploy.nu`), where `ps` and logs on both ends can see them.
+  (`src/nix/modules/cli/deploy.nu`), where `ps` and logs on both ends can see
+  them.
 - **Backend ports are open to the whole VPN (read).** The firewall opens service
   ports on every interface, so any VPN member can skip the proxy. Step 10 closes
   this.
@@ -92,14 +95,14 @@ These stop the stack from being used at all.
 
 - **The token timer runs the wrong unit (read).** It starts
   `openbao-fetch-two-hour-token.service`, but the service is
-  `openbao-fetch-token` (`src/nix/modules/openbao/token.nix`). The token is never
-  refreshed and runs out after two hours.
+  `openbao-fetch-token` (`src/nix/modules/openbao/token.nix`). The token is
+  never refreshed and runs out after two hours.
 - **The age key shred forgets a file (read).** It shreds the age key twice and
   never the response file (`src/nix/modules/openbao/secrets.nu`,
   `openbao shred age key`).
 - **`makePath` with a base path fails (read).** `lib.removePrefix basePath` is
-  missing its second argument (`src/nix/lib/url.nix`), so any HTTP endpoint with a
-  `path` throws when turned into a URL. There are no unit tests for `url.nix`.
+  missing its second argument (`src/nix/lib/url.nix`), so any HTTP endpoint with
+  a `path` throws when turned into a URL. There are no unit tests for `url.nix`.
 - **Named overlays are broken (read).** `composeOverlayAttrs` calls
   `transitiveDeps` and `composeOverlay` with one argument too few
   (`src/nix/lib/overlay.nix`). Only the `default` overlay works. The `nixos` and
@@ -120,8 +123,8 @@ These stop the stack from being used at all.
   `writeNushellApplication`, `flake-root`, `renderMustacheTemplate` and the dev
   shell all have haraspkgs versions now.
 - **`dev test` commits for you.** Every `dev test` command runs `git add .` and
-  `git commit -m wip` (`src/nix/dev/test.nu`). That is where the long runs of `wip`
-  commits come from. A `git+file` flake only needs files to be tracked.
+  `git commit -m wip` (`src/nix/dev/test.nu`). That is where the long runs of
+  `wip` commits come from. A `git+file` flake only needs files to be tracked.
 - **Patched nixpkgs at eval time.** Two small patches (an option in
   `security/ca.nix`, one Python dependency for Ceph) make every evaluation
   import a patched copy of nixpkgs, twice with unstable. Both can be a module
@@ -192,9 +195,9 @@ on the way. Step 2 brings them back.
    and an `overrideAttrs`, and drop the patched import. Done when nothing
    imports nixpkgs at eval time beyond the flake input.
 5. **Free software only (S).** `vault` becomes `bao`, the flake's own `pkgs`
-   stops setting `allowUnfree = true` (`src/nix/overlays/nixpkgs/default.nix`), and
-   a check fails when anything in the flake is unfree (invariant 1). Done when
-   that check passes.
+   stops setting `allowUnfree = true` (`src/nix/overlays/nixpkgs/default.nix`),
+   and a check fails when anything in the flake is unfree (invariant 1). Done
+   when that check passes.
 6. **NixOS module suite (L).** Export every module as `self.nixosModules`, with
    `default` importing all of them. Move the sops-nix wiring and the base
    `toh-*-online` targets out of the test modules and into the suite. Add an
