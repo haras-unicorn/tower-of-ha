@@ -3,8 +3,6 @@
 let
   tohLib = config.toh.lib;
 
-  flakeLib = lib.filterAttrsRecursive (_: value: value ? _tohFlakeLib && value._tohFlakeLib) tohLib;
-
   recursiveAttrsOf =
     elemType:
     lib.types.mkOptionType {
@@ -27,8 +25,6 @@ in
   config = {
     _module.args.tohLib = tohLib;
     perSystem._module.args.tohLib = tohLib;
-
-    flake.lib = flakeLib;
 
     toh.lib.types.recursiveAttrsOf = recursiveAttrsOf;
   };

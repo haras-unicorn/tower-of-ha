@@ -24,10 +24,10 @@ Keep them separate and do not duplicate human process details into AGENTS.md.
 ## Repository overview
 
 Tower Of HA is a highly opinionated, free and highly available NixOS service
-stack. It is structured as a Nix flake that uses
-[flake-parts](https://github.com/hercules-ci/flake-parts) together with
-[import-tree](https://github.com/vic/import-tree) to turn every `.nix` file
-under `src/` into a flake-parts module.
+stack. It is structured as a Nix flake built with
+[haraspkgs](https://github.com/haras-unicorn/haraspkgs): `flake.nix` calls
+`haraspkgs.lib.makeFlake` over `src/nix`, so every `.nix` file under `src/nix/`
+is a flake-parts module.
 
 Everything lives under the `toh` namespace:
 
@@ -39,17 +39,17 @@ Everything lives under the `toh` namespace:
 
 ## Directory layout
 
-| Directory       | Purpose                                      |
-| --------------- | -------------------------------------------- |
-| `src/`          | All source code (flake-parts modules).       |
-| `src/lib/`      | Pure library functions and type defs.        |
-| `src/meta/`     | NixOS modules that define `toh.meta.*` opts. |
-| `src/modules/`  | NixOS modules that implement services.       |
-| `src/cli/`      | Base CLI scripts and package defs (Nushell). |
-| `src/dev/`      | Development shell, test runners, tooling.    |
-| `src/overlays/` | Nix overlays and overlay utilities.          |
-| `src/test/`     | Shared NixOS test helpers and test modules.  |
-| `docs/`         | mdbook documentation source.                 |
+| Directory           | Purpose                                      |
+| ------------------- | -------------------------------------------- |
+| `src/nix/`          | All Nix code (flake-parts modules).          |
+| `src/nix/lib/`      | Pure library functions and type defs.        |
+| `src/nix/meta/`     | NixOS modules that define `toh.meta.*` opts. |
+| `src/nix/modules/`  | NixOS modules that implement services.       |
+| `src/nix/cli/`      | Base CLI scripts and package defs (Nushell). |
+| `src/nix/dev/`      | Dev shell (a haraspkgs dev module), tooling. |
+| `src/nix/overlays/` | Nix overlays and overlay utilities.          |
+| `src/nix/test/`     | Shared NixOS test helpers and test modules.  |
+| `docs/`             | mdbook documentation source.                 |
 
 ## Core conventions
 
@@ -86,13 +86,13 @@ merged contents of `config.toh.lib`. Use it for helper functions (e.g.
 ### Overlays
 
 All overlays are declared in `toh.overlays.*` and wired together by
-`src/overlays/default.nix` and `src/meta/nixpkgs.nix`. They support explicit
+`src/nix/overlays/default.nix` and `src/nix/overlays/nixos.nix`. They support explicit
 dependency lists (`deps`) and regex-style matching. Cycles are rejected at eval
 time.
 
 ## Adding a new service
 
-1. Create `src/modules/<service>/default.nix`.
+1. Create `src/nix/modules/<service>/default.nix`.
 2. Define `toh.lib.nixosModules.services-<service>`.
 3. Add `toh.services.<service>.enable = lib.mkEnableOption "..."`.
 4. Implement the service config inside `lib.mkIf cfg.enable { ... }`.
@@ -100,18 +100,18 @@ time.
    health checks.
 6. If the service needs secrets, add `toh.meta.cryl.machine` and/or
    `toh.meta.cryl.cluster` generators.
-7. Create `src/modules/<service>/test.nix` with NixOS tests using
+7. Create `src/nix/modules/<service>/test.nix` with NixOS tests using
    `pkgs.tohPackages.testers.runToHTest`.
 8. If the service exposes CLI commands, add Nushell scripts under
-   `src/modules/<service>/cli.nu` or similar and wire them via
+   `src/nix/modules/<service>/cli.nu` or similar and wire them via
    `tohLib.cli.makeOverlay`.
 
 ## Testing
 
-- Unit tests: `nix-unit --flake .#tests`
+- Unit tests: `dev test unit <filter>` (runs `nix-unit --flake .#tests`).
 - NixOS integration tests: `nix flake check` or `dev test nixos <test-name>`
 - Only use the built-in CLI wrappers for these tasks:
-  - `dev lint` — run all linters and formatters.
+  - `dev check` — run all checks (spelling, markdown, `nil`, generated files).
   - `dev test` — run all tests.
   - `dev format` — auto-format the repository.
 
@@ -125,7 +125,7 @@ quality assurance are:
 
 ```bash
 dev format   # auto-format everything
-dev lint     # check formatting, spelling, markdown style
+dev check    # check spelling, markdown style, nil and generated files
 dev test     # run nix-unit and NixOS tests
 ```
 
@@ -135,7 +135,10 @@ dev test     # run nix-unit and NixOS tests
   automated update workflow handle it.
 - **Never** commit secrets, keys, or plain-text passwords.
 - **Never** edit generated files (e.g. files produced by
-  `renderMustacheTemplate`, build outputs in `result*`, ephemeral files).
+  `renderMustacheTemplate`, build outputs in `result*`, ephemeral files). The dev
+  shell generates `.gitignore`, `.gitattributes`, `.editorconfig`, `.envrc`,
+  `LICENSE.md`, `CODE_OF_CONDUCT.md` and `.github/workflows/*`; edit
+  `src/nix/dev/default.nix` instead.
 - **Never** create, modify, or delete files outside the repository.
 - **Never** use `/tmp`, `$TMPDIR`, or any external scratch space to store
   repo-related state unless a specific test or build step requires it.

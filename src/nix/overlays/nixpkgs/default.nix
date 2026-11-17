@@ -1,4 +1,4 @@
-{ inputs, lib, ... }:
+{ lib, ... }:
 
 let
   applyNixpkgsPatches =
@@ -30,33 +30,4 @@ in
       applyTohNixpkgsPatches = attrs: applyNixpkgsPatches final attrs;
     };
   };
-
-  perSystem =
-    {
-      system,
-      lib,
-      tohLib,
-      ...
-    }:
-    let
-      originalPkgs = import inputs.nixpkgs {
-        inherit system;
-      };
-
-      nixpkgs = applyNixpkgsPatches originalPkgs {
-        name = "nixpkgs";
-        src = originalPkgs.path;
-      };
-    in
-    {
-      _module.args.pkgs = (
-        import nixpkgs {
-          inherit system;
-          overlays = [ tohLib.overlays.default ];
-          config = {
-            allowUnfree = true;
-          };
-        }
-      );
-    };
 }

@@ -49,27 +49,27 @@ is:
 These stop the stack from being used at all.
 
 - **Tests do not evaluate (checked).** The CLI puts `pkgs.vault` on its path
-  (`src/modules/cli/cli.nix:41`). Vault is HashiCorp's BSL-licensed build and
+  (`src/nix/modules/cli/cli.nix:41`). Vault is HashiCorp's BSL-licensed build and
   unfree, so nixpkgs refuses it. `nix flake check --no-build` stops at the first
   NixOS test (`test-services-authelia`) with this error. That may also be why
   the Synapse test never passed. The fix is `pkgs.openbao` and `bao`.
 - **No way to build a real machine (read).** The flake exports no NixOS modules,
-  and `flake.lib` is always empty (`src/lib/default.nix:6` filters on a marker
+  and `flake.lib` is always empty (`src/nix/lib/default.nix:6` filters on a marker
   no value sets). The modules work only inside tests.
 - **Machines need test code to boot (read).** Two things a machine cannot work
   without are defined only in test modules:
-  - passing `toh.meta.sops.secrets` to sops-nix (`src/test/secrets.nix:193`),
-  - the base definitions of the `toh-*-online` targets (`src/test/targets.nix`).
+  - passing `toh.meta.sops.secrets` to sops-nix (`src/nix/test/secrets.nix:193`),
+  - the base definitions of the `toh-*-online` targets (`src/nix/test/targets.nix`).
 
 ### Security
 
 - **The age key fetch trusts the whole LAN (read).** `fetch-age-key` scans the
   local subnets for port 42069 and takes the first answer over `curl -k`, with
-  no certificate check (`src/modules/openbao/secrets.nu:97`). The serving side
+  no certificate check (`src/nix/modules/openbao/secrets.nu:97`). The serving side
   does not exist. The fetch itself stays (decided). The certificate check is
   part of the OpenBao work, see [Parked](#parked).
 - **OpenBao serves plain HTTP (read).** `tls_disable = true`
-  (`src/modules/openbao/default.nix:66`). The same holds for several backends
+  (`src/nix/modules/openbao/default.nix:66`). The same holds for several backends
   behind the proxy: Authelia, ddns-updater, Forgejo HTTP, Garage, LLDAP and
   Vaultwarden take plain HTTP from HAProxy across machines. That breaks
   invariant 4.
@@ -83,7 +83,7 @@ These stop the stack from being used at all.
   inside every `catch`).
 - **Secrets on command lines (read).** `toh deploy` passes the SSH private key,
   the sudo password and the age key inside `ssh` and `bash -c` arguments
-  (`src/modules/cli/deploy.nu`), where `ps` and logs on both ends can see them.
+  (`src/nix/modules/cli/deploy.nu`), where `ps` and logs on both ends can see them.
 - **Backend ports are open to the whole VPN (read).** The firewall opens service
   ports on every interface, so any VPN member can skip the proxy. Step 10 closes
   this.
@@ -92,17 +92,17 @@ These stop the stack from being used at all.
 
 - **The token timer runs the wrong unit (read).** It starts
   `openbao-fetch-two-hour-token.service`, but the service is
-  `openbao-fetch-token` (`src/modules/openbao/token.nix`). The token is never
+  `openbao-fetch-token` (`src/nix/modules/openbao/token.nix`). The token is never
   refreshed and runs out after two hours.
 - **The age key shred forgets a file (read).** It shreds the age key twice and
-  never the response file (`src/modules/openbao/secrets.nu`,
+  never the response file (`src/nix/modules/openbao/secrets.nu`,
   `openbao shred age key`).
 - **`makePath` with a base path fails (read).** `lib.removePrefix basePath` is
-  missing its second argument (`src/lib/url.nix`), so any HTTP endpoint with a
+  missing its second argument (`src/nix/lib/url.nix`), so any HTTP endpoint with a
   `path` throws when turned into a URL. There are no unit tests for `url.nix`.
 - **Named overlays are broken (read).** `composeOverlayAttrs` calls
   `transitiveDeps` and `composeOverlay` with one argument too few
-  (`src/lib/overlay.nix`). Only the `default` overlay works. The `nixos` and
+  (`src/nix/lib/overlay.nix`). Only the `default` overlay works. The `nixos` and
   `flake` option descriptions are also swapped. All of this goes away with
   haraspkgs.
 - **CLI (read).** `toh machine pick` forgets a `return`, so it always loads
@@ -112,7 +112,7 @@ These stop the stack from being used at all.
   `mount`) do not exist.
 - **DNS zones by the last two labels (read).** `tohLib.dns.routeToIp` puts
   `test.co.uk` into zone `co.uk`, and the unit tests expect it
-  (`src/lib/dns.nix`).
+  (`src/nix/lib/dns.nix`).
 
 ### Patterns to replace
 
@@ -120,7 +120,7 @@ These stop the stack from being used at all.
   `writeNushellApplication`, `flake-root`, `renderMustacheTemplate` and the dev
   shell all have haraspkgs versions now.
 - **`dev test` commits for you.** Every `dev test` command runs `git add .` and
-  `git commit -m wip` (`src/dev/test.nu`). That is where the long runs of `wip`
+  `git commit -m wip` (`src/nix/dev/test.nu`). That is where the long runs of `wip`
   commits come from. A `git+file` flake only needs files to be tracked.
 - **Patched nixpkgs at eval time.** Two small patches (an option in
   `security/ca.nix`, one Python dependency for Ceph) make every evaluation
@@ -155,7 +155,7 @@ A first sort of the 26 test files. Not tried yet, so all of it is **read**.
 - **Probably stay VMs:**
   - cephfs: OSDs on loop devices, FUSE mounts.
   - samba: CTDB moves IP addresses.
-- **Test helpers:** `src/test/machine.nix` sets QEMU options (memory, cores,
+- **Test helpers:** `src/nix/test/machine.nix` sets QEMU options (memory, cores,
   `kvm-clock`) and reads `virtualisation.test.*`. They split into container
   defaults and VM defaults.
 
@@ -192,7 +192,7 @@ on the way. Step 2 brings them back.
    and an `overrideAttrs`, and drop the patched import. Done when nothing
    imports nixpkgs at eval time beyond the flake input.
 5. **Free software only (S).** `vault` becomes `bao`, the flake's own `pkgs`
-   stops setting `allowUnfree = true` (`src/overlays/nixpkgs/default.nix`), and
+   stops setting `allowUnfree = true` (`src/nix/overlays/nixpkgs/default.nix`), and
    a check fails when anything in the flake is unfree (invariant 1). Done when
    that check passes.
 6. **NixOS module suite (L).** Export every module as `self.nixosModules`, with

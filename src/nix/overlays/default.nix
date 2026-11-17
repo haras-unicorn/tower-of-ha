@@ -8,15 +8,9 @@
 let
   allOverlays = config.toh.overlays;
 
-  flakeOverlays = lib.filterAttrs (_: { flake, ... }: flake) allOverlays;
-
   composedAllOverlays = tohLib.overlay.composeOverlayAttrs allOverlays allOverlays;
 
   composedDefaultAllOverlay = tohLib.overlay.composeOverlay allOverlays allOverlays;
-
-  composedFlakeOverlays = tohLib.overlay.composeOverlayAttrs allOverlays flakeOverlays;
-
-  composedDefaultFlakeOverlay = tohLib.overlay.composeOverlay allOverlays flakeOverlays;
 in
 {
   options.toh = {
@@ -40,16 +34,6 @@ in
         }
       );
 
-    flake.overlays =
-      let
-        noUndefinedDepsAssertion = tohLib.overlay.makeUndefinedDepsAssertion allOverlays;
-      in
-      assert lib.assertMsg noUndefinedDepsAssertion.assertion noUndefinedDepsAssertion.message;
-      (
-        composedFlakeOverlays
-        // {
-          default = composedDefaultFlakeOverlay;
-        }
-      );
+    self.nixpkgs.overlays = [ composedDefaultAllOverlay ];
   };
 }

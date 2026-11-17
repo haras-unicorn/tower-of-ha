@@ -179,7 +179,7 @@ unit, and services that need it wait for the target. This keeps services from
 knowing about each other.
 
 The base definitions of these targets (what each one waits for) live only in the
-test module `src/test/targets.nix`. A real machine would not have them.
+test module `src/nix/test/targets.nix`. A real machine would not have them.
 
 ### Secrets today
 
@@ -188,7 +188,7 @@ test module `src/test/targets.nix`. A real machine would not have them.
   leaf). A machine copies the cluster secrets it needs by name, so its sops file
   only holds what it uses.
 - Each module declares the sops secrets it reads in `toh.meta.sops.secrets`.
-- In tests, `src/test/secrets.nix` builds the cryl specifications, runs cryl and
+- In tests, `src/nix/test/secrets.nix` builds the cryl specifications, runs cryl and
   points sops-nix at the result. That is the only place where
   `toh.meta.sops.secrets` is passed to sops-nix.
 - OpenBao, when enabled, does more than distribute. On the first machine it:
@@ -201,7 +201,7 @@ test module `src/test/targets.nix`. A real machine would not have them.
 ### Tests today
 
 `pkgs.tohPackages.testers.runToHTest` wraps `runNixOSTest` with QEMU VMs of 8
-GiB and 4 cores each, and test modules under `src/test/` for clusters, scripted
+GiB and 4 cores each, and test modules under `src/nix/test/` for clusters, scripted
 commands, a fake network, DNS, NTP, S3, HTTP and so on. The VPN tests
 (`toh.test.mesh`, `toh.test.relay`) are already independent of the
 implementation: they take a service name and a unit, and both EasyTier and
