@@ -1,10 +1,12 @@
 # TODO: app emails via actual email meta
 
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-lldap =
+  self.nixosModules.services-lldap.flake = true;
+  self.nixosModules.services-lldap.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -12,11 +14,11 @@
     let
       cfg = config.toh.services.lldap;
 
-      anyMachines = tohLib.anyServiceMachines "lldap";
+      anyMachines = selfLib.cluster.anyServiceMachines config "lldap";
 
-      proxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.ldap.endpoint;
+      proxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.ldap.endpoint;
 
-      proxyUrl = tohLib.services.endpoint.toUrl config.toh.meta.proxies.ldap.endpoint { };
+      proxyUrl = selfLib.services.endpoint.toUrl config.toh.meta.proxies.ldap.endpoint { };
 
       format = pkgs.formats.toml { };
 

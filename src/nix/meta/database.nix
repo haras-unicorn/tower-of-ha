@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.meta-database =
+  self.nixosModules.meta-database.flake = true;
+  self.nixosModules.meta-database.value =
     {
       lib,
-      tohLib,
       config,
       ...
     }:
@@ -10,7 +12,7 @@
       options.toh.meta = {
         database = {
           protocol = lib.mkOption {
-            type = lib.types.enum tohLib.database.protocols;
+            type = lib.types.enum selfLib.database.protocols;
             description = "Database protocol";
           };
 

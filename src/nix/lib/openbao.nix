@@ -1,5 +1,5 @@
 {
-  toh.lib = {
+  self.lib = {
     openbao = {
       user = "openbao";
       group = "openbao";

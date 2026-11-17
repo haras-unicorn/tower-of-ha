@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.meta-machine =
+  self.nixosModules.meta-machine.flake = true;
+  self.nixosModules.meta-machine.value =
     { lib, ... }:
     {
       options.toh.meta = {

@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-garage-init =
+  self.nixosModules.services-garage-init.flake = true;
+  self.nixosModules.services-garage-init.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -60,7 +62,7 @@
       };
 
       config = lib.mkIf cfg.init.enable {
-        toh.overlays = tohLib.cli.makeOverlays {
+        toh.overlays = selfLib.cli.makeOverlays {
           name = "garage-init";
           runtimeInputs = (pkgs: [ pkgs.garage ]);
           textFile = ./init.nu;

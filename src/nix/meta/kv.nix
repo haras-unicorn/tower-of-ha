@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.meta-kv =
+  self.nixosModules.meta-kv.flake = true;
+  self.nixosModules.meta-kv.value =
     {
       lib,
-      tohLib,
       config,
       ...
     }:
@@ -10,7 +12,7 @@
       options.toh.meta = {
         kv = {
           protocol = lib.mkOption {
-            type = lib.types.enum tohLib.kv.protocols;
+            type = lib.types.enum selfLib.kv.protocols;
             description = "KV store protocol";
           };
 
@@ -68,8 +70,8 @@
                     };
 
                     permissions = lib.mkOption {
-                      type = lib.types.listOf (lib.types.enum (builtins.attrValues tohLib.kv.permissions));
-                      default = [ tohLib.kv.permissions.all ];
+                      type = lib.types.listOf (lib.types.enum (builtins.attrValues selfLib.kv.permissions));
+                      default = [ selfLib.kv.permissions.all ];
                       description = "Permissions for ACL user";
                     };
                   };
@@ -82,55 +84,52 @@
             default = { };
             description = "Instance registration for ToH KV store";
             type = lib.types.attrsOf (
-              lib.types.submodule (
-                { ... }:
-                {
-                  options = {
-                    password = lib.mkOption {
-                      type = lib.types.str;
-                      description = "KV store user password file path";
-                    };
-
-                    url = lib.mkOption {
-                      type = lib.types.str;
-                      description = "KV store URL file path";
-                    };
-
-                    prefix = lib.mkOption {
-                      type = lib.types.nullOr lib.types.str;
-                      default = null;
-                      description = "KV store key prefix to use";
-                    };
-
-                    database = lib.mkOption {
-                      type = lib.types.nullOr lib.types.ints.unsigned;
-                      default = null;
-                      description = "KV store database index to use";
-                    };
-
-                    ssl.ca = lib.mkOption {
-                      type = lib.types.path;
-                      description = "KV store CA path";
-                    };
-
-                    ssl.crt = lib.mkOption {
-                      type = lib.types.path;
-                      description = "KV store certificate path";
-                    };
-
-                    ssl.key = lib.mkOption {
-                      type = lib.types.path;
-                      description = "KV store certificate key path";
-                    };
-
-                    parameters = lib.mkOption {
-                      type = lib.types.attrsOf lib.types.str;
-                      default = { };
-                      description = "KV store URL parameters";
-                    };
+              lib.types.submodule ({
+                options = {
+                  password = lib.mkOption {
+                    type = lib.types.str;
+                    description = "KV store user password file path";
                   };
-                }
-              )
+
+                  url = lib.mkOption {
+                    type = lib.types.str;
+                    description = "KV store URL file path";
+                  };
+
+                  prefix = lib.mkOption {
+                    type = lib.types.nullOr lib.types.str;
+                    default = null;
+                    description = "KV store key prefix to use";
+                  };
+
+                  database = lib.mkOption {
+                    type = lib.types.nullOr lib.types.ints.unsigned;
+                    default = null;
+                    description = "KV store database index to use";
+                  };
+
+                  ssl.ca = lib.mkOption {
+                    type = lib.types.path;
+                    description = "KV store CA path";
+                  };
+
+                  ssl.crt = lib.mkOption {
+                    type = lib.types.path;
+                    description = "KV store certificate path";
+                  };
+
+                  ssl.key = lib.mkOption {
+                    type = lib.types.path;
+                    description = "KV store certificate key path";
+                  };
+
+                  parameters = lib.mkOption {
+                    type = lib.types.attrsOf lib.types.str;
+                    default = { };
+                    description = "KV store URL parameters";
+                  };
+                };
+              })
             );
           };
         };

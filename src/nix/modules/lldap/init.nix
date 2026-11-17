@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.services-lldap-init =
+  self.nixosModules.services-lldap-init.flake = true;
+  self.nixosModules.services-lldap-init.value =
     {
       lib,
       config,

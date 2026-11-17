@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.services-networkmanager =
+  self.nixosModules.services-networkmanager.flake = true;
+  self.nixosModules.services-networkmanager.value =
     {
       pkgs,
       lib,

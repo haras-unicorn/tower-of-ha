@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.meta-sops =
+  self.nixosModules.meta-sops.flake = true;
+  self.nixosModules.meta-sops.value =
     {
       lib,
       config,

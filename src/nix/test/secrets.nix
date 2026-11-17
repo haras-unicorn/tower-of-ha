@@ -1,14 +1,13 @@
-{ inputs, ... }:
+{ selfLib, inputs, ... }:
 
 {
-  toh.lib.test.testModules.secrets =
+  self.lib.test.testModules.secrets =
     {
       lib,
       nodes,
       pkgs,
       config,
       nodea,
-      tohLib,
       ...
     }:
     let
@@ -39,14 +38,14 @@
         cryl.enable = true;
 
         cryl.specifications.test-cluster = builtins.zipAttrsWith (_: builtins.concatLists) (
-          tohLib.lists.concatUniqueAttrValues config.toh.test.cryl.cluster
+          selfLib.lists.concatUniqueAttrValues config.toh.test.cryl.cluster
           ++ [
             {
               exports = [
                 {
                   exporter = "copy";
                   arguments = {
-                    to = tohLib.secrets.directories.external;
+                    to = selfLib.secrets.directories.external;
                     listing.type = "flat";
                   };
                 }
@@ -68,7 +67,7 @@
                 {
                   importer = "copy";
                   arguments = {
-                    from = tohLib.secrets.directories.external;
+                    from = selfLib.secrets.directories.external;
                     listing.type = "flat";
                   };
                 }
@@ -81,14 +80,16 @@
               ];
             }
           ]
-          ++ tohLib.lists.concatUniqueAttrValues (builtins.concatMap (node: node.toh.meta.cryl.cluster) nodea)
+          ++ selfLib.lists.concatUniqueAttrValues (
+            builtins.concatMap (node: node.toh.meta.cryl.cluster) nodea
+          )
           ++ [
             {
               exports = [
                 {
                   exporter = "copy";
                   arguments = {
-                    to = tohLib.secrets.directories.cluster;
+                    to = selfLib.secrets.directories.cluster;
                     listing.type = "flat";
                   };
                 }
@@ -127,7 +128,7 @@
                     {
                       importer = "copy";
                       arguments = {
-                        from = tohLib.secrets.directories.external;
+                        from = selfLib.secrets.directories.external;
                         listing.type = "flat";
                       };
                     }
@@ -140,7 +141,7 @@
                     {
                       importer = "copy";
                       arguments = {
-                        from = tohLib.secrets.directories.cluster;
+                        from = selfLib.secrets.directories.cluster;
                         listing.type = "flat";
                       };
                     }
@@ -153,14 +154,14 @@
                   ];
                 }
               ]
-              ++ tohLib.lists.concatUniqueAttrValues config.toh.meta.cryl.machine
+              ++ selfLib.lists.concatUniqueAttrValues config.toh.meta.cryl.machine
               ++ [
                 {
                   exports = [
                     {
                       exporter = "copy";
                       arguments = {
-                        to = "${tohLib.secrets.directories.machines}/${config.toh.meta.machine.name}";
+                        to = "${selfLib.secrets.directories.machines}/${config.toh.meta.machine.name}";
                         listing.type = "flat";
                       };
                     }
@@ -173,7 +174,7 @@
                     {
                       exporter = "copy";
                       arguments = {
-                        to = tohLib.secrets.directories.cluster;
+                        to = selfLib.secrets.directories.cluster;
                         listing.type = "flat";
                       };
                     }
@@ -251,10 +252,10 @@
             toh.meta.secrets.files = {
               age = config.sops.age.keyFile;
               sops = config.sops.defaultSopsFile;
-              token = "${builtins.dirOf config.sops.age.keyFile}/${tohLib.secrets.files.token}";
-              response = "${builtins.dirOf config.sops.age.keyFile}/${tohLib.secrets.files.response}";
-              metadata = "${builtins.dirOf config.sops.age.keyFile}/${tohLib.secrets.files.metadata}";
-              root = "${builtins.dirOf config.sops.age.keyFile}/${tohLib.secrets.files.root}";
+              token = "${builtins.dirOf config.sops.age.keyFile}/${selfLib.secrets.files.token}";
+              response = "${builtins.dirOf config.sops.age.keyFile}/${selfLib.secrets.files.response}";
+              metadata = "${builtins.dirOf config.sops.age.keyFile}/${selfLib.secrets.files.metadata}";
+              root = "${builtins.dirOf config.sops.age.keyFile}/${selfLib.secrets.files.root}";
             };
           };
       };

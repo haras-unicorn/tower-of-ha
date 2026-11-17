@@ -1,57 +1,61 @@
-{ config, ... }:
+{ config, inputs, ... }:
 
 let
-  tohFlakeConfig = config;
+  flakeOverlays = config.self.overlays.overlays;
+
+  namespace = config.self.overlays.namespace;
+
+  overlaysLib = inputs.haraspkgs.lib.overlays;
 in
 {
-  toh.lib.nixosModules.meta-overlays =
+  # NOTE: modules add CLI parts that depend on the machine config, so the
+  # overlay graph has to exist at the NixOS level too; haraspkgs only has
+  # one at the flake level, so this reuses its graph helpers
+  self.nixosModules.meta-overlays.flake = true;
+  self.nixosModules.meta-overlays.value =
+    { lib, config, ... }:
     {
-      lib,
-      config,
-      tohLib,
-      ...
-    }:
-    let
-      allOverlays = config.toh.overlays;
+      options.toh.overlays = lib.mkOption {
+        default = { };
+        description = ''
+          Overlays composed into `pkgs.tohPackages`, on top of the ones of the
+          flake.
+        '';
+        type = lib.types.attrsOf (
+          lib.types.submodule (
+            { name, ... }:
+            {
+              options = {
+                name = lib.mkOption {
+                  type = lib.types.str;
+                  default = name;
+                  description = "Overlay name.";
+                };
 
-      nixosOverlays = lib.filterAttrs (_: { nixos, ... }: nixos) allOverlays;
+                deps = lib.mkOption {
+                  type = lib.types.listOf lib.types.str;
+                  default = [ ];
+                  description = "Overlay dependencies, as exact names or slash-delimited regexes.";
+                };
 
-      composedAllOverlays = tohLib.overlay.composeOverlayAttrs allOverlays allOverlays;
-
-      composedDefaultAllOverlay = tohLib.overlay.composeOverlay allOverlays allOverlays;
-
-      composedNixpkgsOverlay = tohLib.overlay.composeOverlay allOverlays nixosOverlays;
-    in
-    {
-      options.toh = {
-        overlays = lib.mkOption {
-          default = { };
-          description = "Attrset of ToH overlays with dependencies";
-          type = lib.types.attrsOf tohLib.types.overlay;
-        };
+                value = lib.mkOption {
+                  type = lib.types.functionTo (lib.types.functionTo lib.types.attrs);
+                  description = "Overlay function, `final: prev: attrs`.";
+                };
+              };
+            }
+          )
+        );
       };
 
       config = {
-        toh.overlays = tohFlakeConfig.toh.overlays;
+        toh.overlays = builtins.mapAttrs (_: overlay: { inherit (overlay) deps value; }) flakeOverlays;
 
-        toh.lib.overlays =
-          let
-            noUndefinedDepsAssertion = tohLib.overlay.makeUndefinedDepsAssertion allOverlays;
-          in
-          assert lib.assertMsg noUndefinedDepsAssertion.assertion noUndefinedDepsAssertion.message;
-          (
-            composedAllOverlays
-            // {
-              default = composedDefaultAllOverlay;
-            }
-          );
-
-        nixpkgs.overlays =
-          let
-            noUndefinedDepsAssertion = tohLib.overlay.makeUndefinedDepsAssertion allOverlays;
-          in
-          assert lib.assertMsg noUndefinedDepsAssertion.assertion noUndefinedDepsAssertion.message;
-          [ composedNixpkgsOverlay ];
+        nixpkgs.overlays = [
+          (overlaysLib.namespaceOverlay namespace (
+            overlaysLib.composeOverlay config.toh.overlays config.toh.overlays
+          ))
+        ];
       };
     };
 }

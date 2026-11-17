@@ -1,5 +1,5 @@
 {
-  toh.lib.test.testModules.ddns =
+  self.lib.test.testModules.ddns =
     { lib, config, ... }:
     let
       cfg = config.toh.test.ddns;

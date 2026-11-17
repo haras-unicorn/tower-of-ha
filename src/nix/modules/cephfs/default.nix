@@ -2,19 +2,23 @@
 # TODO: fs instances
 # TODO: mount acl
 
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-ceph =
+  self.nixosModules.services-ceph.flake = true;
+  self.nixosModules.services-ceph.value =
     {
       lib,
       pkgs,
       config,
-      tohLib,
       ...
     }:
     let
       cfg = config.toh.services.cephfs;
 
-      machines = tohLib.serviceMachines "cephfs";
+      cephPackage = pkgs.tohPackages.ceph;
+
+      machines = selfLib.cluster.serviceMachines config "cephfs";
       ips = builtins.concatStringsSep "," (builtins.map (machine: machine.meta.network.ip) machines);
       machineNames = builtins.concatStringsSep "," (builtins.map (machine: machine.name) machines);
 
@@ -131,7 +135,7 @@
         virtualisation.diskSize = 1024 * (cfg.capacityInMB + 16);
 
         environment.systemPackages = [
-          pkgs.ceph
+          cephPackage
           pkgs.ceph-client
         ];
 
@@ -140,7 +144,14 @@
             {
               enable = true;
 
+              mgr.package = cephPackage;
+              mon.package = cephPackage;
+              osd.package = cephPackage;
+              mds.package = cephPackage;
+              rgw.package = cephPackage;
+
               global = {
+                mgrModulePath = "${cephPackage.lib}/lib/ceph/mgr";
                 fsid = cfg.fsid;
                 monInitialMembers = machineNames;
                 monHost = ips;
@@ -214,7 +225,7 @@
                   wantedBy = afterServices;
                   after = afterServices;
                   requires = afterServices;
-                  path = [ pkgs.ceph ];
+                  path = [ cephPackage ];
                   script = ''
                     while ! ceph fs volume ls >/dev/null 2>&1; do
                       echo "Waiting for volume commands to be ready..."
@@ -269,7 +280,7 @@
                 after = afterAllServices;
                 requires = afterAllServices;
                 path = [
-                  pkgs.ceph
+                  cephPackage
                 ];
                 script =
                   let
@@ -302,7 +313,7 @@
                 after = afterAllServices ++ [ service ];
                 requires = afterAllServices ++ [ service ];
                 path = [
-                  pkgs.ceph
+                  cephPackage
                 ];
                 script =
                   builtins.concatStringsSep "\n" (

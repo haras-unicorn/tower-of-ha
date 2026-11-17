@@ -1,5 +1,5 @@
 {
-  toh.lib.database.protocols = [
+  self.lib.database.protocols = [
     "postgresql"
     "mysql"
     "sqlite"

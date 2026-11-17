@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-lldap-admin =
+  self.nixosModules.services-lldap-admin.flake = true;
+  self.nixosModules.services-lldap-admin.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -17,7 +19,7 @@
     {
       imports = [
         {
-          toh.overlays.cli-lldap-admin = tohLib.cli.makeOverlay {
+          toh.overlays.cli-lldap-admin = selfLib.cli.makeOverlay {
             extraRuntimeInputs = final: [
               final.openldap
               final.lldap

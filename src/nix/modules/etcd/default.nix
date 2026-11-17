@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-etcd =
+  self.nixosModules.services-etcd.flake = true;
+  self.nixosModules.services-etcd.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -10,14 +12,14 @@
     let
       cfg = config.toh.services.etcd;
 
-      machines = tohLib.serviceMachines "etcd";
+      machines = selfLib.cluster.serviceMachines config "etcd";
 
       peerPort = 2380;
       peerPortString = builtins.toString peerPort;
       clientPort = cfg.clientPort;
       clientPortString = builtins.toString clientPort;
 
-      proxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.etcd.endpoint;
+      proxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.etcd.endpoint;
 
       initialCluster = builtins.map (
         machine:

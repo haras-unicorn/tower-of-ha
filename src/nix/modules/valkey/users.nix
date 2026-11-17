@@ -1,10 +1,12 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-valkey-users =
+  self.nixosModules.services-valkey-users.flake = true;
+  self.nixosModules.services-valkey-users.value =
     {
       lib,
       config,
       pkgs,
-      tohLib,
       ...
     }:
     let
@@ -12,7 +14,7 @@
 
       cfg = config.toh.services.valkey;
 
-      proxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.valkey.endpoint;
+      proxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.valkey.endpoint;
 
       valkeyUser = "valkey";
       valkeyGroup = "valkey";
@@ -44,9 +46,9 @@
                 let
                   certs =
                     if !builtins.elem name (builtins.attrNames osUsers) || osUsers.${name}.home == "/var/empty" then
-                      "${tohLib.valkey.certs.root}/${name}"
+                      "${selfLib.valkey.certs.root}/${name}"
                     else
-                      builtins.replaceStrings [ "~" ] [ osUsers.${name}.home ] tohLib.valkey.certs.user;
+                      builtins.replaceStrings [ "~" ] [ osUsers.${name}.home ] selfLib.valkey.certs.user;
                 in
                 {
                   options = {
@@ -91,38 +93,38 @@
                       description = "Database for ACL user";
                     };
                     permissions = lib.mkOption {
-                      type = lib.types.listOf (lib.types.enum (builtins.attrValues tohLib.kv.permissions));
+                      type = lib.types.listOf (lib.types.enum (builtins.attrValues selfLib.kv.permissions));
                       default = null;
                       description = "Permissions for ACL user";
                     };
                     password = lib.mkOption {
                       type = lib.types.nullOr lib.types.path;
-                      default = "${certs}/${tohLib.valkey.password}";
-                      defaultText = lib.literalExpression ''"${certs}/${tohLib.valkey.password}"'';
+                      default = "${certs}/${selfLib.valkey.password}";
+                      defaultText = lib.literalExpression ''"${certs}/${selfLib.valkey.password}"'';
                       description = "Path to user valkey password file";
                     };
                     url = lib.mkOption {
                       type = lib.types.path;
-                      default = "${certs}/${tohLib.valkey.url}";
-                      defaultText = lib.literalExpression ''"${certs}/${tohLib.valkey.url}"'';
+                      default = "${certs}/${selfLib.valkey.url}";
+                      defaultText = lib.literalExpression ''"${certs}/${selfLib.valkey.url}"'';
                       description = "Path to user valkey URL file";
                     };
                     ca = lib.mkOption {
                       type = lib.types.path;
-                      default = "${certs}/${tohLib.valkey.certs.ca}";
-                      defaultText = lib.literalExpression ''"${certs}/${tohLib.valkey.certs.ca}"'';
+                      default = "${certs}/${selfLib.valkey.certs.ca}";
+                      defaultText = lib.literalExpression ''"${certs}/${selfLib.valkey.certs.ca}"'';
                       description = "Path to user valkey root certificate";
                     };
                     crt = lib.mkOption {
                       type = lib.types.path;
-                      default = "${certs}/${tohLib.valkey.certs.crt}";
-                      defaultText = lib.literalExpression ''"${certs}/${tohLib.valkey.certs.crt}"'';
+                      default = "${certs}/${selfLib.valkey.certs.crt}";
+                      defaultText = lib.literalExpression ''"${certs}/${selfLib.valkey.certs.crt}"'';
                       description = "Path to user valkey certificate";
                     };
                     key = lib.mkOption {
                       type = lib.types.path;
-                      default = "${certs}/${tohLib.valkey.certs.key}";
-                      defaultText = lib.literalExpression ''"${certs}/${tohLib.valkey.certs.key}"'';
+                      default = "${certs}/${selfLib.valkey.certs.key}";
+                      defaultText = lib.literalExpression ''"${certs}/${selfLib.valkey.certs.key}"'';
                       description = "Path to user valkey key";
                     };
                   };
@@ -138,7 +140,7 @@
       };
 
       config = {
-        toh.overlays.cli-valkey-users = tohLib.cli.makeOverlay {
+        toh.overlays.cli-valkey-users = selfLib.cli.makeOverlay {
           extraRuntimeInputs = (final: [ final.valkey ]);
           extraTextFile = ./users.nu;
           extraTextVariables = {
@@ -339,7 +341,7 @@
                             VALKEY_USER_PASS = "cluster/valkey-${user}-pass";
                           };
                         };
-                        template = tohLib.url.makeUrl {
+                        template = selfLib.url.makeUrl {
                           protocol = "rediss";
                           inherit (proxyAttrs) host port;
                           inherit user;

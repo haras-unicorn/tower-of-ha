@@ -1,6 +1,9 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.meta-ldap =
-    { lib, tohLib, ... }:
+  self.nixosModules.meta-ldap.flake = true;
+  self.nixosModules.meta-ldap.value =
+    { lib, ... }:
     {
       options.toh.meta = {
         ldap = {
@@ -127,7 +130,7 @@
                       description = "LDAP password owner linux group";
                     };
                     permissions = lib.mkOption {
-                      type = lib.types.listOf (lib.types.enum (builtins.attrValues tohLib.ldap.permissions));
+                      type = lib.types.listOf (lib.types.enum (builtins.attrValues selfLib.ldap.permissions));
                       description = "LDAP permissions for the user";
                     };
                   };

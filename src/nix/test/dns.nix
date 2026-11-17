@@ -1,5 +1,5 @@
 {
-  toh.lib.test.testModules.dns =
+  self.lib.test.testModules.dns =
     {
       lib,
       config,

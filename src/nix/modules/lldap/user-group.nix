@@ -1,8 +1,8 @@
 {
-  toh.lib.nixosModules.services-lldap-user-group =
+  self.nixosModules.services-lldap-user-group.flake = true;
+  self.nixosModules.services-lldap-user-group.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...

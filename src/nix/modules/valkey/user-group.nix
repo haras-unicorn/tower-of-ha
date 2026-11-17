@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.services-valkey-user-group =
+  self.nixosModules.services-valkey-user-group.flake = true;
+  self.nixosModules.services-valkey-user-group.value =
     {
       config,
       lib,

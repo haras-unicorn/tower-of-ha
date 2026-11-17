@@ -10,14 +10,10 @@ let
   };
 in
 {
-  toh.overlays.samba-ctdb = {
-    deps = [ "packages" ];
-    nixos = true;
+  self.overlays.overlays.samba-ctdb = {
     value = final: prev: {
-      tohPackages = prev.tohPackages // {
-        sambaCtdb = prev.samba.overrideAttrs (overrideAttrs final);
-        samba4FullCtdb = prev.samba4Full.overrideAttrs (overrideAttrs final);
-      };
+      sambaCtdb = prev.samba.overrideAttrs (overrideAttrs final);
+      samba4FullCtdb = prev.samba4Full.overrideAttrs (overrideAttrs final);
     };
   };
 }

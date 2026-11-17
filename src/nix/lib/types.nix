@@ -1,7 +1,7 @@
 { lib, ... }:
 
 {
-  toh.lib.types = {
+  self.lib.types = {
     regexOrString = lib.types.str // {
       description =
         "Regex if wrapped with forward slashes"

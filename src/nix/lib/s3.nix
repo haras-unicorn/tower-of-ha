@@ -1,5 +1,5 @@
 {
-  toh.lib.s3 = {
+  self.lib.s3 = {
     protocols = [
       "s3"
     ];

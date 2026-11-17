@@ -1,3 +1,5 @@
+{ selfLib, ... }:
+
 {
   perSystem =
     { pkgs, lib, ... }:
@@ -7,7 +9,6 @@
         pkgs.tohPackages.testers.runToHTest (
           {
             lib,
-            tohLib,
             nodea,
             nodes,
             config,
@@ -29,7 +30,7 @@
             urlFromNode =
               node:
               let
-                endpointAttrs = upNode.toh.lib.services.endpoint.toAttrs upNode.toh.meta.proxies.http.endpoint;
+                endpointAttrs = selfLib.services.endpoint.toAttrs upNode.toh.meta.proxies.http.endpoint;
               in
               "https://${endpointAttrs.host}:${builtins.toString endpointAttrs.port}";
             remainingIps = lib.concatMapStringsSep ", " (n: ''"${n.toh.meta.network.ip}"'') (
@@ -96,7 +97,7 @@
                       type = lib.types.submodule {
                         options = {
                           sslTermination = lib.mkOption {
-                            type = lib.types.enum tohLib.services.sslTermination;
+                            type = lib.types.enum selfLib.services.sslTermination;
                           };
                         };
                       };
@@ -130,9 +131,9 @@
               toh.test.clusters.node = {
                 inherit amount;
                 module =
-                  { config, tohLib, ... }:
+                  { config, ... }:
                   let
-                    proxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.http.endpoint;
+                    proxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.http.endpoint;
                   in
                   {
                     toh.services.coredns.enable = true;

@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-forgejo-init =
+  self.nixosModules.services-forgejo-init.flake = true;
+  self.nixosModules.services-forgejo-init.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -38,7 +40,7 @@
 
       config = lib.mkIf cfg.init.enable {
         toh.overlays = lib.mkMerge [
-          (tohLib.cli.makeOverlays {
+          (selfLib.cli.makeOverlays {
             name = "forgejo-auth";
             runtimeInputs = pkgs: [
               forgejoCfg.package
@@ -50,7 +52,7 @@
               TOH_FORGEJO_OAUTH_CLIENT_SECRET = oidcClient.clientSecret;
             };
           })
-          (tohLib.cli.makeOverlays {
+          (selfLib.cli.makeOverlays {
             name = "forgejo-actions";
             runtimeInputs = pkgs: [
               forgejoCfg.package

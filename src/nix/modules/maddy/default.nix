@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-maddy =
+  self.nixosModules.services-maddy.flake = true;
+  self.nixosModules.services-maddy.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -10,7 +12,7 @@
     let
       cfg = config.toh.services.maddy;
 
-      anyMachines = tohLib.anyServiceMachines "maddy";
+      anyMachines = selfLib.cluster.anyServiceMachines config "maddy";
 
       env = "/run/maddy/secrets.env";
 
@@ -30,9 +32,9 @@
       ldapConfig = config.toh.meta.ldap;
       ldapUser = config.toh.meta.ldap.users.maddy;
 
-      imapProxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.maddy-imap.endpoint;
-      smtpProxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.maddy-smtp.endpoint;
-      submissionProxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.maddy-submission.endpoint;
+      imapProxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.maddy-imap.endpoint;
+      smtpProxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.maddy-smtp.endpoint;
+      submissionProxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.maddy-submission.endpoint;
     in
     {
       options.toh.services = {
@@ -44,7 +46,7 @@
       config = lib.mkMerge [
         (lib.mkIf anyMachines {
           toh.meta.email = {
-            admin = tohLib.email.makeAddress {
+            admin = selfLib.email.makeAddress {
               name = "maddy";
               host = config.toh.meta.email.domain;
             };
@@ -325,7 +327,7 @@
           toh.meta.ldap.apps.maddy = {
             user = owner;
             group = group;
-            permissions = [ tohLib.ldap.permissions.readOnly ];
+            permissions = [ selfLib.ldap.permissions.readOnly ];
           };
 
           toh.meta.database.apps.maddy = {

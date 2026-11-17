@@ -1,5 +1,5 @@
 {
-  toh.lib.test.nixosModules.targets = {
+  self.lib.test.nixosModules.targets = {
     systemd.targets.toh-secrets-initialized = {
       requires = [ "local-fs.target" ];
       after = [ "local-fs.target" ];
@@ -156,7 +156,7 @@
     };
   };
 
-  toh.lib.test.nixosModules.target-dependants = {
+  self.lib.test.nixosModules.target-dependants = {
     systemd.targets.toh-secrets-initialized = {
       wantedBy = [ "sysinit.target" ];
       before = [ "sysinit.target" ];

@@ -1,5 +1,5 @@
 {
-  toh.lib.valkey = {
+  self.lib.valkey = {
     env = "user.env";
     url = "user.url";
     password = "user.txt";

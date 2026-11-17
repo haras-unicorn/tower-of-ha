@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.meta-cluster =
+  self.nixosModules.meta-cluster.flake = true;
+  self.nixosModules.meta-cluster.value =
     {
       lib,
       config,

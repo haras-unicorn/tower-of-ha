@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.meta-domains =
+  self.nixosModules.meta-domains.flake = true;
+  self.nixosModules.meta-domains.value =
     { lib, ... }:
     {
       options.toh.meta = {

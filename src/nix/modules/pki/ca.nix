@@ -5,7 +5,8 @@
 # sync with nixpkgs when it changes.
 
 {
-  toh.lib.nixosModules.pki-ca =
+  self.nixosModules.pki-ca.flake = true;
+  self.nixosModules.pki-ca.value =
     {
       config,
       lib,

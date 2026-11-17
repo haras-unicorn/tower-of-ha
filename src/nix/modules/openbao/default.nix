@@ -1,11 +1,13 @@
 # TODO: HA SSL
 
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-openbao =
+  self.nixosModules.services-openbao.flake = true;
+  self.nixosModules.services-openbao.value =
     {
       pkgs,
       lib,
-      tohLib,
       config,
       ...
     }:
@@ -43,8 +45,8 @@
       runDirectory = "openbao";
       storageSettingsPath = "/run/${runDirectory}/storage.json";
 
-      user = tohLib.openbao.user;
-      group = tohLib.openbao.group;
+      user = selfLib.openbao.user;
+      group = selfLib.openbao.group;
     in
     {
       options.toh.services = {

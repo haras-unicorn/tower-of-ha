@@ -1,17 +1,19 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-openbao-init =
+  self.nixosModules.services-openbao-init.flake = true;
+  self.nixosModules.services-openbao-init.value =
     {
       config,
       lib,
       pkgs,
-      tohLib,
       ...
     }:
     let
       cfg = config.toh.services.openbao;
 
-      user = tohLib.openbao.user;
-      group = tohLib.openbao.group;
+      user = selfLib.openbao.user;
+      group = selfLib.openbao.group;
 
       mountKey = config.toh.meta.secrets.keys.mount;
       machinesKey = config.toh.meta.secrets.keys.machines;
@@ -70,7 +72,7 @@
       };
 
       config = lib.mkIf cfg.init.enable {
-        toh.overlays = tohLib.cli.makeOverlays {
+        toh.overlays = selfLib.cli.makeOverlays {
           name = "openbao-init";
           runtimeInputs = pkgs: [
             pkgs.openbao
@@ -87,7 +89,7 @@
             TOH_OPENBAO_MACHINE_ACL_TEMPLATE_FILE = builtins.toString machineAclTemplate;
             TOH_OPENBAO_ADMIN_ACL_FILE = builtins.toString adminAcl;
             TOH_OPENBAO_ADDRESS =
-              tohLib.services.endpoint.toUrl config.toh.meta.proxies.openbao-init.endpoint
+              selfLib.services.endpoint.toUrl config.toh.meta.proxies.openbao-init.endpoint
                 { };
             TOH_OPENBAO_MACHINE_NAME = config.toh.meta.machine.name;
             TOH_OPENBAO_MACHINE_PASSWORDS = builtins.toJSON (

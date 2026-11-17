@@ -1,5 +1,5 @@
 {
-  toh.lib.secrets = {
+  self.lib.secrets = {
     directories = {
       cluster = "$out/cluster";
       machines = "$out/machines";

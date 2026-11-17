@@ -1,10 +1,12 @@
 # TODO: only allow from network
 
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-openssh =
+  self.nixosModules.services-openssh.flake = true;
+  self.nixosModules.services-openssh.value =
     {
       lib,
-      tohLib,
       config,
       ...
     }:
@@ -15,7 +17,7 @@
 
       machineName = config.toh.meta.machine.name;
 
-      machines = tohLib.serviceMachines "openssh";
+      machines = selfLib.cluster.serviceMachines config "openssh";
     in
     {
       options.toh.services = {
@@ -25,7 +27,7 @@
       };
 
       config = lib.mkIf cfg.enable {
-        toh.overlays.cli-openssh = tohLib.cli.makeOverlay {
+        toh.overlays.cli-openssh = selfLib.cli.makeOverlay {
           extraRuntimeInputs = pkgs: [ pkgs.openssh ];
           extraTextFile = ./cli.nu;
         };

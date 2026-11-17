@@ -1,9 +1,9 @@
 {
-  toh.lib.nixosModules.meta-git =
+  self.nixosModules.meta-git.flake = true;
+  self.nixosModules.meta-git.value =
     {
       lib,
       config,
-      tohLib,
       ...
     }:
     {

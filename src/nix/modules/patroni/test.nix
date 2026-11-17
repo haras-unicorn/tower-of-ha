@@ -1,3 +1,5 @@
+{ selfLib, ... }:
+
 {
   perSystem =
     { pkgs, ... }:
@@ -20,7 +22,7 @@
           (
             node:
             let
-              url = node.toh.lib.services.endpoint.toUrl node.toh.meta.proxies.patroni.endpoint {
+              url = selfLib.services.endpoint.toUrl node.toh.meta.proxies.patroni.endpoint {
                 path = "health";
               };
             in
@@ -48,7 +50,7 @@
           (
             node:
             let
-              url = node.toh.lib.services.endpoint.toUrl node.toh.meta.proxies.patroni.endpoint {
+              url = selfLib.services.endpoint.toUrl node.toh.meta.proxies.patroni.endpoint {
                 path = "health";
               };
             in

@@ -1,15 +1,17 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-garage-apps =
+  self.nixosModules.services-garage-apps.flake = true;
+  self.nixosModules.services-garage-apps.value =
     {
       lib,
       config,
-      tohLib,
       ...
     }:
     let
       cfg = config.toh.services.garage;
 
-      anyMachines = tohLib.anyServiceMachines "garage";
+      anyMachines = selfLib.cluster.anyServiceMachines config "garage";
 
       appAttrsToList =
         apps:

@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.services-garage-user-group =
+  self.nixosModules.services-garage-user-group.flake = true;
+  self.nixosModules.services-garage-user-group.value =
     {
       config,
       lib,

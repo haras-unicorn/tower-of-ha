@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-garage =
+  self.nixosModules.services-garage.flake = true;
+  self.nixosModules.services-garage.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -10,8 +12,8 @@
     let
       cfg = config.toh.services.garage;
 
-      anyMachines = tohLib.anyServiceMachines "garage";
-      garageMachines = tohLib.serviceMachines "garage";
+      anyMachines = selfLib.cluster.anyServiceMachines config "garage";
+      garageMachines = selfLib.cluster.serviceMachines config "garage";
       numberOfMachines = builtins.length garageMachines;
       replicationFactor =
         if numberOfMachines == 1 then
@@ -26,14 +28,14 @@
       adminPort = 3903;
       rpcPort = 3901;
 
-      owner = tohLib.garage.user;
-      group = tohLib.garage.group;
+      owner = selfLib.garage.user;
+      group = selfLib.garage.group;
 
       rpcSecret = config.toh.meta.sops.secrets."garage-rpc-secret".path;
 
-      proxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.garage.endpoint;
+      proxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.garage.endpoint;
 
-      webProxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.garage-web.endpoint;
+      webProxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.garage-web.endpoint;
     in
     {
       options.toh.services = {
@@ -292,7 +294,7 @@
                         in
                         ''
                           bootstrap_peers = [
-                            ${tohLib.strings.indentTail "  " peers}
+                            ${selfLib.strings.indentTail "  " peers}
                           ]
                         '';
                     };

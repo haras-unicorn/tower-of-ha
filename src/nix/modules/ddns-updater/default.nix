@@ -1,8 +1,8 @@
 {
-  toh.lib.nixosModules.services-ddns-updater =
+  self.nixosModules.services-ddns-updater.flake = true;
+  self.nixosModules.services-ddns-updater.value =
     {
       lib,
-      tohLib,
       config,
       ...
     }:

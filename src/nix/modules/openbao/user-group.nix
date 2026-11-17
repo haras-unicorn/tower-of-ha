@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-openbao-user-group =
+  self.nixosModules.services-openbao-user-group.flake = true;
+  self.nixosModules.services-openbao-user-group.value =
     {
       config,
-      tohLib,
       lib,
       ...
     }:
@@ -17,10 +19,10 @@
       };
 
       config = lib.mkIf cfg.createUserGroup {
-        users.groups.${tohLib.openbao.user} = { };
+        users.groups.${selfLib.openbao.user} = { };
 
-        users.users.${tohLib.openbao.group} = {
-          group = tohLib.openbao.group;
+        users.users.${selfLib.openbao.group} = {
+          group = selfLib.openbao.group;
           isSystemUser = true;
         };
       };

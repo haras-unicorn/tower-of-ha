@@ -1,7 +1,7 @@
 { self, ... }:
 
 {
-  toh.lib.test.testModules.source =
+  self.lib.test.testModules.source =
     { lib, ... }:
     {
       options.toh.test = {

@@ -1,8 +1,8 @@
 {
-  toh.lib.nixosModules.services-forgejo-user-group =
+  self.nixosModules.services-forgejo-user-group.flake = true;
+  self.nixosModules.services-forgejo-user-group.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...

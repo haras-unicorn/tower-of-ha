@@ -1,16 +1,18 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-patroni-apps =
+  self.nixosModules.services-patroni-apps.flake = true;
+  self.nixosModules.services-patroni-apps.value =
     {
       lib,
       config,
-      tohLib,
       pkgs,
       ...
     }:
     let
       cfg = config.toh.services.patroni;
 
-      anyMachines = tohLib.anyServiceMachines "patroni";
+      anyMachines = selfLib.cluster.anyServiceMachines config "patroni";
 
       appAttrsToList =
         apps:

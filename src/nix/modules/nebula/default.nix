@@ -1,13 +1,15 @@
 # TODO: convert firewall rules to nebula firewall rules
 # TODO: disable all traffic from outside nebula
 
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-nebula =
+  self.nixosModules.services-nebula.flake = true;
+  self.nixosModules.services-nebula.value =
     {
       pkgs,
       lib,
       config,
-      tohLib,
       ...
     }:
     let
@@ -17,7 +19,7 @@
 
       isLighthouseAndRelay = config.toh.meta.domains.machineSecret != null;
 
-      machines = tohLib.serviceMachines "nebula";
+      machines = selfLib.cluster.serviceMachines config "nebula";
 
       machinesWithDomain = builtins.filter (machine: machine.meta.domains.machineSecret != null) machines;
 

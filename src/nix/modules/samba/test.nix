@@ -1,3 +1,5 @@
+{ selfLib, ... }:
+
 {
   perSystem =
     { pkgs, lib, ... }:
@@ -38,7 +40,7 @@
                 makeNodeAttrs =
                   node:
                   let
-                    proxyAttrs = node.toh.lib.services.endpoint.toAttrs node.toh.meta.proxies.samba.endpoint;
+                    proxyAttrs = selfLib.services.endpoint.toAttrs node.toh.meta.proxies.samba.endpoint;
 
                     makeProxyArgs =
                       share:

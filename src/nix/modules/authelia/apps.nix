@@ -1,9 +1,11 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-authelia-apps =
+  self.nixosModules.services-authelia-apps.flake = true;
+  self.nixosModules.services-authelia-apps.value =
     {
       lib,
       config,
-      tohLib,
       ...
     }:
     let
@@ -13,9 +15,9 @@
       owner = name;
       group = name;
 
-      proxyUrl = tohLib.services.endpoint.toUrl config.toh.meta.proxies.authelia.endpoint { };
+      proxyUrl = selfLib.services.endpoint.toUrl config.toh.meta.proxies.authelia.endpoint { };
 
-      anyMachines = tohLib.anyServiceMachines "authelia";
+      anyMachines = selfLib.cluster.anyServiceMachines config "authelia";
 
       appAttrsToList =
         apps:

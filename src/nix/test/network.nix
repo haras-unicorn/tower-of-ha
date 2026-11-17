@@ -1,5 +1,5 @@
 {
-  toh.lib.test.testModules.network =
+  self.lib.test.testModules.network =
     { lib, config, ... }:
     let
       cfg = config.toh.test.network;

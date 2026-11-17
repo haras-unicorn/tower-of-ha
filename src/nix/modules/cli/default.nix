@@ -1,9 +1,9 @@
 {
-  toh.lib.nixosModules.programs-cli =
+  self.nixosModules.programs-cli.flake = true;
+  self.nixosModules.programs-cli.value =
     {
       pkgs,
       lib,
-      tohLib,
       config,
       ...
     }:

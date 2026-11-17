@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-sssd =
+  self.nixosModules.services-sssd.flake = true;
+  self.nixosModules.services-sssd.value =
     {
       lib,
-      tohLib,
       config,
       ...
     }:
@@ -138,7 +140,7 @@
         toh.meta.ldap.apps.${name} = {
           user = "root";
           group = "root";
-          permissions = [ tohLib.ldap.permissions.readOnly ];
+          permissions = [ selfLib.ldap.permissions.readOnly ];
         };
       };
     };

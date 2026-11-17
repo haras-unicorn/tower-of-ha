@@ -8,13 +8,15 @@
 # 4. region
 # 5. other regions
 
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-coredns =
+  self.nixosModules.services-coredns.flake = true;
+  self.nixosModules.services-coredns.value =
     {
       lib,
       config,
       pkgs,
-      tohLib,
       ...
     }:
 
@@ -25,7 +27,7 @@
       serviceDomain = config.toh.meta.domains.service;
       emailDomain = config.toh.meta.email.domain;
 
-      otherCorednsMachines = tohLib.otherServiceMachines "coredns";
+      otherCorednsMachines = selfLib.cluster.otherServiceMachines config "coredns";
 
       relays =
         if builtins.elem config.toh.meta.network.ip config.toh.meta.relays then
@@ -53,7 +55,7 @@
         };
       };
       config = lib.mkMerge [
-        (lib.mkIf (tohLib.anyServiceMachines "coredns") {
+        (lib.mkIf (selfLib.cluster.anyServiceMachines config "coredns") {
           networking.networkmanager.dns = "none";
           networking.nameservers = builtins.map (machine: machine.meta.network.ip) otherCorednsMachines;
         })
@@ -79,7 +81,7 @@
                 bind 127.0.0.1
                 bind ${config.toh.meta.network.ip}
                 template IN A {
-                  ${tohLib.strings.indentTail "    " (
+                  ${selfLib.strings.indentTail "    " (
                     builtins.concatStringsSep "\n" (
                       builtins.map (relay: ''answer "{{ .Name }} 60 IN A ${relay}"'') relays
                     )
@@ -91,7 +93,7 @@
                 bind 127.0.0.1
                 bind ${config.toh.meta.network.ip}
                 template IN A {
-                  ${tohLib.strings.indentTail "    " (
+                  ${selfLib.strings.indentTail "    " (
                     builtins.concatStringsSep "\n" (
                       builtins.map (relay: ''answer "{{ .Name }} 60 IN A ${relay}"'') relays
                     )

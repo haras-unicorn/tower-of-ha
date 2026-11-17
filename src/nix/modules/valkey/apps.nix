@@ -1,16 +1,18 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-valkey-apps =
+  self.nixosModules.services-valkey-apps.flake = true;
+  self.nixosModules.services-valkey-apps.value =
     {
       lib,
       config,
-      tohLib,
       pkgs,
       ...
     }:
     let
       cfg = config.toh.services.valkey;
 
-      anyMachines = tohLib.anyServiceMachines "valkey";
+      anyMachines = selfLib.cluster.anyServiceMachines config "valkey";
 
       appAttrsToList =
         apps:

@@ -1,9 +1,11 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-lldap-apps =
+  self.nixosModules.services-lldap-apps.flake = true;
+  self.nixosModules.services-lldap-apps.value =
     {
       lib,
       config,
-      tohLib,
       ...
     }:
     let
@@ -13,7 +15,7 @@
       owner = name;
       group = name;
 
-      anyMachines = tohLib.anyServiceMachines "lldap";
+      anyMachines = selfLib.cluster.anyServiceMachines config "lldap";
 
       appAttrsToList =
         apps:
@@ -61,9 +63,9 @@
             groups = builtins.filter (permission: permission != null) (
               builtins.map (
                 permission:
-                if permission == tohLib.ldap.permissions.readOnly then
+                if permission == selfLib.ldap.permissions.readOnly then
                   "lldap_strict_readonly"
-                else if permission == tohLib.ldap.permissions.passwordChange then
+                else if permission == selfLib.ldap.permissions.passwordChange then
                   "lldap_password_manager"
                 else
                   builtins.throw "Case not handled for permission '${permission}'"

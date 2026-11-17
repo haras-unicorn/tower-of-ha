@@ -1,5 +1,5 @@
 {
-  toh.lib.test.testModules.ip =
+  self.lib.test.testModules.ip =
     { lib, config, ... }:
     let
       cfg = config.toh.test.ip;

@@ -1,14 +1,16 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-maddy-users =
+  self.nixosModules.services-maddy-users.flake = true;
+  self.nixosModules.services-maddy-users.value =
     {
       lib,
-      tohLib,
       config,
       ...
     }:
     {
       config = {
-        toh.overlays.cli-maddy = tohLib.cli.makeOverlay {
+        toh.overlays.cli-maddy = selfLib.cli.makeOverlay {
           extraRuntimeInputs = pkgs: [
             pkgs.himalaya
           ];

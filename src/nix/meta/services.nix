@@ -1,9 +1,11 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.meta-services =
+  self.nixosModules.meta-services.flake = true;
+  self.nixosModules.meta-services.value =
     {
       config,
       lib,
-      tohLib,
       ...
     }:
     let
@@ -41,7 +43,7 @@
         {
           options = {
             sslTermination = lib.mkOption {
-              type = lib.types.enum tohLib.services.sslTermination;
+              type = lib.types.enum selfLib.services.sslTermination;
               default = "terminate";
               description = ''
                 Turn on SSL termination for this endpoint:
@@ -61,7 +63,7 @@
         {
           options = {
             layer7Protocol = lib.mkOption {
-              type = lib.types.enum tohLib.services.layer7Protocols;
+              type = lib.types.enum selfLib.services.layer7Protocols;
               description = "Layer 7 protocol on top of this layer 4 proxy";
             };
           };
@@ -95,7 +97,7 @@
                       description = "Packet to send";
                     };
                     expect = lib.mkOption {
-                      type = lib.types.nullOr tohLib.types.regexOrString;
+                      type = lib.types.nullOr selfLib.types.regexOrString;
                       default = null;
                       description = "Packet to expect";
                     };
@@ -295,7 +297,7 @@
             lib.types.submodule (
               { config, ... }:
               let
-                endpointAttrs = tohLib.services.endpoint.toAttrs config.endpoint;
+                endpointAttrs = selfLib.services.endpoint.toAttrs config.endpoint;
 
                 healthDefaultEndpoint =
                   if endpointAttrs.protocol == "tcp" then
@@ -381,7 +383,7 @@
                           default = { };
                           description = "${protocol} endpoint";
                         };
-                      }) tohLib.services.extraLayer7Protocols
+                      }) selfLib.services.extraLayer7Protocols
                     ));
                 })
               ];

@@ -1,7 +1,9 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.programs-cli-cli =
+  self.nixosModules.programs-cli-cli.flake = true;
+  self.nixosModules.programs-cli-cli.value =
     {
-      tohLib,
       config,
       lib,
       ...
@@ -34,7 +36,7 @@
       ) config.toh.meta.cluster.machines;
     in
     {
-      toh.overlays.cli-nixos = tohLib.cli.makeOverlay {
+      toh.overlays.cli-nixos = selfLib.cli.makeOverlay {
         deps = [ "flake-root" ];
         extraRuntimeInputs = pkgs: [
           pkgs.gum

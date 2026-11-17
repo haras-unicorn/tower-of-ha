@@ -78,7 +78,8 @@ let
     };
 in
 {
-  toh.lib.nixosModules.meta-backup =
+  self.nixosModules.meta-backup.flake = true;
+  self.nixosModules.meta-backup.value =
     { lib, ... }:
     {
       options.toh = {

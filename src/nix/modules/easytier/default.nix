@@ -1,9 +1,11 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-easytier =
+  self.nixosModules.services-easytier.flake = true;
+  self.nixosModules.services-easytier.value =
     {
       pkgs,
       lib,
-      tohLib,
       config,
       ...
     }:
@@ -18,11 +20,11 @@
       group = service;
       envSecret = service;
 
-      machines = tohLib.serviceMachines "easytier";
+      machines = selfLib.cluster.serviceMachines config "easytier";
 
       machinesWithDomain = builtins.filter (machine: machine.meta.domains.machineSecret != null) machines;
 
-      otherMachines = tohLib.otherServiceMachines "easytier";
+      otherMachines = selfLib.cluster.otherServiceMachines config "easytier";
 
       otherMachinesWithDomain = builtins.filter (
         machine: machine.meta.domains.machineSecret != null

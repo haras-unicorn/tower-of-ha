@@ -1,10 +1,12 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-openbao-secrets =
+  self.nixosModules.services-openbao-secrets.flake = true;
+  self.nixosModules.services-openbao-secrets.value =
     {
       config,
       lib,
       pkgs,
-      tohLib,
       ...
     }:
     let
@@ -22,7 +24,7 @@
       };
 
       config = lib.mkIf cfg.secrets.enable {
-        toh.overlays = tohLib.cli.makeOverlays {
+        toh.overlays = selfLib.cli.makeOverlays {
           name = "openbao-secrets";
           runtimeInputs = pkgs: [
             pkgs.openbao

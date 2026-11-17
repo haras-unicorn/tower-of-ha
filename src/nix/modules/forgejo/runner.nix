@@ -1,10 +1,12 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-forgejo-runner =
+  self.nixosModules.services-forgejo-runner.flake = true;
+  self.nixosModules.services-forgejo-runner.value =
     {
       lib,
       config,
       pkgs,
-      tohLib,
       ...
     }:
     let
@@ -23,7 +25,7 @@
         machine: machine.config.toh.services.forgejo.runner.enable
       ) config.toh.meta.cluster.machineList;
 
-      forgejoUrl = tohLib.services.endpoint.toUrl config.toh.meta.proxies.forgejo.endpoint { };
+      forgejoUrl = selfLib.services.endpoint.toUrl config.toh.meta.proxies.forgejo.endpoint { };
 
       secretPath = config.toh.meta.sops.secrets."forgejo-runner-secret".path;
 
@@ -59,7 +61,7 @@
       };
 
       config = lib.mkIf cfg.enable {
-        toh.overlays = tohLib.cli.makeOverlays {
+        toh.overlays = selfLib.cli.makeOverlays {
           name = "forgejo-runner";
           runtimeInputs = pkgs: [
             pkgs.usql

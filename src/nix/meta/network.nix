@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.meta-network =
+  self.nixosModules.meta-network.flake = true;
+  self.nixosModules.meta-network.value =
     { lib, ... }:
     {
       options.toh.meta = {

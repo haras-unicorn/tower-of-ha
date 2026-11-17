@@ -1,9 +1,8 @@
 {
-  toh.lib.test.testModules.relay =
+  self.lib.test.testModules.relay =
     {
       config,
       lib,
-      tohLib,
       ...
     }:
     let

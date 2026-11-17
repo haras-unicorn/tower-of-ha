@@ -1,8 +1,8 @@
 {
-  toh.lib.nixosModules.pki =
+  self.nixosModules.pki.flake = true;
+  self.nixosModules.pki.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...

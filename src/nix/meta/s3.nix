@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.meta-s3 =
+  self.nixosModules.meta-s3.flake = true;
+  self.nixosModules.meta-s3.value =
     {
       lib,
-      tohLib,
       config,
       ...
     }:
@@ -10,7 +12,7 @@
       options.toh.meta = {
         s3 = {
           protocol = lib.mkOption {
-            type = lib.types.enum tohLib.s3.protocols;
+            type = lib.types.enum selfLib.s3.protocols;
             description = "S3 protocol";
           };
 
@@ -58,22 +60,19 @@
             default = { };
             description = "Bucket registration for ToH S3 store";
             type = lib.types.attrsOf (
-              lib.types.submodule (
-                { ... }:
-                {
-                  options = {
-                    keyId = lib.mkOption {
-                      type = lib.types.str;
-                      description = "S3 key id file path";
-                    };
-
-                    secretKey = lib.mkOption {
-                      type = lib.types.str;
-                      description = "S3 secret key file path";
-                    };
+              lib.types.submodule ({
+                options = {
+                  keyId = lib.mkOption {
+                    type = lib.types.str;
+                    description = "S3 key id file path";
                   };
-                }
-              )
+
+                  secretKey = lib.mkOption {
+                    type = lib.types.str;
+                    description = "S3 secret key file path";
+                  };
+                };
+              })
             );
           };
         };

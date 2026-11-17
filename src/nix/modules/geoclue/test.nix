@@ -1,6 +1,6 @@
 {
   perSystem =
-    { pkgs, tohLib, ... }:
+    { pkgs, ... }:
     {
       checks.test-services-geoclue = pkgs.tohPackages.testers.runToHTest {
         name = "services-geoclue";

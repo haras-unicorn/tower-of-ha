@@ -1,16 +1,18 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-samba =
+  self.nixosModules.services-samba.flake = true;
+  self.nixosModules.services-samba.value =
     {
       lib,
       pkgs,
       config,
-      tohLib,
       ...
     }:
     let
       cfg = config.toh.services.samba;
 
-      machines = tohLib.serviceMachines "samba";
+      machines = selfLib.cluster.serviceMachines config "samba";
       machineIps = builtins.map (machine: machine.meta.network.ip) machines;
 
       mounts = config.toh.meta.filesystem.mounts;

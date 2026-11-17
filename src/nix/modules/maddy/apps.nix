@@ -1,15 +1,17 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-maddy-apps =
+  self.nixosModules.services-maddy-apps.flake = true;
+  self.nixosModules.services-maddy-apps.value =
     {
       lib,
       config,
-      tohLib,
       ...
     }:
     let
       cfg = config.toh.services.maddy;
 
-      anyMachines = tohLib.anyServiceMachines "maddy";
+      anyMachines = selfLib.cluster.anyServiceMachines config "maddy";
 
       appAttrsToList =
         apps:
@@ -42,7 +44,7 @@
           { name, ldapUser, ... }:
           {
             ${name} = {
-              address = tohLib.email.makeAddress {
+              address = selfLib.email.makeAddress {
                 inherit name;
                 host = config.toh.meta.email.domain;
               };

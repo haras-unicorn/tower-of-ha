@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-forgejo-config =
+  self.nixosModules.services-forgejo-config.flake = true;
+  self.nixosModules.services-forgejo-config.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -30,8 +32,8 @@
 
       oidcConfig = config.toh.meta.oidc;
 
-      makeHttpProxyUrl = tohLib.services.endpoint.toUrl config.toh.meta.proxies.forgejo.endpoint;
-      proxyHttpAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo.endpoint;
+      makeHttpProxyUrl = selfLib.services.endpoint.toUrl config.toh.meta.proxies.forgejo.endpoint;
+      proxyHttpAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo.endpoint;
 
       forgejoCfg = config.services.forgejo;
       configFile = cfg.config.path;
@@ -396,10 +398,10 @@
           database = httpPort;
           prefix = "all";
           permissions = [
-            tohLib.kv.permissions.read
-            tohLib.kv.permissions.write
-            tohLib.kv.permissions.connection
-            tohLib.kv.permissions.keyspace
+            selfLib.kv.permissions.read
+            selfLib.kv.permissions.write
+            selfLib.kv.permissions.connection
+            selfLib.kv.permissions.keyspace
           ];
         };
 
@@ -409,10 +411,10 @@
           database = httpPort + 1;
           prefix = "all";
           permissions = [
-            tohLib.kv.permissions.read
-            tohLib.kv.permissions.write
-            tohLib.kv.permissions.connection
-            tohLib.kv.permissions.keyspace
+            selfLib.kv.permissions.read
+            selfLib.kv.permissions.write
+            selfLib.kv.permissions.connection
+            selfLib.kv.permissions.keyspace
           ];
         };
 
@@ -422,10 +424,10 @@
           database = httpPort + 2;
           prefix = "all";
           permissions = [
-            tohLib.kv.permissions.read
-            tohLib.kv.permissions.write
-            tohLib.kv.permissions.connection
-            tohLib.kv.permissions.keyspace
+            selfLib.kv.permissions.read
+            selfLib.kv.permissions.write
+            selfLib.kv.permissions.connection
+            selfLib.kv.permissions.keyspace
           ];
         };
 

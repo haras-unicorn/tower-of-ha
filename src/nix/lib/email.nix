@@ -1,5 +1,5 @@
 {
-  toh.lib.email = {
+  self.lib.email = {
     makeAddress =
       {
         name,

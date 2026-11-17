@@ -11,10 +11,7 @@
       };
     in
     {
-      packages = {
-        cli = package;
-        default = package;
-      };
+      packages.default = package;
 
       apps = {
         cli = cliApp;

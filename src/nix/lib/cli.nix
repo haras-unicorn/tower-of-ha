@@ -1,37 +1,11 @@
-{
-  lib,
-  tohLib,
-  ...
-}:
+{ lib, ... }:
 
-{
-  toh.lib.cli.makeOverlay = tohLib.cli.makeOverrideOverlay "cli";
+# NOTE: the helpers call each other through this let and not through selfLib,
+# because flake-level overlays are made with them and selfLib depends on every
+# overlay through the flake assertions of haraspkgs
 
-  toh.lib.cli.makeOverlays =
-    {
-      name,
-      attr ? name,
-      deps ? [ ],
-      runtimeInputs ? [ ],
-      text ? "",
-      textFile ? null,
-      textDir ? null,
-      textVariables ? null,
-    }:
-    {
-      "${attr}-package" = tohLib.cli.makeBaseOverlay "${attr}";
-      "${attr}" = tohLib.cli.makeFinalOverlay "${attr}";
-      "${attr}-impl" = tohLib.cli.makeOverrideOverlay "${attr}" {
-        inherit name deps;
-        extraRuntimeInputs = runtimeInputs;
-        extraText = text;
-        extraTextFile = textFile;
-        extraTextDir = textDir;
-        extraTextVariables = textVariables;
-      };
-    };
-
-  toh.lib.cli.makeOverrideOverlay =
+let
+  makeOverrideOverlay =
     attr:
     {
       name ? null,
@@ -56,103 +30,126 @@
           );
     in
     {
-      deps = [
-        "packages"
-        "${attr}-package"
-      ]
-      ++ deps;
+      deps = [ "${attr}-package" ] ++ deps;
       value = final: prev: {
-        tohPackages = prev.tohPackages // {
-          ${attr} = prev.tohPackages.${attr}.override (
-            prev:
-            let
-              nextName = if name == null then prev.name else name;
+        ${attr} = prev.${attr}.override (
+          prev:
+          let
+            nextName = if name == null then prev.name else name;
 
-              nextExtraRuntimeInputs =
-                prev.extraRuntimeInputs
-                ++ (if lib.isFunction extraRuntimeInputs then extraRuntimeInputs final else extraRuntimeInputs);
+            nextExtraRuntimeInputs =
+              prev.extraRuntimeInputs
+              ++ (if lib.isFunction extraRuntimeInputs then extraRuntimeInputs final else extraRuntimeInputs);
 
-              newExtraText = builtins.concatStringsSep "\n\n" [
-                extraText
-                fileText
-                dirText
-              ];
+            newExtraText = builtins.concatStringsSep "\n\n" [
+              extraText
+              fileText
+              dirText
+            ];
 
-              renderedNewExtraText =
-                if extraTextVariables == null then
-                  newExtraText
-                else
-                  builtins.readFile (
-                    final.tohPackages.renderMustacheTemplate {
-                      name = "toh-${attr}-rendered-extra-text";
-                      variables = extraTextVariables;
-                      template = newExtraText;
-                    }
-                  );
+            renderedNewExtraText =
+              if extraTextVariables == null then
+                newExtraText
+              else
+                builtins.readFile (
+                  final.tohPackages.renderMustacheTemplate {
+                    name = "toh-${attr}-rendered-extra-text";
+                    variables = extraTextVariables;
+                    template = newExtraText;
+                  }
+                );
 
-              nextExtraText = prev.extraText + "\n\n" + renderedNewExtraText;
-            in
-            {
-              name = nextName;
-              extraRuntimeInputs = nextExtraRuntimeInputs;
-              extraText = nextExtraText;
-            }
-          );
-        };
+            nextExtraText = prev.extraText + "\n\n" + renderedNewExtraText;
+          in
+          {
+            name = nextName;
+            extraRuntimeInputs = nextExtraRuntimeInputs;
+            extraText = nextExtraText;
+          }
+        );
       };
     };
 
-  toh.lib.cli.makeBaseOverlay = attr: {
+  makeBaseOverlay = attr: {
     deps = [
-      "packages"
       "nushell"
       "mustache"
     ];
-    value = final: prev: {
-      tohPackages = prev.tohPackages // {
-        ${attr} =
-          final.callPackage
-            (
-              {
-                name,
-                extraRuntimeInputs,
-                extraText,
-                tohPackages,
-              }:
-              tohPackages.writeNushellApplication {
-                inherit name;
-                runtimeInputs = [ final.nushell ] ++ extraRuntimeInputs;
-                text = ''
-                  def "toh name" [] {
-                    "${name}"
-                  }
-
-                  def "toh file" [] {
-                    $"($env.FILE_PWD)/(toh name)"
-                  }
-
-                  ${extraText}
-                '';
-              }
-            )
+    value = final: _prev: {
+      ${attr} =
+        final.callPackage
+          (
             {
-              name = attr;
-              extraRuntimeInputs = [ ];
-              extraText = "";
-            };
-      };
+              name,
+              extraRuntimeInputs,
+              extraText,
+              tohPackages,
+            }:
+            tohPackages.writeNushellApplication {
+              inherit name;
+              runtimeInputs = [ final.nushell ] ++ extraRuntimeInputs;
+              text = ''
+                def "toh name" [] {
+                  "${name}"
+                }
+
+                def "toh file" [] {
+                  $"($env.FILE_PWD)/(toh name)"
+                }
+
+                ${extraText}
+              '';
+            }
+          )
+          {
+            name = attr;
+            extraRuntimeInputs = [ ];
+            extraText = "";
+          };
     };
   };
 
-  toh.lib.cli.makeFinalOverlay = attr: {
+  makeFinalOverlay = attr: {
     deps = [ "/${attr}-.*/" ];
-    flake = true;
-    nixos = true;
     value =
-      final: prev:
-      assert lib.assertMsg (
-        prev ? tohPackages && prev.tohPackages ? ${attr}
-      ) "Missing ToH package ${attr}";
+      _final: prev:
+      assert lib.assertMsg (prev ? ${attr}) "Missing ToH package ${attr}";
       { };
+  };
+
+  makeOverlays =
+    {
+      name,
+      attr ? name,
+      deps ? [ ],
+      runtimeInputs ? [ ],
+      text ? "",
+      textFile ? null,
+      textDir ? null,
+      textVariables ? null,
+    }:
+    {
+      "${attr}-package" = makeBaseOverlay "${attr}";
+      "${attr}" = makeFinalOverlay "${attr}";
+      "${attr}-impl" = makeOverrideOverlay "${attr}" {
+        inherit name deps;
+        extraRuntimeInputs = runtimeInputs;
+        extraText = text;
+        extraTextFile = textFile;
+        extraTextDir = textDir;
+        extraTextVariables = textVariables;
+      };
+    };
+in
+{
+  self.lib.cli = {
+    makeOverlay = makeOverrideOverlay "cli";
+
+    inherit
+      makeOverlays
+      makeOverrideOverlay
+      makeBaseOverlay
+      makeFinalOverlay
+      ;
   };
 }

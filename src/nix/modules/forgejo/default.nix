@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-forgejo =
+  self.nixosModules.services-forgejo.flake = true;
+  self.nixosModules.services-forgejo.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -10,13 +12,13 @@
     let
       cfg = config.toh.services.forgejo;
 
-      anyMachines = tohLib.anyServiceMachines "forgejo";
+      anyMachines = selfLib.cluster.anyServiceMachines config "forgejo";
 
       httpPort = 3000;
       sshPort = 2222;
 
-      proxyHttpAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo.endpoint;
-      proxySshAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.git.endpoint;
+      proxyHttpAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.forgejo.endpoint;
+      proxySshAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.git.endpoint;
 
       forgejoCfg = config.services.forgejo;
       configFile = cfg.config.path;

@@ -1,13 +1,16 @@
 # TODO: instances
 
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.meta-filesystem =
-    { lib, tohLib, ... }:
+  self.nixosModules.meta-filesystem.flake = true;
+  self.nixosModules.meta-filesystem.value =
+    { lib, ... }:
     {
       options.toh.meta = {
         filesystem = {
           type = lib.mkOption {
-            type = lib.types.enum tohLib.filesystem.types;
+            type = lib.types.enum selfLib.filesystem.types;
             description = "Filesystem type";
           };
 

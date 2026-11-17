@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.services-maddy-user-group =
+  self.nixosModules.services-maddy-user-group.flake = true;
+  self.nixosModules.services-maddy-user-group.value =
     {
       config,
       lib,

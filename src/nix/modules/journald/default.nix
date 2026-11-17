@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.services-journald =
+  self.nixosModules.services-journald.flake = true;
+  self.nixosModules.services-journald.value =
     { lib, config, ... }:
     let
       cfg = config.toh.services.journald;

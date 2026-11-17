@@ -1,5 +1,5 @@
 {
-  toh.lib.test.testModules.ntp =
+  self.lib.test.testModules.ntp =
     {
       lib,
       config,

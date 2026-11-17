@@ -1,5 +1,5 @@
 {
-  toh.lib.patroni = {
+  self.lib.patroni = {
     env = "user.env";
     url = "user.url";
     password = "user.txt";

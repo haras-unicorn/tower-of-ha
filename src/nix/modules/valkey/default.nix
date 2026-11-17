@@ -2,11 +2,13 @@
 # the current primary via sentinel and adjusts replication accordingly.
 # This would eliminate the need for a pre-designated bootstrap node.
 
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-valkey =
+  self.nixosModules.services-valkey.flake = true;
+  self.nixosModules.services-valkey.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -14,8 +16,8 @@
     let
       cfg = config.toh.services.valkey;
 
-      anyMachines = tohLib.anyServiceMachines "valkey";
-      valkeyMachines = tohLib.serviceMachines "valkey";
+      anyMachines = selfLib.cluster.anyServiceMachines config "valkey";
+      valkeyMachines = selfLib.cluster.serviceMachines config "valkey";
 
       valkeyPort = 6379;
       sentinelPort = 26379;
@@ -29,13 +31,13 @@
         builtins.length valkeyMachines
       );
 
-      proxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.valkey.endpoint;
+      proxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.valkey.endpoint;
 
       valkeyUser = "valkey";
       valkeyGroup = "valkey";
 
-      master = config.toh.services.valkey.users.${tohLib.valkey.users.master};
-      sentinel = config.toh.services.valkey.users.${tohLib.valkey.users.sentinel};
+      master = config.toh.services.valkey.users.${selfLib.valkey.users.master};
+      sentinel = config.toh.services.valkey.users.${selfLib.valkey.users.sentinel};
 
       # NOTE: reasoning is that i could use the same database as the app ports
       # since those are cluster-wide unique per-app but shared per-app per-host
@@ -72,7 +74,7 @@
                 bind = config.toh.meta.network.ip;
                 databases = maxDatabases;
                 masterAuthFile = master.password;
-                masterUser = tohLib.valkey.users.master;
+                masterUser = selfLib.valkey.users.master;
                 settings = {
                   protected-mode = false;
                   tls-port = valkeyPort;
@@ -101,7 +103,7 @@
                 sentinelMasterPort = valkeyPort;
                 sentinelMasterQuorum = quorum;
                 sentinelAuthPassFile = sentinel.password;
-                sentinelAuthUser = tohLib.valkey.users.sentinel;
+                sentinelAuthUser = selfLib.valkey.users.sentinel;
                 save = [ ];
                 settings = {
                   protected-mode = false;
@@ -198,40 +200,40 @@
             };
           };
 
-          toh.services.valkey.users.${tohLib.valkey.users.master} = {
+          toh.services.valkey.users.${selfLib.valkey.users.master} = {
             user = valkeyUser;
             group = valkeyGroup;
             installSecrets = true;
             prefix = "all";
             database = "all";
-            permissions = [ tohLib.kv.permissions.all ];
+            permissions = [ selfLib.kv.permissions.all ];
           };
 
-          toh.services.valkey.users.${tohLib.valkey.users.sentinel} = {
+          toh.services.valkey.users.${selfLib.valkey.users.sentinel} = {
             user = valkeyUser;
             group = valkeyGroup;
             installSecrets = true;
             prefix = "all";
             database = "all";
-            permissions = [ tohLib.kv.permissions.all ];
+            permissions = [ selfLib.kv.permissions.all ];
           };
 
-          toh.services.valkey.users.${tohLib.valkey.users.superuser} = {
+          toh.services.valkey.users.${selfLib.valkey.users.superuser} = {
             user = valkeyUser;
             group = valkeyGroup;
             installSecrets = true;
             prefix = "all";
             database = "all";
-            permissions = [ tohLib.kv.permissions.all ];
+            permissions = [ selfLib.kv.permissions.all ];
           };
 
-          toh.services.valkey.users.${tohLib.valkey.users.default} = {
+          toh.services.valkey.users.${selfLib.valkey.users.default} = {
             user = valkeyUser;
             group = valkeyGroup;
             generateSecrets = true;
             prefix = "none";
             database = "none";
-            permissions = [ tohLib.kv.permissions.health ];
+            permissions = [ selfLib.kv.permissions.health ];
             password = null;
           };
 

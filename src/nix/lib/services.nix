@@ -1,4 +1,4 @@
-{ tohLib, lib, ... }:
+{ selfLib, lib, ... }:
 
 let
   proxyProtocols = [
@@ -18,10 +18,10 @@ let
     "smtp"
     "imap"
   ]
-  ++ tohLib.database.protocols;
+  ++ selfLib.database.protocols;
 in
 {
-  toh.lib.services = {
+  self.lib.services = {
     inherit proxyProtocols extraLayer7Protocols;
 
     layer7Protocols = proxyProtocols ++ extraLayer7Protocols;
@@ -43,7 +43,7 @@ in
       toUrl =
         endpoint:
         let
-          attrs = tohLib.services.endpoint.toAttrs endpoint;
+          attrs = selfLib.services.endpoint.toAttrs endpoint;
 
           host = attrs.host;
           port = attrs.port;
@@ -56,7 +56,7 @@ in
               path ? null,
               parameters ? null,
             }:
-            tohLib.url.makeUrl {
+            selfLib.url.makeUrl {
               inherit
                 protocol
                 domain
@@ -80,13 +80,13 @@ in
             query ? { },
           }:
           base {
-            path = tohLib.url.makePath {
+            path = selfLib.url.makePath {
               basePath = attrs.path or null;
               relativePath = path;
             };
             parameters = query;
           }
-        else if builtins.elem attrs.protocol tohLib.database.protocols then
+        else if builtins.elem attrs.protocol selfLib.database.protocols then
           {
             user,
             password,

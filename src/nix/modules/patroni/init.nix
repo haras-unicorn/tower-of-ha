@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-patroni-init =
+  self.nixosModules.services-patroni-init.flake = true;
+  self.nixosModules.services-patroni-init.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -70,7 +72,7 @@
       };
 
       config = lib.mkIf cfg.init.enable {
-        toh.overlays = tohLib.cli.makeOverlays {
+        toh.overlays = selfLib.cli.makeOverlays {
           name = "patroni-init";
           runtimeInputs = pkgs: [
             config.services.patroni.postgresqlPackage
@@ -86,14 +88,14 @@
                   extension,
                 }:
                 let
-                  fileList = tohLib.lists.concatMapUniqueAttrValues (
+                  fileList = selfLib.lists.concatMapUniqueAttrValues (
                     { name, value }:
                     {
                       inherit name;
                       path = value;
                     }
                   ) files;
-                  scriptList = tohLib.lists.concatMapUniqueAttrValues (
+                  scriptList = selfLib.lists.concatMapUniqueAttrValues (
                     { name, value }:
                     {
                       inherit name;
@@ -106,7 +108,7 @@
               sqlScripts = serializeScripts (cfg.init.sql // { extension = "sql"; });
               nushellScripts = serializeScripts (cfg.init.nushell // { extension = "nu"; });
 
-              systemdUnits = tohLib.lists.concatMapUniqueAttrValues (
+              systemdUnits = selfLib.lists.concatMapUniqueAttrValues (
                 { name, value }:
                 {
                   inherit name;
@@ -121,7 +123,7 @@
                     passwordFile = cfg.users.${name}.password;
                   in
                   ''alter user ${name} with password '(open --raw "${passwordFile}")';''
-                ) tohLib.patroni.superusers
+                ) selfLib.patroni.superusers
               );
             in
             {
@@ -131,11 +133,11 @@
                   PGPASSWORD: null
                 } {
                   psql -c $"
-                    ${tohLib.strings.indentTail "    " initPasswordSql}
+                    ${selfLib.strings.indentTail "    " initPasswordSql}
                   "
                 }
               '';
-              TOH_DATABASE_INIT_DATABASE_ENV_FILE = cfg.users.${tohLib.patroni.superusers.superuser}.env;
+              TOH_DATABASE_INIT_DATABASE_ENV_FILE = cfg.users.${selfLib.patroni.superusers.superuser}.env;
               TOH_DATABASE_INIT_SQL_SCRIPTS = "${builtins.toJSON sqlScripts}";
               TOH_DATABASE_INIT_NUSHELL_SCRIPTS = "${builtins.toJSON nushellScripts}";
               TOH_DATABASE_INIT_SYSTEMD_UNITS = "${builtins.toJSON systemdUnits}";
@@ -164,7 +166,7 @@
           after = [ "patroni-initialization.service" ];
         };
 
-        toh.services.patroni.users.${tohLib.patroni.superusers.superuser}.installSecrets = true;
+        toh.services.patroni.users.${selfLib.patroni.superusers.superuser}.installSecrets = true;
       };
     };
 }

@@ -1,5 +1,5 @@
 {
-  toh.lib.filesystem = {
+  self.lib.filesystem = {
     types = [
       "cephfs"
     ];

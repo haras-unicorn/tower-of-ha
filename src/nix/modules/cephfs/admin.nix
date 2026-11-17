@@ -1,16 +1,18 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-ceph-admin =
+  self.nixosModules.services-ceph-admin.flake = true;
+  self.nixosModules.services-ceph-admin.value =
     {
       lib,
       pkgs,
       config,
-      tohLib,
       ...
     }:
     let
       cfg = config.toh.services.cephfs;
 
-      machines = tohLib.serviceMachines "cephfs";
+      machines = selfLib.cluster.serviceMachines config "cephfs";
       ips = builtins.concatStringsSep "," (builtins.map (machine: machine.meta.network.ip) machines);
       fsid = config.toh.services.cephfs.fsid;
     in

@@ -1,5 +1,5 @@
 {
-  toh.lib.garage = {
+  self.lib.garage = {
     certs = {
       root = "/etc/garage/certs";
       user = "~/.garage/certs";

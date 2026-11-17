@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.nixpkgs-ctdb =
+  self.nixosModules.nixpkgs-ctdb.flake = true;
+  self.nixosModules.nixpkgs-ctdb.value =
     {
       config,
       lib,

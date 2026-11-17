@@ -11,11 +11,13 @@
 # 4. my region
 # 5. other regions
 
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-haproxy =
+  self.nixosModules.services-haproxy.flake = true;
+  self.nixosModules.services-haproxy.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -33,10 +35,11 @@
 
       tcpPortOffset = 10000;
 
-      machines = tohLib.serviceMachines "haproxy";
+      machines = selfLib.cluster.serviceMachines config "haproxy";
 
       mapTcpPortFromServices =
-        services: (tohLib.services.endpoint.toAttrs (builtins.head services).endpoint).port + tcpPortOffset;
+        services:
+        (selfLib.services.endpoint.toAttrs (builtins.head services).endpoint).port + tcpPortOffset;
 
       serviceNamesToMachineServices = lib.zipAttrs (
         builtins.map (machine: machine.meta.services) config.toh.meta.cluster.machineList
@@ -49,7 +52,7 @@
           builtins.all (
             service:
             let
-              endpointAttrs = tohLib.services.endpoint.toAttrs service.endpoint;
+              endpointAttrs = selfLib.services.endpoint.toAttrs service.endpoint;
             in
             builtins.elem endpointAttrs.protocol protocols
           ) services
@@ -75,8 +78,8 @@
       makeServerBlock =
         serviceName: service:
         let
-          healthAttrs = tohLib.services.endpoint.toAttrs service.health.endpoint;
-          endpointAttrs = tohLib.services.endpoint.toAttrs service.endpoint;
+          healthAttrs = selfLib.services.endpoint.toAttrs service.health.endpoint;
+          endpointAttrs = selfLib.services.endpoint.toAttrs service.endpoint;
           check = lib.optionalString (service.health.endpoint != null) (
             "check" + " port ${builtins.toString healthAttrs.port}" + " addr ${healthAttrs.host}"
           );
@@ -103,7 +106,7 @@
         serviceName: services:
         let
           service = builtins.head services;
-          healthAttrs = tohLib.services.endpoint.toAttrs service.health.endpoint;
+          healthAttrs = selfLib.services.endpoint.toAttrs service.health.endpoint;
           isHealthHttp = builtins.elem healthAttrs.protocol [
             "http"
             "https"
@@ -131,7 +134,7 @@
                     hasSend = send != null;
                     hasExpect = expect != null;
 
-                    expectType = if tohLib.regex.isRegex expect then "rstring" else "string";
+                    expectType = if selfLib.regex.isRegex expect then "rstring" else "string";
                   in
                   lib.optionalString hasSend "\ntcp-check send ${escape send}"
                   + lib.optionalString hasExpect "\ntcp-check expect ${expectType} ${escape expect}"
@@ -144,7 +147,7 @@
         serviceName: services:
         let
           firstService = builtins.head services;
-          endpointAttrs = tohLib.services.endpoint.toAttrs firstService.endpoint;
+          endpointAttrs = selfLib.services.endpoint.toAttrs firstService.endpoint;
         in
         if endpointAttrs ? persistIp && endpointAttrs.persistIp then
           ''
@@ -181,11 +184,11 @@
             mode http
             balance roundrobin
 
-            ${tohLib.strings.indentTail "  " (makePersistenceBlock serviceName services)}
+            ${selfLib.strings.indentTail "  " (makePersistenceBlock serviceName services)}
 
-            ${tohLib.strings.indentTail "  " (makeCheckBlock serviceName services)}
+            ${selfLib.strings.indentTail "  " (makeCheckBlock serviceName services)}
 
-            ${tohLib.strings.indentTail "  " (makeServersBlock serviceName services)}
+            ${selfLib.strings.indentTail "  " (makeServersBlock serviceName services)}
         '') httpServiceNamesToMachineServices
       );
 
@@ -194,7 +197,7 @@
           serviceName: services:
           let
             service = builtins.head services;
-            endpointAttrs = tohLib.services.endpoint.toAttrs service.endpoint;
+            endpointAttrs = selfLib.services.endpoint.toAttrs service.endpoint;
             ssl = lib.optionalString (builtins.elem endpointAttrs.sslTermination [
               "re-encrypt"
               "terminate"
@@ -216,11 +219,11 @@
             mode tcp
             balance leastconn
 
-            ${tohLib.strings.indentTail "  " (makePersistenceBlock serviceName services)}
+            ${selfLib.strings.indentTail "  " (makePersistenceBlock serviceName services)}
 
-            ${tohLib.strings.indentTail "  " (makeCheckBlock serviceName services)}
+            ${selfLib.strings.indentTail "  " (makeCheckBlock serviceName services)}
 
-            ${tohLib.strings.indentTail "  " (makeServersBlock serviceName services)}
+            ${selfLib.strings.indentTail "  " (makeServersBlock serviceName services)}
         '') tcpServiceNamesToMachineServices
       );
 
@@ -237,11 +240,11 @@
           mode tcp
           balance leastconn
 
-          ${tohLib.strings.indentTail "  " (makePersistenceBlock "submit" submitServiceMachineServices)}
+          ${selfLib.strings.indentTail "  " (makePersistenceBlock "submit" submitServiceMachineServices)}
 
-          ${tohLib.strings.indentTail "  " (makeCheckBlock "submit" submitServiceMachineServices)}
+          ${selfLib.strings.indentTail "  " (makeCheckBlock "submit" submitServiceMachineServices)}
 
-          ${tohLib.strings.indentTail "  " (makeServersBlock "submit" submitServiceMachineServices)}
+          ${selfLib.strings.indentTail "  " (makeServersBlock "submit" submitServiceMachineServices)}
       '';
     in
     {
@@ -260,7 +263,7 @@
             serviceName: services:
             let
               service = builtins.head services;
-              endpointAttrs = tohLib.services.endpoint.toAttrs service.endpoint;
+              endpointAttrs = selfLib.services.endpoint.toAttrs service.endpoint;
               isHttpBased = builtins.elem endpointAttrs.protocol [
                 "http"
                 "https"

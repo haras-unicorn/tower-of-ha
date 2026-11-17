@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.meta-secrets =
+  self.nixosModules.meta-secrets.flake = true;
+  self.nixosModules.meta-secrets.value =
     {
       lib,
-      tohLib,
       config,
       ...
     }:
@@ -12,17 +14,17 @@
           directories = {
             cluster = lib.mkOption {
               type = lib.types.str;
-              default = tohLib.secrets.directories.cluster;
+              default = selfLib.secrets.directories.cluster;
               description = "Secrets cluster directory";
             };
             machines = lib.mkOption {
               type = lib.types.str;
-              default = tohLib.secrets.directories.machines;
+              default = selfLib.secrets.directories.machines;
               description = "Secrets machines directory";
             };
             external = lib.mkOption {
               type = lib.types.str;
-              default = tohLib.secrets.directories.external;
+              default = selfLib.secrets.directories.external;
               description = "Secrets external directory";
             };
           };
@@ -30,32 +32,32 @@
           keys = {
             mount = lib.mkOption {
               type = lib.types.str;
-              default = tohLib.secrets.keys.mount;
+              default = selfLib.secrets.keys.mount;
               description = "Secrets mount";
             };
             cluster = lib.mkOption {
               type = lib.types.str;
-              default = tohLib.secrets.keys.cluster;
+              default = selfLib.secrets.keys.cluster;
               description = "Secrets cluster key folder";
             };
             machines = lib.mkOption {
               type = lib.types.str;
-              default = tohLib.secrets.keys.machines;
+              default = selfLib.secrets.keys.machines;
               description = "Secrets machines key folder";
             };
             external = lib.mkOption {
               type = lib.types.str;
-              default = tohLib.secrets.keys.external;
+              default = selfLib.secrets.keys.external;
               description = "Secrets external key folder";
             };
             root = lib.mkOption {
               type = lib.types.str;
-              default = tohLib.secrets.keys.root;
+              default = selfLib.secrets.keys.root;
               description = "Secrets root key folder";
             };
             age = lib.mkOption {
               type = lib.types.str;
-              default = tohLib.secrets.keys.age;
+              default = selfLib.secrets.keys.age;
               description = "Secrets age key";
             };
           };

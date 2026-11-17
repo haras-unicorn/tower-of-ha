@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.meta-source =
+  self.nixosModules.meta-source.flake = true;
+  self.nixosModules.meta-source.value =
     { lib, ... }:
     {
       options.toh.meta = {

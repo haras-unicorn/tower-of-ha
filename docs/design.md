@@ -216,7 +216,13 @@ Nebula run them.
 - `flake.nix` calls `haraspkgs.lib.makeFlake` over `./src/nix`.
 - `toh.lib` becomes `self.lib` (read through `selfLib`), `toh.overlays` becomes
   `self.overlays` with the `tohPackages` namespace, and our own overlay graph
-  code and its tests go away.
+  code and its tests go away. **Done** in step 1, with two differences:
+  - The helpers that read the NixOS config of a machine are now plain functions
+    that take that config, like
+    `selfLib.cluster.serviceMachines config "patroni"`.
+  - A NixOS option `toh.overlays` stays, because modules add CLI parts that
+    depend on the machine config. It starts from the flake overlays and is
+    composed with the graph helpers of haraspkgs.
 - The NixOS modules become `self.nixosModules` with `flake = true`, so a
   deployment can import them. `nixosModules.default` imports all of them.
 - Tests become `self.nixosTests` (containers). Unit tests become

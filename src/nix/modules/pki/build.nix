@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.pki-build-on-activation =
+  self.nixosModules.pki-build-on-activation.flake = true;
+  self.nixosModules.pki-build-on-activation.value =
     {
       config,
       lib,

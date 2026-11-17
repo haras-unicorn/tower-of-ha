@@ -1,9 +1,8 @@
 {
-  toh.lib.test.testModules.mesh =
+  self.lib.test.testModules.mesh =
     {
       lib,
       config,
-      tohLib,
       ...
     }:
     let

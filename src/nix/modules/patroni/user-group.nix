@@ -1,8 +1,8 @@
 {
-  toh.lib.nixosModules.services-patroni-user-group =
+  self.nixosModules.services-patroni-user-group.flake = true;
+  self.nixosModules.services-patroni-user-group.value =
     {
       config,
-      tohLib,
       lib,
       ...
     }:

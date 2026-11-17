@@ -1,10 +1,12 @@
 # TODO: make configuration store configurable
 
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-patroni =
+  self.nixosModules.services-patroni.flake = true;
+  self.nixosModules.services-patroni.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -12,7 +14,7 @@
     let
       cfg = config.toh.services.patroni;
 
-      anyMachines = tohLib.anyServiceMachines "patroni";
+      anyMachines = selfLib.cluster.anyServiceMachines config "patroni";
 
       subnetAttrs = config.toh.meta.network.subnet;
       subnetCidr = "${subnetAttrs.ip}/${builtins.toString subnetAttrs.bits}";
@@ -20,8 +22,8 @@
       postgresPort = 5432;
       patroniPort = 8008;
 
-      etcdProxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.etcd.endpoint;
-      proxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.postgresql.endpoint;
+      etcdProxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.etcd.endpoint;
+      proxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.postgresql.endpoint;
 
       owner = config.systemd.services.patroni.serviceConfig.User;
       group = config.systemd.services.patroni.serviceConfig.Group;
@@ -105,9 +107,9 @@
                       "hostssl ${database} ${user} ${subnetCidr} scram-sha-256"
                     ];
                   in
-                  makeSuperuserAcl tohLib.patroni.superusers.superuser false
-                  ++ makeSuperuserAcl tohLib.patroni.superusers.replication true
-                  ++ makeSuperuserAcl tohLib.patroni.superusers.rewind false
+                  makeSuperuserAcl selfLib.patroni.superusers.superuser false
+                  ++ makeSuperuserAcl selfLib.patroni.superusers.replication true
+                  ++ makeSuperuserAcl selfLib.patroni.superusers.rewind false
                   ++ makeSubnetAclForDatabaseAndUser "all" "all";
 
                 parameters = {
@@ -129,7 +131,7 @@
                       sslkey = config.toh.services.patroni.users.${user}.key;
                       sslrootcert = config.toh.services.patroni.users.${user}.ca;
                     };
-                  }) tohLib.patroni.superusers
+                  }) selfLib.patroni.superusers
                 );
               };
             };
@@ -305,7 +307,7 @@
             builtins.map (name: {
               inherit name;
               value.installSecrets = true;
-            }) (builtins.attrValues tohLib.patroni.superusers)
+            }) (builtins.attrValues selfLib.patroni.superusers)
           );
 
           toh.pki.generateCa = true;

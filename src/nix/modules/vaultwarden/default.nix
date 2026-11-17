@@ -2,10 +2,10 @@
 # please do not take into account anything in this service file or its test file
 
 {
-  toh.lib.nixosModules.services-vaultwarden =
+  self.nixosModules.services-vaultwarden.flake = true;
+  self.nixosModules.services-vaultwarden.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...

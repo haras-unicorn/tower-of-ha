@@ -1,10 +1,11 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.test.testModules.commands =
+  self.lib.test.testModules.commands =
     {
       specialArgs,
       config,
       lib,
-      tohLib,
       nodes,
       nodea,
       ...
@@ -12,7 +13,7 @@
     let
       cfg = config.toh.test.commands;
 
-      textType = tohLib.types.testCommand;
+      textType = selfLib.types.testCommand;
     in
     {
       options.toh.test = {

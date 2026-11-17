@@ -1,4 +1,4 @@
-{ lib, tohLib, ... }:
+{ selfLib, lib, ... }:
 
 let
   httpSubmodule = {
@@ -68,7 +68,7 @@ let
   };
 in
 {
-  toh.lib.test.testModules.http =
+  self.lib.test.testModules.http =
     {
       lib,
       config,
@@ -88,7 +88,7 @@ in
           builtins.map (
             { name, value }:
             lib.mkIf value.enable (
-              tohLib.dns.routeToIp value.domains config.nodes."http-${name}".toh.meta.network.ip
+              selfLib.dns.routeToIp value.domains config.nodes."http-${name}".toh.meta.network.ip
             )
           ) (lib.attrsToList config.toh.test.http)
         );
@@ -118,12 +118,11 @@ in
       };
     };
 
-  toh.lib.test.nixosModules.http =
+  self.lib.test.nixosModules.http =
     {
       lib,
       config,
       pkgs,
-      tohLib,
       ...
     }:
     let
@@ -197,7 +196,7 @@ in
             content_type = 'text/plain'
 
             try:
-              ${tohLib.strings.indentTail "      " cfg.handler}
+              ${selfLib.strings.indentTail "      " cfg.handler}
             except Exception as e:
               print(f"[HTTP] ERROR: Handler raised exception {e}")
               traceback.print_exc()
@@ -271,7 +270,7 @@ in
           http_thread.start()
 
           ${lib.optionalString cfg.ssl (
-            tohLib.strings.indentTail "  " ''
+            selfLib.strings.indentTail "  " ''
               print(f"[HTTP] SSL cert: {SSL_CERT}")
               print(f"[HTTP] SSL key: {SSL_KEY}")
               print(f"[HTTP] HTTPS port: {HTTPS_PORT}")

@@ -1,5 +1,5 @@
 {
-  toh.lib.kv = {
+  self.lib.kv = {
     protocols = [
       "redis"
       "rediss"

@@ -1,8 +1,10 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-patroni-users =
+  self.nixosModules.services-patroni-users.flake = true;
+  self.nixosModules.services-patroni-users.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -10,7 +12,7 @@
     let
       osUsers = config.users.users;
 
-      proxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.postgresql.endpoint;
+      proxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.postgresql.endpoint;
 
       mergeByUser =
         forEachUser:
@@ -21,14 +23,14 @@
               value
               // (
                 let
-                  isSuperuser = builtins.elem name (builtins.attrValues tohLib.patroni.superusers);
+                  isSuperuser = builtins.elem name (builtins.attrValues selfLib.patroni.superusers);
                 in
                 {
                   user = name;
 
                   inherit isSuperuser;
 
-                  isCliUser = !isSuperuser || name == tohLib.patroni.superusers.superuser;
+                  isCliUser = !isSuperuser || name == selfLib.patroni.superusers.superuser;
 
                   owner = if isSuperuser then config.services.patroni.user else value.user;
                   group = if isSuperuser then config.services.patroni.group else value.group;
@@ -49,13 +51,13 @@
                 let
                   certs =
                     if
-                      builtins.elem name (builtins.attrValues tohLib.patroni.superusers)
+                      builtins.elem name (builtins.attrValues selfLib.patroni.superusers)
                       || !builtins.elem name (builtins.attrNames osUsers)
                       || osUsers.${name}.home == "/var/empty"
                     then
-                      "${tohLib.patroni.certs.root}/${name}"
+                      "${selfLib.patroni.certs.root}/${name}"
                     else
-                      builtins.replaceStrings [ "~" ] [ osUsers.${name}.home ] tohLib.patroni.certs.user;
+                      builtins.replaceStrings [ "~" ] [ osUsers.${name}.home ] selfLib.patroni.certs.user;
                 in
                 {
                   options = {
@@ -75,38 +77,38 @@
                     };
                     password = lib.mkOption {
                       type = lib.types.path;
-                      default = "${certs}/${tohLib.patroni.password}";
-                      defaultText = lib.literalExpression ''"${certs}/${tohLib.patroni.password}"'';
+                      default = "${certs}/${selfLib.patroni.password}";
+                      defaultText = lib.literalExpression ''"${certs}/${selfLib.patroni.password}"'';
                       description = "Path to user Patroni environment file";
                     };
                     env = lib.mkOption {
                       type = lib.types.path;
-                      default = "${certs}/${tohLib.patroni.env}";
-                      defaultText = lib.literalExpression ''"${certs}/${tohLib.patroni.env}"'';
+                      default = "${certs}/${selfLib.patroni.env}";
+                      defaultText = lib.literalExpression ''"${certs}/${selfLib.patroni.env}"'';
                       description = "Path to user Patroni environment file";
                     };
                     url = lib.mkOption {
                       type = lib.types.path;
-                      default = "${certs}/${tohLib.patroni.url}";
-                      defaultText = lib.literalExpression ''"${certs}/${tohLib.patroni.url}"'';
+                      default = "${certs}/${selfLib.patroni.url}";
+                      defaultText = lib.literalExpression ''"${certs}/${selfLib.patroni.url}"'';
                       description = "Path to user Patroni URL file";
                     };
                     ca = lib.mkOption {
                       type = lib.types.path;
-                      default = "${certs}/${tohLib.patroni.certs.ca}";
-                      defaultText = lib.literalExpression ''"${certs}/${tohLib.patroni.certs.ca}"'';
+                      default = "${certs}/${selfLib.patroni.certs.ca}";
+                      defaultText = lib.literalExpression ''"${certs}/${selfLib.patroni.certs.ca}"'';
                       description = "Path to user Patroni root certificate";
                     };
                     crt = lib.mkOption {
                       type = lib.types.path;
-                      default = "${certs}/${tohLib.patroni.certs.crt}";
-                      defaultText = lib.literalExpression ''"${certs}/${tohLib.patroni.certs.crt}"'';
+                      default = "${certs}/${selfLib.patroni.certs.crt}";
+                      defaultText = lib.literalExpression ''"${certs}/${selfLib.patroni.certs.crt}"'';
                       description = "Path to user Patroni certificate";
                     };
                     key = lib.mkOption {
                       type = lib.types.path;
-                      default = "${certs}/${tohLib.patroni.certs.key}";
-                      defaultText = lib.literalExpression ''"${certs}/${tohLib.patroni.certs.key}"'';
+                      default = "${certs}/${selfLib.patroni.certs.key}";
+                      defaultText = lib.literalExpression ''"${certs}/${selfLib.patroni.certs.key}"'';
                       description = "Path to user Patroni key";
                     };
                     dbName = lib.mkOption {
@@ -132,14 +134,14 @@
       };
 
       config = {
-        toh.overlays.cli-patroni-user = tohLib.cli.makeOverlay {
+        toh.overlays.cli-patroni-user = selfLib.cli.makeOverlay {
           extraRuntimeInputs = pkgs: [
             pkgs.postgresql
           ];
           extraTextFile = ./users.nu;
           extraTextVariables = {
             TOH_PATRONI_USERS = builtins.toJSON config.toh.services.patroni.users;
-            TOH_PATRONI_SUPERUSERS = builtins.toJSON (builtins.attrValues tohLib.patroni.superusers);
+            TOH_PATRONI_SUPERUSERS = builtins.toJSON (builtins.attrValues selfLib.patroni.superusers);
           };
         };
 
@@ -295,7 +297,7 @@
                           PATRONI_USER_PASS = "cluster/patroni-${user}-pass";
                         };
                       };
-                      template = tohLib.url.makeUrl {
+                      template = selfLib.url.makeUrl {
                         protocol = "postgresql";
                         inherit (proxyAttrs) host port;
                         user = dbUser;

@@ -1,5 +1,5 @@
 {
-  toh.lib.test.testModules.s3 =
+  self.lib.test.testModules.s3 =
     {
       lib,
       config,

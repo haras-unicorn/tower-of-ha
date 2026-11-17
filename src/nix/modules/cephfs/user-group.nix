@@ -1,8 +1,8 @@
 {
-  toh.lib.nixosModules.services-cephfs-user-group =
+  self.nixosModules.services-cephfs-user-group.flake = true;
+  self.nixosModules.services-cephfs-user-group.value =
     {
       config,
-      tohLib,
       lib,
       ...
     }:

@@ -1,6 +1,7 @@
 {
-  toh.lib.nixosModules.meta-oidc =
-    { lib, tohLib, ... }:
+  self.nixosModules.meta-oidc.flake = true;
+  self.nixosModules.meta-oidc.value =
+    { lib, ... }:
     {
       options.toh.meta = {
         oidc = {

@@ -3,7 +3,8 @@
 # TODO: enable NTS after first sync
 
 {
-  toh.lib.nixosModules.services-chronyd =
+  self.nixosModules.services-chronyd.flake = true;
+  self.nixosModules.services-chronyd.value =
     {
       lib,
       pkgs,

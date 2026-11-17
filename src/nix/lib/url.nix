@@ -1,7 +1,7 @@
-{ lib, tohLib, ... }:
+{ selfLib, lib, ... }:
 
 {
-  toh.lib.url = {
+  self.lib.url = {
     defaultPorts = {
       http = 80;
       https = 443;
@@ -62,7 +62,7 @@
       )
       + host
       + lib.optionalString (
-        !(tohLib.url.defaultPorts ? ${protocol}) || port != tohLib.url.defaultPorts.${protocol}
+        !(selfLib.url.defaultPorts ? ${protocol}) || port != selfLib.url.defaultPorts.${protocol}
       ) ":${builtins.toString port}"
       + lib.optionalString (path != null && path != "") "/${lib.removePrefix "/" path}"
       + lib.optionalString (parameters != null && parameters != { }) (
@@ -75,7 +75,7 @@
 
   self.unitTests.url =
     let
-      makePath = tohLib.url.makePath;
+      makePath = selfLib.url.makePath;
     in
     {
       test-make-path-empty = {
@@ -110,7 +110,7 @@
       };
 
       test-make-url-default-port = {
-        expr = tohLib.url.makeUrl {
+        expr = selfLib.url.makeUrl {
           protocol = "https";
           host = "example.com";
           port = 443;
@@ -123,7 +123,7 @@
       };
 
       test-make-url-credentials-and-port = {
-        expr = tohLib.url.makeUrl {
+        expr = selfLib.url.makeUrl {
           protocol = "postgresql";
           user = "app";
           password = "secret";

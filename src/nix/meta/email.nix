@@ -1,8 +1,8 @@
 {
-  toh.lib.nixosModules.meta-email =
+  self.nixosModules.meta-email.flake = true;
+  self.nixosModules.meta-email.value =
     {
       lib,
-      tohLib,
       config,
       ...
     }:

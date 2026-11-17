@@ -1,7 +1,8 @@
 { inputs, ... }:
 
 {
-  toh.lib.nixosModules.meta-cryl =
+  self.nixosModules.meta-cryl.flake = true;
+  self.nixosModules.meta-cryl.value =
     { lib, ... }:
     {
       options.toh.meta = {

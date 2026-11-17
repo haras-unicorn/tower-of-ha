@@ -1,10 +1,12 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-garage-users =
+  self.nixosModules.services-garage-users.flake = true;
+  self.nixosModules.services-garage-users.value =
     {
       lib,
       config,
       pkgs,
-      tohLib,
       ...
     }:
     let
@@ -35,9 +37,9 @@
                 let
                   certs =
                     if !builtins.elem name (builtins.attrNames osUsers) || osUsers.${name}.home == "/var/empty" then
-                      "${tohLib.garage.certs.root}/${name}"
+                      "${selfLib.garage.certs.root}/${name}"
                     else
-                      builtins.replaceStrings [ "~" ] [ osUsers.${name}.home ] tohLib.garage.certs.user;
+                      builtins.replaceStrings [ "~" ] [ osUsers.${name}.home ] selfLib.garage.certs.user;
                 in
                 {
                   options = {
@@ -57,14 +59,14 @@
                     };
                     keyId = lib.mkOption {
                       type = lib.types.path;
-                      default = "${certs}/${tohLib.garage.certs.keyId}";
-                      defaultText = lib.literalExpression ''"${certs}/${tohLib.garage.certs.keyId}"'';
+                      default = "${certs}/${selfLib.garage.certs.keyId}";
+                      defaultText = lib.literalExpression ''"${certs}/${selfLib.garage.certs.keyId}"'';
                       description = "Path to S3 key id file";
                     };
                     secretKey = lib.mkOption {
                       type = lib.types.path;
-                      default = "${certs}/${tohLib.garage.certs.secretKey}";
-                      defaultText = lib.literalExpression ''"${certs}/${tohLib.garage.certs.secretKey}"'';
+                      default = "${certs}/${selfLib.garage.certs.secretKey}";
+                      defaultText = lib.literalExpression ''"${certs}/${selfLib.garage.certs.secretKey}"'';
                       description = "Path to S3 secret key file";
                     };
                   };
@@ -80,7 +82,7 @@
       };
 
       config = {
-        toh.overlays.cli-s3-users = tohLib.cli.makeOverlay {
+        toh.overlays.cli-s3-users = selfLib.cli.makeOverlay {
           extraRuntimeInputs = (final: [ final.s3cmd ]);
           extraTextFile = ./users.nu;
           extraTextVariables = {

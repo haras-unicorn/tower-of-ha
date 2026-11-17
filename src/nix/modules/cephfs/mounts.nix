@@ -1,14 +1,18 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-ceph-mounts =
+  self.nixosModules.services-ceph-mounts.flake = true;
+  self.nixosModules.services-ceph-mounts.value =
     {
       lib,
-      tohLib,
       pkgs,
       config,
       ...
     }:
     let
-      anyMachines = tohLib.anyServiceMachines "cephfs";
+      cephPackage = pkgs.tohPackages.ceph;
+
+      anyMachines = selfLib.cluster.anyServiceMachines config "cephfs";
 
       monDaemons = builtins.map (daemon: "ceph-mon-${daemon}.service") config.services.ceph.mon.daemons;
 
@@ -87,7 +91,7 @@
             wantedBy = afterServices;
             after = afterServices;
             requires = afterServices;
-            path = [ pkgs.ceph ];
+            path = [ cephPackage ];
             script = ''
               ${lib.optionalString erase ''
                 shopt -s extglob
@@ -117,7 +121,7 @@
             wantedBy = afterServices;
             after = afterServices;
             requires = afterServices;
-            path = [ pkgs.ceph ];
+            path = [ cephPackage ];
             script = ''
               chown ${user}:${group} '${path}'
             '';

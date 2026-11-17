@@ -1,7 +1,8 @@
 # TODO: multiple users + ACL
 
 {
-  toh.lib.nixosModules.meta-user =
+  self.nixosModules.meta-user.flake = true;
+  self.nixosModules.meta-user.value =
     { lib, ... }:
     {
       options.toh.meta = {

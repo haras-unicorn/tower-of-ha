@@ -1,11 +1,13 @@
 # TODO: ntp from reverse proxied ntp server
 # - need traefik for udp revere proxy and abstracting away chrony
 
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-authelia =
+  self.nixosModules.services-authelia.flake = true;
+  self.nixosModules.services-authelia.value =
     {
       lib,
-      tohLib,
       config,
       pkgs,
       ...
@@ -16,10 +18,10 @@
 
       format = pkgs.formats.yaml { };
 
-      anyMachines = tohLib.anyServiceMachines "authelia";
+      anyMachines = selfLib.cluster.anyServiceMachines config "authelia";
 
-      proxyUrl = tohLib.services.endpoint.toUrl config.toh.meta.proxies.authelia.endpoint { };
-      proxyAttrs = tohLib.services.endpoint.toAttrs config.toh.meta.proxies.authelia.endpoint;
+      proxyUrl = selfLib.services.endpoint.toUrl config.toh.meta.proxies.authelia.endpoint { };
+      proxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.authelia.endpoint;
 
       port = 9091;
 
@@ -474,7 +476,7 @@
           toh.meta.ldap.apps.${name} = {
             user = owner;
             group = group;
-            permissions = [ tohLib.ldap.permissions.passwordChange ];
+            permissions = [ selfLib.ldap.permissions.passwordChange ];
           };
 
           toh.meta.email.apps.${name} = {
@@ -487,10 +489,10 @@
             group = group;
             database = port;
             permissions = [
-              tohLib.kv.permissions.read
-              tohLib.kv.permissions.write
-              tohLib.kv.permissions.connection
-              tohLib.kv.permissions.keyspace
+              selfLib.kv.permissions.read
+              selfLib.kv.permissions.write
+              selfLib.kv.permissions.connection
+              selfLib.kv.permissions.keyspace
             ];
           };
 

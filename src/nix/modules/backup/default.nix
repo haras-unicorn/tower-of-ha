@@ -1,12 +1,14 @@
 # NOTE: this service is incomplete and requires to be tested thoroughly!!!
 # please do not take into account anything in this service file or its test file
 
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.programs-cli-backup =
+  self.nixosModules.programs-cli-backup.flake = true;
+  self.nixosModules.programs-cli-backup.value =
     {
       pkgs,
       lib,
-      tohLib,
       config,
       ...
     }:
@@ -23,7 +25,7 @@
       };
 
       config = lib.mkIf cfg.enableBackup {
-        toh.overlays.cli-physical-backup = tohLib.cli.makeOverlay {
+        toh.overlays.cli-physical-backup = selfLib.cli.makeOverlay {
           extraRuntimeInputs = pkgs: [ pkgs.openssh ];
           extraTextFile = ./backup.nu;
           extraTextVariables = {
@@ -34,7 +36,7 @@
           };
         };
 
-        toh.overlays.cli-logical-backup = tohLib.cli.makeOverlay {
+        toh.overlays.cli-logical-backup = selfLib.cli.makeOverlay {
           extraRuntimeInputs = pkgs: [ pkgs.openssh ];
           extraTextFile = ./backup.nu;
           extraTextVariables = {
@@ -45,7 +47,7 @@
           };
         };
 
-        toh.overlays.cli-physical-restore = tohLib.cli.makeOverlay {
+        toh.overlays.cli-physical-restore = selfLib.cli.makeOverlay {
           extraRuntimeInputs = pkgs: [ pkgs.openssh ];
           extraTextFile = ./restore.nu;
           extraTextVariables = {
@@ -56,7 +58,7 @@
           };
         };
 
-        toh.overlays.cli-logical-restore = tohLib.cli.makeOverlay {
+        toh.overlays.cli-logical-restore = selfLib.cli.makeOverlay {
           extraRuntimeInputs = pkgs: [ pkgs.openssh ];
           extraTextFile = ./restore.nu;
           extraTextVariables = {

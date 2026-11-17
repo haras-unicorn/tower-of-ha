@@ -1,9 +1,9 @@
 {
-  toh.lib.nixosModules.services-geoclue =
+  self.nixosModules.services-geoclue.flake = true;
+  self.nixosModules.services-geoclue.value =
     {
       config,
       lib,
-      tohLib,
       pkgs,
       ...
     }:

@@ -1,5 +1,5 @@
 {
-  toh.lib.test.testModules.domains =
+  self.lib.test.testModules.domains =
     { lib, ... }:
     {
       options.toh.test = {

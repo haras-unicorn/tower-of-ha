@@ -1,15 +1,16 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.test.nixosModules.machine =
+  self.lib.test.nixosModules.machine =
     {
       lib,
-      tohLib,
       config,
       nodes,
       pkgs,
       ...
     }:
     {
-      toh.meta.cluster = tohLib.cluster.fromTestNodes nodes;
+      toh.meta.cluster = selfLib.cluster.fromTestNodes nodes;
 
       toh.meta.machine.name = config.virtualisation.test.nodeName;
       toh.meta.machine.index = config.virtualisation.test.nodeNumber;

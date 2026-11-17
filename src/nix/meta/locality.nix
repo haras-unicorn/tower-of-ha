@@ -1,5 +1,6 @@
 {
-  toh.lib.nixosModules.meta-locality =
+  self.nixosModules.meta-locality.flake = true;
+  self.nixosModules.meta-locality.value =
     { lib, ... }:
     {
       options.toh.meta = {

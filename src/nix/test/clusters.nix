@@ -1,5 +1,5 @@
 {
-  toh.lib.test.testModules.clusters =
+  self.lib.test.testModules.clusters =
     { lib, config, ... }:
     let
       cfg = config.toh.test.clusters;

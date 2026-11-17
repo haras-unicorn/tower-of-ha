@@ -1,17 +1,19 @@
+{ selfLib, ... }:
+
 {
-  toh.lib.nixosModules.services-openbao-token =
+  self.nixosModules.services-openbao-token.flake = true;
+  self.nixosModules.services-openbao-token.value =
     {
       config,
       lib,
       pkgs,
-      tohLib,
       ...
     }:
     let
       cfg = config.toh.services.openbao;
 
-      user = tohLib.openbao.user;
-      group = tohLib.openbao.group;
+      user = selfLib.openbao.user;
+      group = selfLib.openbao.group;
 
       hours = 2;
       refreshHours = hours / 2;
@@ -28,7 +30,7 @@
       };
 
       config = lib.mkIf cfg.token.enable {
-        toh.overlays = tohLib.cli.makeOverlays {
+        toh.overlays = selfLib.cli.makeOverlays {
           name = "openbao-token";
           runtimeInputs = pkgs: [ pkgs.openbao ];
           textFile = ./token.nu;
@@ -38,7 +40,7 @@
             TOH_OPENBAO_MACHINE_USERNAME = config.toh.meta.machine.name;
             TOH_OPENBAO_MACHINE_PASSWORD_PATH =
               config.toh.meta.sops.secrets."openbao-machine-${config.toh.meta.machine.name}-pass".path;
-            TOH_OPENBAO_ADDRESS = tohLib.services.endpoint.toUrl config.toh.meta.proxies.openbao.endpoint { };
+            TOH_OPENBAO_ADDRESS = selfLib.services.endpoint.toUrl config.toh.meta.proxies.openbao.endpoint { };
           };
         };
 

@@ -1,7 +1,7 @@
 { lib, ... }:
 
 {
-  toh.lib.strings = {
+  self.lib.strings = {
     indentTail =
       indentation: string:
       builtins.concatStringsSep "\n" (

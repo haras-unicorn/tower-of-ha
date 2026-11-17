@@ -1,7 +1,7 @@
-{ lib, tohLib, ... }:
+{ selfLib, lib, ... }:
 
 {
-  toh.lib.dns.routeToIp =
+  self.lib.dns.routeToIp =
     domains: ip:
     builtins.mapAttrs
       (
@@ -24,7 +24,7 @@
 
   self.unitTests.dns =
     let
-      routeToIp = tohLib.dns.routeToIp;
+      routeToIp = selfLib.dns.routeToIp;
     in
     {
       test-empty-domains = {
