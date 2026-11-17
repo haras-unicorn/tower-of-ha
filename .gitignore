@@ -1,5 +1,11 @@
-# https://github.com/github/gitignore/blob/main/Nix.gitignore
+/.direnv
+# Repository
 
+.env
+docs/book
+**/.nixos-test-history
+
+# github/gitignore: Nix.gitignore
 # Ignore build outputs from performing a nix-build or `nix build` command
 result
 result-*
@@ -9,9 +15,3 @@ result-*
 
 # Ignore NixOS interactive test driver history
 **/.nixos-test-history
-
-
-# Repository
-
-docs/book
-.env
