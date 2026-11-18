@@ -215,6 +215,11 @@ ignoreWords:
   - PYTHONPATH
   - coturn
   - dtls
+  - bluestore
+  - uuidgen
+  - cephx
+  - getmap
+  - objectstore
   - fsid
   - losetup
   - radosgw

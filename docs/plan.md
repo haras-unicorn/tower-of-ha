@@ -159,7 +159,8 @@ A first sort of the 26 test files. Not tried yet, so all of it is **read**.
     sync status only, or stay a VM.
   - networkmanager and geoclue need a closer look.
 - **Probably stay VMs:**
-  - cephfs: OSDs on loop devices, FUSE mounts.
+  - cephfs: OSDs on loop devices, FUSE mounts. Moved on 2026-11-18: OSDs keep
+    their data in a plain file, and containers get `/dev/fuse` from the host.
   - samba: CTDB moves IP addresses. Gone since 2026-11-18: one smbd runs at a
     time, behind an etcd lease (`toh.leases`).
 - **Test helpers:** `src/nix/test/machine.nix` sets QEMU options (memory, cores,
@@ -225,10 +226,10 @@ capability has a contract test that every current implementation passes.
    2026-11-18. Forgejo stays a VM, because it keeps its repositories on CephFS.
 3. **The last VMs (M, spike).** Try to move the tests that are left to
    containers. Ceph is the most valuable, because forgejo and samba need it too.
-   - Ceph: OSDs on BlueStore with a plain file instead of a block device, and
-     `ceph-fuse` instead of the kernel mount. If the sandbox has no `/dev/fuse`,
-     it goes into `extra-sandbox-paths`.
-   - Samba: no CTDB anymore, so only CephFS keeps it a VM.
+   - Ceph: **done.** OSDs on BlueStore with a plain file instead of a loop
+     device, and `ceph-fuse` instead of the kernel mount. `/dev/fuse` comes from
+     the host's `extra-sandbox-paths`. cephfs, samba and forgejo run as
+     containers; only the optional kernel mount test stays a VM.
    - chronyd: **done.** The checked test runs as containers with `chronyd -x`,
      and the optional `services-chronyd-clock` VM test sets the real clock.
 4. **Contract shape (S).** Write down how a contract test module looks,

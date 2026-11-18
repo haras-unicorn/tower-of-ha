@@ -330,11 +330,14 @@ Containers share the host kernel. By the NixOS manual, they cannot:
 - run setuid binaries or switch to a specialisation,
 - use many of systemd's sandboxing options such as `ProtectSystem=`.
 
-From reading the code, these are also likely problems (not tried yet):
+What the tests ran into, and how they get around it:
 
 - the VPN needs a TUN device,
-- chrony cannot set the clock,
-- Ceph uses loop devices and FUSE.
+- chrony cannot set the clock, so it runs with `-x`, and an optional VM test
+  sets the real clock,
+- Ceph cannot make loop devices, so OSDs keep their data in a plain file,
+- `ceph-fuse` needs `/dev/fuse`, which the host passes into the build sandbox
+  with `extra-sandbox-paths`.
 
 The [plan](./plan.md#container-readiness) sorts every test by this.
 

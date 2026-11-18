@@ -28,9 +28,6 @@
         };
     in
     selfLib.test.makeNixosTest {
-      # NOTE: samba keeps its shares on cephfs, whose OSDs need disks
-      toh.test.kind = "vm";
-
       toh.test.clusters.node = {
         amount = 2;
         module = {

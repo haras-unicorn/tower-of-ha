@@ -33,9 +33,30 @@
           services.openssh.settings.PasswordAuthentication = lib.mkForce true;
         };
 
-      containerDefaults =
-        { pkgs, config, ... }:
+      nodeDefaults =
+        { config, lib, ... }:
         {
+          # NOTE: the vm disk holds the file the ceph OSD keeps its data in,
+          # on top of the 1024 MB the disk has by default
+          virtualisation.diskSize = lib.mkIf config.toh.services.cephfs.enable (
+            1024 + config.toh.services.cephfs.capacityInMB + 16
+          );
+        };
+
+      containerDefaults =
+        {
+          pkgs,
+          config,
+          lib,
+          ...
+        }:
+        {
+          # NOTE: ceph-fuse needs /dev/fuse, which the build sandbox only has
+          # when the host adds it to extra-sandbox-paths
+          virtualisation.systemd-nspawn.options = lib.mkIf config.toh.services.cephfs.enable [
+            "--bind=/dev/fuse"
+          ];
+
           # NOTE: containers have no /dev/watchdog, and a watchdog bound in
           # from the host would reset the host
           toh.services.patroni.softwareWatchdog = false;

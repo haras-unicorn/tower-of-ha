@@ -143,11 +143,6 @@
       };
 
       config = lib.mkIf cfg.enable {
-        # NOTE: the standard size is 1024,
-        # so we just increase it by the ceph disk capacity
-        # + a little more space for comfort
-        virtualisation.diskSize = 1024 * (cfg.capacityInMB + 16);
-
         environment.systemPackages = [
           cephPackage
           pkgs.ceph-client
@@ -205,7 +200,6 @@
           };
 
         systemd.tmpfiles.rules = [
-          # NOTE: needed for the osd loop device service
           "d /var/log/ceph 0750 ceph ceph -"
           "d /var/lib/ceph/bootstrap-osd 0750 ceph ceph -"
         ];
@@ -385,24 +379,48 @@
                   path = [
                     config.services.ceph.osd.package
                     pkgs.util-linux
-                    pkgs.lvm2
                   ];
-                  script = ''
-                    mkdir -p "${stateDirectory}"
-                    chown ceph:disk -R "${stateDirectory}"
-                    chmod 750 -R "${stateDirectory}"
-                    img="${stateDirectory}/data.img"
-                    if ! losetup -l | grep -q $img; then
-                      if [ ! -f $img ]; then
-                        truncate -s ${builtins.toString cfg.capacityInMB}MB $img
+                  # NOTE: ceph-volume only prepares block devices, and a
+                  # loop device for a file needs /dev/loop-control, which
+                  # containers lack; bluestore can keep its data in a plain
+                  # file, so this does by hand what ceph-volume would do
+                  script =
+                    let
+                      bootstrapAuth = "-n client.bootstrap-osd -k /var/lib/ceph/bootstrap-osd/ceph.keyring";
+                      capacityInBytes = builtins.toString (cfg.capacityInMB * 1000 * 1000);
+                    in
+                    ''
+                      dir="${stateDirectory}"
+                      if [ -f "$dir/ready" ]; then
+                        exit 0
                       fi
-                      dev=$(losetup -f --show $img)
-                      if ! ceph-volume raw list | grep -q $dev; then
-                        ceph-volume raw prepare --data $dev --osd-id "${name}"
-                        ceph-volume raw activate --device $dev --no-systemd
+
+                      mkdir -p "$dir"
+                      if [ ! -f "$dir/osd-uuid" ]; then
+                        uuidgen > "$dir/osd-uuid"
                       fi
-                    fi
-                  '';
+                      uuid="$(cat "$dir/osd-uuid")"
+                      if [ ! -f "$dir/keyring" ]; then
+                        ceph-authtool "$dir/keyring" --create-keyring \
+                          --name "osd.${name}" --add-key "$(ceph-authtool --gen-print-key)"
+                      fi
+                      secret="$(ceph-authtool "$dir/keyring" --name "osd.${name}" --print-key)"
+
+                      echo "{\"cephx_secret\": \"$secret\"}" \
+                        | ceph ${bootstrapAuth} -i - osd new "$uuid" "${name}"
+                      ceph ${bootstrapAuth} mon getmap -o "$dir/activate.monmap"
+                      echo "$secret" | ceph-osd -i "${name}" --mkfs \
+                        --osd-uuid "$uuid" \
+                        --osd-data "$dir" \
+                        --osd-objectstore bluestore \
+                        --monmap "$dir/activate.monmap" \
+                        --keyfile - \
+                        --bluestore_block_create=true \
+                        --bluestore_block_size=${capacityInBytes}
+
+                      chown ceph:disk -R "$dir"
+                      chmod 750 -R "$dir"
+                    '';
                   serviceConfig = {
                     Type = "oneshot";
                     RemainAfterExit = true;

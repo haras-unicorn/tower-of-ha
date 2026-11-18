@@ -55,9 +55,6 @@ let
 in
 {
   self.nixosTests.services-cephfs = selfLib.test.makeNixosTest {
-    # NOTE: ceph OSDs need disks
-    toh.test.kind = "vm";
-
     toh.test.clusters.node = {
       amount = 3;
       module = {
@@ -69,9 +66,6 @@ in
   };
 
   self.nixosTests.services-cephfs-mount = selfLib.test.makeNixosTest {
-    # NOTE: ceph OSDs need disks and ceph-fuse needs /dev/fuse
-    toh.test.kind = "vm";
-
     toh.test.clusters.node = {
       amount = 3;
       module = {
