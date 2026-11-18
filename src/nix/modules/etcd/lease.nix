@@ -77,8 +77,12 @@
                 config.systemd.package
               ];
               # NOTE: etcdctl prints the lock key once it holds the lock and
-              # then waits until it is stopped or the lock runs out
+              # then waits until it is stopped or the lock runs out; the trap
+              # keeps the shell alive until etcdctl has released the lock and
+              # exited, because in containers systemd does not notice when
+              # the last process of a unit exits after its main process
               script = ''
+                trap true TERM
                 etcdctl \
                   --endpoints=${etcdUrl} \
                   --cacert=${secretPath caSecret} \
