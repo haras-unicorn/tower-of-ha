@@ -51,13 +51,11 @@ let
               if extraTextVariables == null then
                 newExtraText
               else
-                builtins.readFile (
-                  final.tohPackages.renderMustacheTemplate {
-                    name = "toh-${attr}-rendered-extra-text";
-                    variables = extraTextVariables;
-                    template = newExtraText;
-                  }
-                );
+                final.harasPackages.renderMustacheText {
+                  name = "toh-${attr}-rendered-extra-text";
+                  text = newExtraText;
+                  vars = extraTextVariables;
+                };
 
             nextExtraText = prev.extraText + "\n\n" + renderedNewExtraText;
           in

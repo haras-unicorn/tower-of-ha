@@ -52,6 +52,7 @@ in
         toh.overlays = builtins.mapAttrs (_: overlay: { inherit (overlay) deps value; }) flakeOverlays;
 
         nixpkgs.overlays = [
+          inputs.haraspkgs.overlays.mustache
           (overlaysLib.namespaceOverlay namespace (
             overlaysLib.composeOverlay config.toh.overlays config.toh.overlays
           ))
