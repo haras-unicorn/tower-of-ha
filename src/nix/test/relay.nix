@@ -36,8 +36,6 @@
       config = lib.mkIf cfg.enable (
         lib.mkMerge [
           {
-            name = "services-${cfg.name}-relay";
-
             # NOTE: the relay services need a TUN device, which containers lack
             toh.test.kind = "vm";
 

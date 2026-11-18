@@ -36,9 +36,9 @@ The dev shell loads through direnv. It provides one `dev` command:
 - `dev docs` builds the book, `dev check-links` checks its links.
 
 `nix flake check` also runs the unit tests and the NixOS tests. The NixOS tests
-are slow and many are known to be broken during the current plan, so run the
-ones you need by name: `checks.<system>.nixos-test-<name>` for the tests already
-on `self.nixosTests`, `checks.<system>.test-<name>` for the rest.
+are slow and some are known to be broken during the current plan, so run the
+ones you need by name: `checks.<system>.nixos-test-<name>`. Tests run as
+containers; one that sets `toh.test.kind = "vm"` says why in a `NOTE` comment.
 
 ## Generated files
 

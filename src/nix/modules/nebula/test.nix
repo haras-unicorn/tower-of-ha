@@ -1,21 +1,19 @@
-{
-  perSystem =
-    { pkgs, ... }:
-    {
-      checks.test-services-nebula-mesh = pkgs.tohPackages.testers.runToHTest {
-        toh.test.mesh = {
-          enable = true;
-          name = "nebula";
-          unit = "nebula@toh.service";
-        };
-      };
+{ selfLib, ... }:
 
-      checks.test-services-nebula-relay = pkgs.tohPackages.testers.runToHTest {
-        toh.test.relay = {
-          enable = true;
-          name = "nebula";
-          unit = "nebula@toh.service";
-        };
-      };
+{
+  self.nixosTests.services-nebula-mesh = selfLib.test.makeNixosTest {
+    toh.test.mesh = {
+      enable = true;
+      name = "nebula";
+      unit = "nebula@toh.service";
     };
+  };
+
+  self.nixosTests.services-nebula-relay = selfLib.test.makeNixosTest {
+    toh.test.relay = {
+      enable = true;
+      name = "nebula";
+      unit = "nebula@toh.service";
+    };
+  };
 }

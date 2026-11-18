@@ -234,8 +234,10 @@ Nebula run them.
 - Option docs are generated into the mdbook with `mkOptionsDocs`.
 
 haraspkgs container tests do not configure QEMU nodes. A test that has to stay a
-VM needs another way. If that means going around haraspkgs, it gets a comment
-and an issue for haraspkgs, per the Nix style.
+VM needs another way. **Done** in step 2 without going around haraspkgs: every
+test is a `self.nixosTests` entry made by `selfLib.test.makeNixosTest`, and
+`toh.test.kind` puts all machines of a test, helper servers included, into
+`containers` or `nodes`.
 
 ### What a deployment looks like
 

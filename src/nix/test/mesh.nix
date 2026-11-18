@@ -73,8 +73,6 @@
             };
           })
           {
-            name = "services-${cfg.name}-mesh";
-
             toh.test.network.enable = false;
 
             toh.test.dns.enable = true;
