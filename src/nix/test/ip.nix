@@ -13,6 +13,8 @@
 
       config = lib.mkIf cfg.enable {
         toh.test.http.ip = {
+          enable = true;
+
           domains = [
             "api.ipify.org"
             "api6.ipify.org"

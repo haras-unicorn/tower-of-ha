@@ -13,6 +13,8 @@
 
       config = lib.mkIf cfg.enable {
         toh.test.http.ddns = {
+          enable = true;
+
           domains = [
             "duckdns.org"
             "www.duckdns.org"
