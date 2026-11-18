@@ -1,49 +1,57 @@
 { selfLib, inputs, ... }:
 
 let
-  healthCommands = [
+  healthCommands = allowedChecks: [
     ''command_node.wait_until_succeeds("systemctl is-active toh-filesystem-online.target", timeout=300)''
     ''
       import json
-      status = json.loads(command_node.succeed("ceph -s --format json"))
-      assert (
-        status["health"]["status"] == "HEALTH_OK"
-        or (
-          status["health"]["status"] == "HEALTH_WARN"
-          and list(status["health"]["checks"].keys()) == ["MON_CLOCK_SKEW"]
-        )
-      ), f"CephFS is suffering from something other than regular clock skew in tests: '{status}'"
+      allowed = json.loads('${builtins.toJSON ([ "MON_CLOCK_SKEW" ] ++ allowedChecks)}')
+
+      def healthy(last_try):
+        status = json.loads(command_node.succeed("ceph -s --format json"))
+        unexpected = [
+          check for check in status["health"].get("checks", {})
+          if not any(check.startswith(prefix) for prefix in allowed)
+        ]
+        if last_try:
+          assert not unexpected, f"CephFS is suffering from something other than {allowed}: '{status}'"
+        return not unexpected
+
+      retry(healthy, timeout_seconds=60)
     ''
   ];
 
-  mountCommands = healthCommands ++ [
-    (
-      node:
-      let
-        name = node.toh.meta.machine.name;
-      in
-      ''
-        command_node.succeed("echo 'Hello from ${name}!' > /mnt/hello-world-${name}")
-      ''
-    )
-    (
-      { node, machineList, ... }:
-      let
-        others = builtins.filter (
-          other: other.toh.meta.machine.name != node.toh.meta.machine.name
-        ) machineList;
-      in
-      builtins.concatStringsSep "\n" (
-        builtins.map (
-          other:
-          let
-            name = other.toh.meta.machine.name;
-          in
-          ''command_node.succeed("cat /mnt/hello-world-${name} | grep -q 'Hello from ${name}!'")''
-        ) others
+  mountCommands =
+    allowedChecks:
+    healthCommands allowedChecks
+    ++ [
+      (
+        node:
+        let
+          name = node.toh.meta.machine.name;
+        in
+        ''
+          command_node.succeed("echo 'Hello from ${name}!' > /mnt/hello-world-${name}")
+        ''
       )
-    )
-  ];
+      (
+        { node, machineList, ... }:
+        let
+          others = builtins.filter (
+            other: other.toh.meta.machine.name != node.toh.meta.machine.name
+          ) machineList;
+        in
+        builtins.concatStringsSep "\n" (
+          builtins.map (
+            other:
+            let
+              name = other.toh.meta.machine.name;
+            in
+            ''command_node.succeed("cat /mnt/hello-world-${name} | grep -q 'Hello from ${name}!'")''
+          ) others
+        )
+      )
+    ];
 in
 {
   self.nixosTests.services-cephfs = selfLib.test.makeNixosTest {
@@ -57,7 +65,7 @@ in
       };
     };
 
-    toh.test.commands.perNodeInCluster.node = healthCommands;
+    toh.test.commands.perNodeInCluster.node = healthCommands [ ];
   };
 
   self.nixosTests.services-cephfs-mount = selfLib.test.makeNixosTest {
@@ -72,7 +80,7 @@ in
       };
     };
 
-    toh.test.commands.perNodeInCluster.node = mountCommands;
+    toh.test.commands.perNodeInCluster.node = mountCommands [ ];
   };
 
   # NOTE: kernels before 7.0 refuse the 32 byte keys newer ceph makes, and
@@ -123,11 +131,13 @@ in
           module = {
             toh.services.cephfs.enable = true;
             toh.services.cephfs.mountDriver = "kernel";
+            toh.services.cephfs.keyType = "aes";
             toh.meta.filesystem.mounts."/mnt" = { };
           };
         };
 
-        toh.test.commands.perNodeInCluster.node = mountCommands;
+        # NOTE: allowing aes keys is what the insecure key checks warn about
+        toh.test.commands.perNodeInCluster.node = mountCommands [ "AUTH_INSECURE" ];
       }
     )
     // {

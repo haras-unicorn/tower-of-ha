@@ -211,6 +211,7 @@ ignoreWords:
   - monmap
   - monmaptool
   - authtool
+  - addv
   - fsid
   - losetup
   - radosgw

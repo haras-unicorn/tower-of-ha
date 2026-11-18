@@ -125,6 +125,20 @@
             default = "103e0dfc-704d-42b4-a8bb-958d1ceb7d15";
             description = "CephFS ID";
           };
+
+          keyType = lib.mkOption {
+            type = lib.types.enum [
+              "aes256k"
+              "aes"
+            ];
+            default = "aes256k";
+            description = ''
+              The key type clients may use. Kernels before 7.0 can only mount
+              with the older and less secure aes keys, so `aes` also allows
+              those. Only takes effect when the monitors are first created,
+              and the keys cryl generates do not follow it yet.
+            '';
+          };
         };
       };
 
@@ -285,15 +299,23 @@
                 script =
                   let
                     addMonitors = builtins.concatStringsSep " " (
-                      builtins.map (machine: ''--add "${machine.name}" ${machine.meta.network.ip}'') machines
+                      builtins.map (
+                        machine:
+                        let
+                          ip = machine.meta.network.ip;
+                        in
+                        ''--addv "${machine.name}" "[v2:${ip}:3300,v1:${ip}:6789]"''
+                      ) machines
                     );
+
+                    authSettings = lib.optionalString (cfg.keyType == "aes") "--auth-allowed-ciphers=aes,aes256k";
                   in
                   ''
                     if [ ! -d "${stateDirectory}/store.db" ]; then
                       monmap="$(mktemp)"
                       trap 'rm -f "$monmap"' EXIT INT TERM
                       rm -rf $monmap
-                      monmaptool --create ${addMonitors} --fsid ${cfg.fsid} "$monmap"
+                      monmaptool --create ${authSettings} ${addMonitors} --fsid ${cfg.fsid} "$monmap"
                       ceph-mon -i "${name}" \
                         --mkfs \
                         --monmap "$monmap" \

@@ -22,9 +22,11 @@ Found while fixing the tests, not `TODO` comments.
 - `src/nix/test/relay.nix`: the relay domain resolves to one address per VLAN,
   but EasyTier and Nebula only dial the first one, so the node on the second
   VLAN never reaches the relay.
-- `src/nix/modules/cephfs/test.nix`: the optional kernel mount test makes aes
-  keys, but the monitors refuse them. The allowed ciphers of a new cluster have
-  to include aes.
+- `src/nix/modules/chronyd/test.nix`: an optional VM test where chrony really
+  sets the clock, next to the container test that runs it with `-x`.
+- `src/nix/modules/cephfs/default.nix`: `keyType` only changes the allowed
+  ciphers. The keys still come from cryl, which the kernel test wraps to make
+  aes keys.
 
 ## Step 5: Remove Nebula
 

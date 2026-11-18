@@ -40,7 +40,10 @@ are slow and some are known to be broken during the current plan, so run the
 ones you need by name: `checks.<system>.nixos-test-<name>`. Optional tests set
 `flake = false`, stay out of the checks and build as
 `lib.<system>.nixosTests.<name>`. Tests run as containers; one that sets
-`toh.test.kind = "vm"` says why in a `NOTE` comment.
+`toh.test.kind = "vm"` says why in a `NOTE` comment. When a service needs
+something a container cannot give (the real clock, a kernel client), the checked
+test fakes it or uses a workaround, and an optional VM test covers the real
+thing.
 
 ## Generated files
 
