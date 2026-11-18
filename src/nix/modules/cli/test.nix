@@ -1,15 +1,12 @@
+{ selfLib, ... }:
+
 {
-  perSystem =
-    { lib, pkgs, ... }:
-    {
-      checks.test-services-cli = pkgs.tohPackages.testers.runToHTest {
-        name = "services-cli";
-        nodes.machine = {
-          toh.programs.cli.enable = true;
-        };
-        toh.test.commands.suffix = ''
-          machine.succeed("toh")
-        '';
-      };
+  self.nixosTests.services-cli = selfLib.test.makeNixosTest {
+    containers.machine = {
+      toh.programs.cli.enable = true;
     };
+    toh.test.commands.suffix = ''
+      machine.succeed("toh")
+    '';
+  };
 }

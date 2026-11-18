@@ -17,6 +17,7 @@
             name = "services-samba";
 
             toh.test.clusters.node = {
+              kind = "vm";
               amount = 2;
               module = {
                 toh.services.cephfs.enable = true;

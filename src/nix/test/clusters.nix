@@ -74,7 +74,7 @@
                     "container"
                     "vm"
                   ];
-                  default = "vm";
+                  default = "container";
                   description = ''
                     Whether the nodes are systemd-nspawn containers or QEMU VMs
                   '';

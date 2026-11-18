@@ -6,6 +6,7 @@
         name = "services-cephfs";
 
         toh.test.clusters.node = {
+          kind = "vm";
           amount = 3;
           module = {
             toh.services.cephfs.enable = true;
@@ -32,6 +33,7 @@
         name = "services-cephfs-mount";
 
         toh.test.clusters.node = {
+          kind = "vm";
           amount = 3;
           module = {
             toh.services.cephfs.enable = true;

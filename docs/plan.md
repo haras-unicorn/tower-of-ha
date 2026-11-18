@@ -216,7 +216,8 @@ capability has a contract test that every current implementation passes.
 
 1. **Container harness (M).** Port the test helpers to `self.nixosTests`
    containers, with a separate VM path for the tests that need it. Pilot with
-   etcd. Done when the etcd test passes as containers.
+   etcd. Done when the etcd test passes as containers. **Done.** Until cryl
+   supports containers, the secrets test module forces the machines cryl sees.
 2. **Move the tests (L).** Every test from the "should move" list, one or a few
    per chunk. The rest get a written reason to stay VMs. Done when
    `nix flake check` passes.

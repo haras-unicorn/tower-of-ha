@@ -97,6 +97,7 @@
           }
         ];
 
+        toh.test.clusters.node.kind = "vm";
         toh.test.clusters.node.amount = amount;
         toh.test.clusters.node.module =
           { lib, config, ... }:

@@ -18,6 +18,7 @@
 
       checks.test-services-openssh-cli-command = pkgs.tohPackages.testers.runToHTest {
         name = "services-openssh-cli-command";
+        toh.test.clusters.node.kind = "vm";
         toh.test.clusters.node.amount = 2;
         toh.test.clusters.node.module = {
           toh.programs.cli.enable = true;
@@ -46,6 +47,7 @@
 
       checks.test-services-openssh-cli-copy = pkgs.tohPackages.testers.runToHTest {
         name = "services-openssh-cli-copy";
+        toh.test.clusters.node.kind = "vm";
         toh.test.clusters.node.amount = 2;
         toh.test.clusters.node.module = {
           toh.programs.cli.enable = true;
