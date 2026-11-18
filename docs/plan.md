@@ -190,7 +190,9 @@ on the way. Step 2 brings them back.
 3. **`self.lib` and `self.overlays` (M).** Replace `toh.lib` and `toh.overlays`,
    delete our overlay graph and its tests, use the haraspkgs Nushell and
    mustache helpers. Modules stop adding overlays. Done when every unit test
-   passes as `self.unitTests`.
+   passes as `self.unitTests`. **Done**, except that modules still add CLI parts
+   through the NixOS option `toh.overlays`, now composed with the haraspkgs
+   graph helpers. Its redesign is [parked](#parked).
 4. **One nixpkgs (S).** Replace the two nixpkgs patches with a module override
    and an `overrideAttrs`, and drop the patched import. Done when nothing
    imports nixpkgs at eval time beyond the flake input.
@@ -297,6 +299,10 @@ capability has a contract test that every current implementation passes.
 ## Parked
 
 - The `matrix` branch, until step 3.
+- **Redesign the NixOS-level `toh.overlays`.** Modules still add CLI parts as
+  overlays that depend on the machine config. That is hard to read, and setting
+  `nixpkgs.overlays` in a machine means tests and containers cannot use a
+  read-only `pkgs`. Probably goes with the CLI structure in step 9.
 - **OpenBao fixes**, in a step not picked yet: TLS, keeping root material out of
   OpenBao, recovering from a failed init, the token timer, the shred, and the
   certificate check on the age key fetch.
