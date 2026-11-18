@@ -90,7 +90,10 @@
               else
                 endpointAttrs.protocol == "https"
             then
-              "ssl verify required ca-file ${caFile} crt ${certFile}"
+              # NOTE: since 3.3, haproxy sends the request host as SNI and
+              # verifies the server certificate against it, but service
+              # certificates name the machine and not the service
+              "ssl verify required ca-file ${caFile} crt ${certFile} no-sni-auto"
             else
               "verify required ca-file ${caFile} crt ${certFile}";
         in
