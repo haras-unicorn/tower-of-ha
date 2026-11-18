@@ -27,13 +27,13 @@
 
     systemd.targets.toh-time-synchronized = {
       requires = [
-        "toh-network-online.target"
-        "toh-name-service-online.target"
+        "network-online.target"
+        "nss-lookup.target"
         "time-sync.target"
       ];
       after = [
-        "toh-network-online.target"
-        "toh-name-service-online.target"
+        "network-online.target"
+        "nss-lookup.target"
         "time-sync.target"
       ];
     };
