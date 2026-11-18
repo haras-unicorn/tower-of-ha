@@ -60,6 +60,8 @@
           script = "openbao-token ${builtins.toString hours}";
           serviceConfig = {
             Type = "oneshot";
+            Restart = "on-failure";
+            RestartSec = "10s";
           };
         };
 
