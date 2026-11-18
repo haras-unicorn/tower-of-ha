@@ -120,6 +120,7 @@
           pkgs.nix
 
           pkgs.nushell
+          pkgs.bashInteractive
           pkgs.fd
           pkgs.mdbook
           pkgs.delta
