@@ -25,21 +25,14 @@
     let
       cfg = config.toh.services.haproxy;
 
-      serviceDomain = config.toh.meta.domains.service;
-
       certFile = config.toh.meta.sops.secrets."haproxy-pem".path;
       caFile = config.toh.meta.sops.secrets."haproxy-ca-public".path;
 
-      httpPort = 443;
-      submitPort = 25;
+      httpPort = config.toh.meta.proxy.ports.https;
+      submitPort = config.toh.meta.proxy.ports.submit;
 
-      tcpPortOffset = 10000;
-
-      machines = selfLib.cluster.serviceMachines config "haproxy";
-
-      mapTcpPortFromServices =
-        services:
-        (selfLib.services.endpoint.toAttrs (builtins.head services).endpoint).port + tcpPortOffset;
+      proxyAttrs =
+        serviceName: selfLib.services.endpoint.toAttrs config.toh.meta.proxies.${serviceName}.endpoint;
 
       serviceNamesToMachineServices = lib.zipAttrs (
         builtins.map (machine: machine.meta.services) config.toh.meta.cluster.machineList
@@ -167,7 +160,7 @@
           "";
 
       httpHostMap = builtins.toFile "toh-service-http-host-map.map" (
-        lib.concatMapStringsSep "\n" (serviceName: "${serviceName}.${serviceDomain} ${serviceName}") (
+        lib.concatMapStringsSep "\n" (serviceName: "${(proxyAttrs serviceName).host} ${serviceName}") (
           builtins.attrNames httpServiceNamesToMachineServices
         )
       );
@@ -209,8 +202,8 @@
           ''
             frontend tcp_${serviceName}
               mode tcp
-              bind ${config.toh.meta.network.ip}:${builtins.toString (mapTcpPortFromServices services)} ${ssl}
-              bind 127.0.0.1:${builtins.toString (mapTcpPortFromServices services)} ${ssl}
+              bind ${config.toh.meta.network.ip}:${builtins.toString (proxyAttrs serviceName).port} ${ssl}
+              bind 127.0.0.1:${builtins.toString (proxyAttrs serviceName).port} ${ssl}
               default_backend ${serviceName}
           ''
         ) tcpServiceNamesToMachineServices
@@ -257,133 +250,99 @@
         };
       };
 
-      config = lib.mkMerge [
-        {
-          toh.meta.relays = builtins.map (machine: machine.meta.network.ip) machines;
-        }
-        (lib.mkIf (machines != [ ]) {
-          toh.meta.proxies = builtins.mapAttrs (
-            serviceName: services:
-            let
-              service = builtins.head services;
-              endpointAttrs = selfLib.services.endpoint.toAttrs service.endpoint;
-              isHttpBased = builtins.elem endpointAttrs.protocol [
-                "http"
-                "https"
+      config = lib.mkIf cfg.enable {
+        toh.meta.proxy.enable = true;
+
+        services.haproxy = {
+          enable = true;
+
+          config = ''
+            global
+              daemon
+
+            defaults
+              timeout connect 5s
+              timeout client 30s
+              timeout server 30s
+
+            ${httpFrontend}
+
+            ${httpBackends}
+
+            ${tcpFrontends}
+
+            ${tcpBackends}
+
+            ${submitFrontend}
+
+            ${submitBackend}
+          '';
+        };
+
+        networking.firewall.allowedTCPPorts = [
+          httpPort
+          submitPort
+        ]
+        ++ (builtins.map (serviceName: (proxyAttrs serviceName).port) (
+          builtins.attrNames tcpServiceNamesToMachineServices
+        ));
+
+        toh.meta.sops.secrets."haproxy-ca-public" = {
+          key = "openssl-ca-public";
+          owner = config.systemd.services.haproxy.serviceConfig.User;
+          group = config.systemd.services.haproxy.serviceConfig.Group;
+          mode = "0400";
+        };
+
+        toh.meta.sops.secrets."haproxy-pem" = {
+          owner = config.systemd.services.haproxy.serviceConfig.User;
+          group = config.systemd.services.haproxy.serviceConfig.Group;
+          mode = "0400";
+        };
+
+        toh.meta.cryl.machine = [
+          {
+            haproxy = {
+              generations = [
+                {
+                  generator = "tls-leaf";
+                  arguments = {
+                    common_name = "toh";
+                    organization = "ToH";
+                    sans = [
+                      "*.${config.toh.meta.domains.service}"
+                      "localhost"
+                      "${config.toh.meta.network.ip}"
+                      "127.0.0.1"
+                    ];
+                    config = "haproxy-cert-config";
+                    request_config = "haproxy-cert-request-config";
+                    private = "haproxy-private";
+                    request = "haproxy-cert-request";
+                    ca_private = "cluster/openssl-ca-private";
+                    ca_public = "cluster/openssl-ca-public";
+                    serial = "cluster/openssl-ca-serial";
+                    public = "haproxy-public";
+                    renew = true;
+                  };
+                }
+                {
+                  generator = "script";
+                  arguments = {
+                    name = "haproxy-pem-script";
+                    renew = true;
+                    text = ''
+                      (echo $"(open --raw haproxy-public)(open --raw haproxy-private)"
+                        | save -f haproxy-pem)
+                    '';
+                  };
+                }
               ];
-              isSubmit = endpointAttrs.protocol == "submit";
-              protocol =
-                if isSubmit then
-                  "submit"
-                else if isHttpBased then
-                  "https"
-                else
-                  endpointAttrs.layer7Protocol;
-            in
-            {
-              endpoint.${protocol} = {
-                host = if isSubmit then config.toh.meta.email.domain else "${serviceName}.${serviceDomain}";
-                port =
-                  if isSubmit then
-                    submitPort
-                  else if isHttpBased then
-                    httpPort
-                  else
-                    mapTcpPortFromServices services;
-              };
-            }
-          ) serviceNamesToMachineServices;
-        })
-        (lib.mkIf cfg.enable {
-          services.haproxy = {
-            enable = true;
+            };
+          }
+        ];
 
-            config = ''
-              global
-                daemon
-
-              defaults
-                timeout connect 5s
-                timeout client 30s
-                timeout server 30s
-
-              ${httpFrontend}
-
-              ${httpBackends}
-
-              ${tcpFrontends}
-
-              ${tcpBackends}
-
-              ${submitFrontend}
-
-              ${submitBackend}
-            '';
-          };
-
-          networking.firewall.allowedTCPPorts = [
-            httpPort
-            submitPort
-          ]
-          ++ (builtins.map mapTcpPortFromServices (builtins.attrValues tcpServiceNamesToMachineServices));
-
-          toh.meta.sops.secrets."haproxy-ca-public" = {
-            key = "openssl-ca-public";
-            owner = config.systemd.services.haproxy.serviceConfig.User;
-            group = config.systemd.services.haproxy.serviceConfig.Group;
-            mode = "0400";
-          };
-
-          toh.meta.sops.secrets."haproxy-pem" = {
-            owner = config.systemd.services.haproxy.serviceConfig.User;
-            group = config.systemd.services.haproxy.serviceConfig.Group;
-            mode = "0400";
-          };
-
-          toh.meta.cryl.machine = [
-            {
-              haproxy = {
-                generations = [
-                  {
-                    generator = "tls-leaf";
-                    arguments = {
-                      common_name = "toh";
-                      organization = "ToH";
-                      sans = [
-                        "*.${config.toh.meta.domains.service}"
-                        "localhost"
-                        "${config.toh.meta.network.ip}"
-                        "127.0.0.1"
-                      ];
-                      config = "haproxy-cert-config";
-                      request_config = "haproxy-cert-request-config";
-                      private = "haproxy-private";
-                      request = "haproxy-cert-request";
-                      ca_private = "cluster/openssl-ca-private";
-                      ca_public = "cluster/openssl-ca-public";
-                      serial = "cluster/openssl-ca-serial";
-                      public = "haproxy-public";
-                      renew = true;
-                    };
-                  }
-                  {
-                    generator = "script";
-                    arguments = {
-                      name = "haproxy-pem-script";
-                      renew = true;
-                      text = ''
-                        (echo $"(open --raw haproxy-public)(open --raw haproxy-private)"
-                          | save -f haproxy-pem)
-                      '';
-                    };
-                  }
-                ];
-              };
-            }
-          ];
-
-          toh.pki.installCa = true;
-        })
-      ];
+        toh.pki.installCa = true;
+      };
     };
 }

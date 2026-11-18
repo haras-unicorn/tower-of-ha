@@ -36,15 +36,17 @@ The dev shell loads through direnv. It provides one `dev` command:
 - `dev docs` builds the book, `dev check-links` checks its links.
 
 `nix flake check` also runs the unit tests and the NixOS tests. The NixOS tests
-are slow and some are known to be broken during the current plan, so run the
-ones you need by name: `checks.<system>.nixos-test-<name>`. Optional tests set
-`flake = false`, stay out of the checks and build as
-`lib.<system>.nixosTests.<name>`. Tests run as containers; one that sets
-`toh.test.kind = "vm"` says why in a `NOTE` comment. The CephFS tests, and the
-tests of services that keep data on it, need `/dev/fuse` in the host's
-`extra-sandbox-paths`. When a service needs something a container cannot give
-(the real clock, a kernel client), the checked test fakes it or uses a
-workaround, and an optional VM test covers the real thing.
+are slow, so run the ones you need by name: `checks.<system>.nixos-test-<name>`.
+They are also memory hungry: each one boots several machines with databases,
+filesystems and networks, so a full run with many parallel jobs takes tens of GB
+of RAM. Keep `--max-jobs` low on smaller machines; a test that runs out of time
+under swapping usually passes on its own. Optional tests set `flake = false`,
+stay out of the checks and build as `lib.<system>.nixosTests.<name>`. Tests run
+as containers; one that sets `toh.test.kind = "vm"` says why in a `NOTE`
+comment. The CephFS tests, and the tests of services that keep data on it, need
+`/dev/fuse` in the host's `extra-sandbox-paths`. When a service needs something
+a container cannot give (the real clock, a kernel client), the checked test
+fakes it or uses a workaround, and an optional VM test covers the real thing.
 
 ## Generated files
 

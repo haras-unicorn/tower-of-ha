@@ -232,12 +232,15 @@ capability has a contract test that every current implementation passes.
      containers; only the optional kernel mount test stays a VM.
    - chronyd: **done.** The checked test runs as containers with `chronyd -x`,
      and the optional `services-chronyd-clock` VM test sets the real clock.
-4. **Contract shape (S).** Write down how a contract test module looks,
+4. **Implementation-free meta (M).** Move HAProxy's port scheme out of
+   `toh.meta.proxies` and `toh.meta.relays`, and check every capability's meta
+   options for other leaks. **Done** on 2026-11-18: `toh.meta.proxy` works out
+   the proxy addresses and relays, HAProxy only serves them. The only other leak
+   was the `forgejo` default of `toh.meta.git.ssh.user`. It comes before the
+   contract shape, so the contracts are written against the final meta.
+5. **Contract shape (S).** Write down how a contract test module looks,
    following `toh.test.mesh` and `toh.test.relay`: it takes the implementation
    as a parameter and checks only behavior.
-5. **Implementation-free meta (M).** Move HAProxy's port scheme out of
-   `toh.meta.proxies` and `toh.meta.relays`, and check every capability's meta
-   options for other leaks.
 6. **One contract per chunk (M each).** VPN (exists), DNS, proxy, database,
    key-value, S3, LDAP, OIDC, email, git, file sharing, secrets, time.
 

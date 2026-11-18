@@ -35,7 +35,6 @@
 
             user = lib.mkOption {
               type = lib.types.str;
-              default = "forgejo";
               description = "Git SSH user";
             };
           };

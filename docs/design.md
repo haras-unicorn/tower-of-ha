@@ -160,8 +160,10 @@ A service module turns on the NixOS service and declares what it offers:
 
 - `toh.meta.services.<name>`: the endpoint (protocol, port) and health check.
 - `toh.meta.proxies.<name>`: where clients reach it through the proxy. The
-  HAProxy module fills this in for every service, with HAProxy's own port
-  scheme.
+  `toh.meta.proxy` module works this out for every service, from
+  `toh.meta.services` and the ports in `toh.meta.proxy.ports`, and the machines
+  that set `toh.meta.proxy.enable` become `toh.meta.relays`. A proxy module only
+  turns that flag on and serves what meta says.
 - Capability options such as `toh.meta.database`, `toh.meta.kv`, `toh.meta.s3`,
   `toh.meta.ldap`, `toh.meta.oidc`, `toh.meta.email`, `toh.meta.git` and
   `toh.meta.filesystem`. A service that needs a database registers itself in
@@ -300,9 +302,8 @@ should reach it.
 **Decided** as step 2. Each capability gets a test module, in the shape of the
 VPN tests: it takes the implementation as a parameter and checks the behavior
 any implementation must have. The `toh.meta` options for a capability say
-nothing about the implementation. Today `toh.meta.proxies` carries HAProxy's
-port scheme, and that has to move into the HAProxy module before Envoy can pass
-the same tests.
+nothing about the implementation. The proxy addresses moved out of the HAProxy
+module into `toh.meta.proxy` on 2026-11-18, so Envoy can serve the same ones.
 
 ### Tests
 
