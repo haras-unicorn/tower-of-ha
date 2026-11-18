@@ -32,6 +32,17 @@
       options.toh.services = {
         patroni = {
           enable = lib.mkEnableOption "Patroni";
+
+          softwareWatchdog = lib.mkOption {
+            type = lib.types.bool;
+            default = true;
+            description = ''
+              Whether Patroni requires the softdog watchdog, which resets a
+              machine whose Patroni hangs while it holds the leader lock.
+              Turn it off only where there is no `/dev/watchdog`, like in
+              containers.
+            '';
+          };
         };
       };
 
@@ -51,7 +62,7 @@
             name = config.toh.meta.machine.name;
             namespace = "/toh/patroni";
             nodeIp = config.toh.meta.network.ip;
-            softwareWatchdog = true;
+            softwareWatchdog = cfg.softwareWatchdog;
             postgresqlPort = postgresPort;
             restApiPort = patroniPort;
             settings = {

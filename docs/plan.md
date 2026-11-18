@@ -319,6 +319,12 @@ live only in the test modules, so invariant 6 does not hold yet.
   overlays that depend on the machine config. That is hard to read, and setting
   `nixpkgs.overlays` in a machine means tests and containers cannot use a
   read-only `pkgs`. Probably goes with the CLI structure in step 9.
+- **Drop the CA module copy and the Ceph rebuild**, in a step not picked yet.
+  Since step 1, `src/nix/modules/pki/ca.nix` is a copy of nixpkgs'
+  `security/ca.nix` with one change, and the Ceph overlay
+  (`src/nix/overlays/ceph.nix`) adds one Python dependency, which means building
+  Ceph from source. Both are friction: the copy has to follow nixpkgs, and the
+  build is long. Find a way to the same result without either.
 - **OpenBao fixes**, in a step not picked yet: TLS, keeping root material out of
   OpenBao, recovering from a failed init, the token timer, the shred, and the
   certificate check on the age key fetch.

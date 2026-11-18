@@ -21,6 +21,7 @@ ignoreWords:
   - nosandbox
   - foldl
   - nspawn
+  - softdog
   - isoformat
   - urllib
   - urlparse
