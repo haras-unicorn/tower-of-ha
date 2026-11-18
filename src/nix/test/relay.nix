@@ -15,6 +15,14 @@
       controllerZone = "test.toh";
       controllerDomain = "controller.${controllerZone}";
       controllerDomainSecret = "controller-domain";
+
+      # NOTE: with virtualisation.vlans the test framework adds its own
+      # address next to the one picked here, and udp replies then leave
+      # from an address the peer did not dial
+      vlanInterface = vlan: {
+        inherit vlan;
+        assignIP = false;
+      };
     in
     {
       options.toh.test = {
@@ -70,10 +78,8 @@
           }
           (selfLib.test.ofKind config.toh.test.kind {
             dns = {
-              virtualisation.vlans = [
-                1
-                2
-              ];
+              virtualisation.interfaces.eth1 = vlanInterface 1;
+              virtualisation.interfaces.eth2 = vlanInterface 2;
               networking.interfaces.eth1.ipv4.addresses = [
                 {
                   address = "192.168.1.30";
@@ -89,10 +95,8 @@
             };
 
             relay = {
-              virtualisation.vlans = [
-                1
-                2
-              ];
+              virtualisation.interfaces.eth1 = vlanInterface 1;
+              virtualisation.interfaces.eth2 = vlanInterface 2;
               networking.interfaces.eth1.ipv4.addresses = [
                 {
                   address = "192.168.1.10";
@@ -119,7 +123,7 @@
             };
 
             node1 = {
-              virtualisation.vlans = [ 1 ];
+              virtualisation.interfaces.eth1 = vlanInterface 1;
               networking.interfaces.eth1.ipv4.addresses = [
                 {
                   address = "192.168.1.20";
@@ -136,7 +140,7 @@
             };
 
             node2 = {
-              virtualisation.vlans = [ 2 ];
+              virtualisation.interfaces.eth1 = vlanInterface 2;
               networking.interfaces.eth1.ipv4.addresses = [
                 {
                   address = "192.168.2.20";

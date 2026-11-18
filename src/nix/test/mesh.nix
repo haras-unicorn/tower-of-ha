@@ -13,6 +13,14 @@
       vlan = 1;
       vlanString = builtins.toString vlan;
 
+      # NOTE: with virtualisation.vlans the test framework adds its own
+      # address next to the one picked here, and udp replies then leave
+      # from an address the peer did not dial
+      vlanInterface = {
+        inherit vlan;
+        assignIP = false;
+      };
+
       addressOffset = 10;
       addressPrefix = "192.168.${vlanString}";
 
@@ -60,7 +68,7 @@
         lib.mkMerge [
           (selfLib.test.ofKind config.toh.test.kind {
             dns = {
-              virtualisation.vlans = [ vlan ];
+              virtualisation.interfaces.eth1 = vlanInterface;
               networking.interfaces.eth1.ipv4.addresses = [
                 {
                   address = dnsAddress;
@@ -113,7 +121,7 @@
                 meshAddress = "${subnetConfig.prefix}.${meshAddressNumberString}";
               in
               {
-                virtualisation.vlans = [ vlan ];
+                virtualisation.interfaces.eth1 = vlanInterface;
                 networking.interfaces.eth1.ipv4.addresses = [
                   {
                     inherit address;
