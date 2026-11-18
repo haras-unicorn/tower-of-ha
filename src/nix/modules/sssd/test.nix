@@ -43,7 +43,7 @@
             ''
           )
           (
-            { nodea, ... }:
+            { machineList, ... }:
             builtins.map (
               other:
               let
@@ -56,7 +56,7 @@
                 )
                 command_node.succeed("id user-${name}")
               ''
-            ) nodea
+            ) machineList
           )
         ];
       };

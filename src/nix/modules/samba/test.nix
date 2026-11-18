@@ -80,7 +80,7 @@
                   ''
                 )
                 (
-                  { nodea, ... }:
+                  { machineList, ... }:
                   builtins.map (
                     node:
                     let
@@ -89,7 +89,7 @@
                     ''
                       command_node.succeed("grep ${name} ${mntShareLocation}/hello-world-${name}")
                     ''
-                  ) nodea
+                  ) machineList
                 )
 
                 (

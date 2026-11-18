@@ -29,7 +29,7 @@
             ]
           )
           (
-            { nodea, ... }:
+            { machineList, ... }:
             builtins.concatMap (
               node:
               let
@@ -39,7 +39,7 @@
                 ''command_node.succeed("toh s3 admin get s3://admin/${name} ${name}-down")''
                 ''command_node.succeed("cat ${name}-down | grep -q ${name}")''
               ]
-            ) nodea
+            ) machineList
           )
         ];
       };

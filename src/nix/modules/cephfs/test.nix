@@ -62,9 +62,11 @@
             ''
           )
           (
-            { node, nodea, ... }:
+            { node, machineList, ... }:
             let
-              others = builtins.filter (other: other.toh.meta.machine.name != node.toh.meta.machine.name) nodea;
+              others = builtins.filter (
+                other: other.toh.meta.machine.name != node.toh.meta.machine.name
+              ) machineList;
             in
             builtins.concatStringsSep "\n" (
               builtins.map (

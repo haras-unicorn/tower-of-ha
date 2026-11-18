@@ -37,7 +37,8 @@ The dev shell loads through direnv. It provides one `dev` command:
 
 `nix flake check` also runs the unit tests and the NixOS tests. The NixOS tests
 are slow and many are known to be broken during the current plan, so run the
-ones you need by name (`checks.<system>.test-<name>`).
+ones you need by name: `checks.<system>.nixos-test-<name>` for the tests already
+on `self.nixosTests`, `checks.<system>.test-<name>` for the rest.
 
 ## Generated files
 

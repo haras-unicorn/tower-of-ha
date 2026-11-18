@@ -37,7 +37,7 @@
             ''
           )
           (
-            { nodea, ... }:
+            { machineList, ... }:
             builtins.map (
               other:
               let
@@ -48,7 +48,7 @@
                   toh ldap search '(uid=user-${name})' | grep -q 'dn: uid=user-${name}'
                 """)
               ''
-            ) nodea
+            ) machineList
           )
         ];
       };

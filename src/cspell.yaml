@@ -20,7 +20,7 @@ ignoreWords:
   - vsock
   - nosandbox
   - foldl
-  - nodea
+  - nspawn
   - isoformat
   - urllib
   - urlparse

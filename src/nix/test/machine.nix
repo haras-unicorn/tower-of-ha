@@ -1,16 +1,34 @@
 { selfLib, ... }:
 
 {
+  self.lib.test.testModules.machine = {
+    nodeDefaults =
+      { lib, ... }:
+      {
+        virtualisation.memorySize = 8192; # 8 GiB
+        virtualisation.cores = 4;
+        virtualisation.graphics = false;
+        # NOTE: needed for raft consensus so clock doesn't drift
+        # requires VT‑x / AMD‑V enabled in BIOS
+        virtualisation.qemu.options = [ "-cpu host,+kvmclock" ];
+        boot.kernelParams = lib.mkAfter [
+          "clocksource=kvm-clock"
+          "tsc=nowatchdog"
+        ];
+      };
+  };
+
   self.lib.test.nixosModules.machine =
     {
       lib,
       config,
       nodes,
+      containers,
       pkgs,
       ...
     }:
     {
-      toh.meta.cluster = selfLib.cluster.fromTestNodes nodes;
+      toh.meta.cluster = selfLib.cluster.fromTestNodes (nodes // containers);
 
       toh.meta.machine.name = config.virtualisation.test.nodeName;
       toh.meta.machine.index = config.virtualisation.test.nodeNumber;
@@ -35,17 +53,6 @@
       };
 
       networking.hostName = config.toh.meta.machine.name;
-
-      virtualisation.memorySize = 8192; # 8 GiB
-      virtualisation.cores = 4;
-      virtualisation.graphics = false;
-      # NOTE: needed for raft consensus so clock doesn't drift
-      # requires VT‑x / AMD‑V enabled in BIOS
-      virtualisation.qemu.options = [ "-cpu host,+kvmclock" ];
-      boot.kernelParams = lib.mkAfter [
-        "clocksource=kvm-clock"
-        "tsc=nowatchdog"
-      ];
 
       # Workaround for nixpkgs gzip/install-info issue
       documentation.info.enable = false;

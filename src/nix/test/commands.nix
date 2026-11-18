@@ -6,8 +6,7 @@
       specialArgs,
       config,
       lib,
-      nodes,
-      nodea,
+      machines,
       ...
     }:
     let
@@ -85,7 +84,7 @@
               // {
                 inherit lib;
                 inherit nodes;
-                nodea = builtins.attrValues nodes;
+                machineList = builtins.attrValues nodes;
               };
 
             evaluateText =
@@ -119,18 +118,19 @@
                 ) commands
               );
 
-            prefix = evaluateText nodes (makeArgs nodes) cfg.prefix;
+            prefix = evaluateText machines (makeArgs machines) cfg.prefix;
 
             perNodeInCluster = builtins.concatStringsSep "\n" (
               lib.mapAttrsToList (
-                name: perNode: evaluateCluster (lib.filterAttrs (node: _: lib.hasPrefix name node) nodes) perNode
+                name: perNode:
+                evaluateCluster (lib.filterAttrs (machine: _: lib.hasPrefix name machine) machines) perNode
               ) cfg.perNodeInCluster
 
             );
 
-            perNode = evaluateCluster nodes cfg.perNode;
+            perNode = evaluateCluster machines cfg.perNode;
 
-            suffix = evaluateText nodes (makeArgs nodes) cfg.suffix;
+            suffix = evaluateText machines (makeArgs machines) cfg.suffix;
           in
           ''
             start_all()

@@ -9,7 +9,7 @@
         pkgs.tohPackages.testers.runToHTest (
           {
             lib,
-            nodea,
+            machineList,
             nodes,
             config,
             ...
@@ -22,10 +22,10 @@
             fetchAmount = amount * 3;
             fetchAmountString = builtins.toString fetchAmount;
 
-            ips = lib.concatMapStringsSep ", " (node: ''"${node.toh.meta.network.ip}"'') nodea;
-            downNode = builtins.head nodea;
+            ips = lib.concatMapStringsSep ", " (node: ''"${node.toh.meta.network.ip}"'') machineList;
+            downNode = builtins.head machineList;
             downNodeName = downNode.toh.meta.machine.name;
-            upNode = builtins.head (builtins.tail nodea);
+            upNode = builtins.head (builtins.tail machineList);
             upNodeName = upNode.toh.meta.machine.name;
             urlFromNode =
               node:
@@ -34,7 +34,7 @@
               in
               "https://${endpointAttrs.host}:${builtins.toString endpointAttrs.port}";
             remainingIps = lib.concatMapStringsSep ", " (n: ''"${n.toh.meta.network.ip}"'') (
-              builtins.filter (node: node.toh.meta.machine.name != downNodeName) nodea
+              builtins.filter (node: node.toh.meta.machine.name != downNodeName) machineList
             );
 
             cfg = config.toh.test.haproxy;

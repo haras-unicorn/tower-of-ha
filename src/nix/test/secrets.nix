@@ -4,10 +4,9 @@
   self.lib.test.testModules.secrets =
     {
       lib,
-      nodes,
-      pkgs,
       config,
-      nodea,
+      machines,
+      machineList,
       ...
     }:
     let
@@ -36,6 +35,14 @@
 
       config = {
         cryl.enable = true;
+
+        # NOTE: cryl only looks at the VM nodes of a test, and reads them
+        # through `.config`, which only VM nodes have, through a deprecated
+        # nixpkgs shim; until cryl supports containers, it gets every machine
+        # with `.config` pointing back at it
+        cryl.nixosConfigurations = lib.mkForce (
+          builtins.mapAttrs (_: machine: machine // { config = machine; }) machines
+        );
 
         cryl.specifications.test-cluster = builtins.zipAttrsWith (_: builtins.concatLists) (
           selfLib.lists.concatUniqueAttrValues config.toh.test.cryl.cluster
@@ -81,7 +88,7 @@
             }
           ]
           ++ selfLib.lists.concatUniqueAttrValues (
-            builtins.concatMap (node: node.toh.meta.cryl.cluster) nodea
+            builtins.concatMap (node: node.toh.meta.cryl.cluster) machineList
           )
           ++ [
             {
