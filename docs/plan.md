@@ -222,13 +222,23 @@ capability has a contract test that every current implementation passes.
    per chunk. The rest get a written reason to stay VMs. Done when
    `nix flake check` passes. The tests without helper servers moved on
    2026-11-18. Forgejo stays a VM, because it keeps its repositories on CephFS.
-3. **Contract shape (S).** Write down how a contract test module looks,
+3. **The last VMs (M, spike).** Try to move the tests that are left to
+   containers. Ceph is the most valuable, because forgejo and samba need it too.
+   - Ceph: OSDs on BlueStore with a plain file instead of a block device, and
+     `ceph-fuse` instead of the kernel mount. If the sandbox has no `/dev/fuse`,
+     it goes into `extra-sandbox-paths`.
+   - Samba: containers have their own network namespace, so CTDB may move its
+     addresses there as it is. Turning the moving off would test less of what
+     makes Samba highly available, so only if that fails.
+   - chronyd: `chronyd -x` runs without touching the clock, so a test can still
+     check the sync. Faking the clock goes further and needs a look.
+4. **Contract shape (S).** Write down how a contract test module looks,
    following `toh.test.mesh` and `toh.test.relay`: it takes the implementation
    as a parameter and checks only behavior.
-4. **Implementation-free meta (M).** Move HAProxy's port scheme out of
+5. **Implementation-free meta (M).** Move HAProxy's port scheme out of
    `toh.meta.proxies` and `toh.meta.relays`, and check every capability's meta
    options for other leaks.
-5. **One contract per chunk (M each).** VPN (exists), DNS, proxy, database,
+6. **One contract per chunk (M each).** VPN (exists), DNS, proxy, database,
    key-value, S3, LDAP, OIDC, email, git, file sharing, secrets, time.
 
 ## Step 3: Matrix
