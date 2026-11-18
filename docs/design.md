@@ -334,8 +334,7 @@ From reading the code, these are also likely problems (not tried yet):
 
 - the VPN needs a TUN device,
 - chrony cannot set the clock,
-- Ceph uses loop devices and FUSE,
-- CTDB moves IP addresses with iptables.
+- Ceph uses loop devices and FUSE.
 
 The [plan](./plan.md#container-readiness) sorts every test by this.
 

@@ -1,19 +1,13 @@
-{ selfLib, ... }:
-
 {
   self.nixosModules.services-samba.flake = true;
   self.nixosModules.services-samba.value =
     {
       lib,
-      pkgs,
       config,
       ...
     }:
     let
       cfg = config.toh.services.samba;
-
-      machines = selfLib.cluster.serviceMachines config "samba";
-      machineIps = builtins.map (machine: machine.meta.network.ip) machines;
 
       mounts = config.toh.meta.filesystem.mounts;
 
@@ -31,8 +25,7 @@
       ) (lib.filterAttrs (_: { share, ... }: share != null) mounts);
 
       services = [
-        "samba-ctdb.service"
-        "samba-smbd.service"
+        "toh-lease-samba.service"
         "samba-dirs.service"
       ];
     in
@@ -50,7 +43,6 @@
 
         services.samba = {
           enable = true;
-          package = pkgs.tohPackages.sambaCtdb;
           settings = mountShares // {
             global = {
               "bind interfaces only" = "yes";
@@ -70,8 +62,6 @@
               "server max protocol" = "SMB3_11";
               "client smb encrypt" = "required";
 
-              "clustering" = "yes";
-
               "usershare path" = "/var/lib/samba/usershares";
               "usershare max shares" = 255;
               "usershare allow guests" = false;
@@ -88,22 +78,6 @@
           };
           openFirewall = true;
 
-          ctdb = {
-            enable = true;
-            eventScripts = [
-              "00.ctdb.script"
-              "01.reclock.script"
-              "05.system.script"
-              "95.database.script"
-            ];
-            addresses = [ ];
-            nodes = machineIps;
-            settings = {
-              cluster."node address" = config.toh.meta.network.ip;
-              failover.disabled = true;
-            };
-          };
-
           winbindd = {
             enable = false;
           };
@@ -113,43 +87,17 @@
           };
         };
 
-        environment.etc."ctdb/events/legacy/50.samba.script" = {
-          mode = "0700";
-          text = ''
-            #!/bin/sh
-            . "''${CTDB_BASE}/functions"
-            service_name="samba"
-            load_script_options
+        # NOTE: smbd keeps its state in tdb files on CephFS, which only one
+        # smbd may use at a time
+        toh.leases.samba.services = [ "samba-smbd" ];
 
-            case "$1" in
-              startup)
-                touch /var/lib/ctdb/samba || die "smbd not running"
-                ;;
-              shutdown)
-                rm /var/lib/ctdb/samba || die "smbd not running"
-                ;;
-              monitor)
-                smb_ports="''${CTDB_SAMBA_CHECK_PORTS:-445}"
-                ctdb_check_tcp_ports $smb_ports || exit $?
-                ;;
-            esac
-            exit 0
-          '';
-        };
-
-        systemd.services.samba-smbd = {
-          unitConfig.ConditionFileExists = "/var/lib/ctdb/samba";
-          serviceConfig.Restart = "on-failure";
-        };
+        systemd.services.samba-smbd.serviceConfig.Restart = "on-failure";
 
         systemd.services.samba-dirs = {
           description = "Ensure Samba directories exist";
           wantedBy = [ "samba.target" ];
           partOf = [ "samba.target" ];
-          before = [
-            "samba-ctdb.service"
-            "samba-smbd.service"
-          ];
+          before = [ "samba-smbd.service" ];
 
           unitConfig = {
             RequiresMountsFor = "/var/lib/samba";

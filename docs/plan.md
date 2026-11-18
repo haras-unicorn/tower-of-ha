@@ -160,7 +160,8 @@ A first sort of the 26 test files. Not tried yet, so all of it is **read**.
   - networkmanager and geoclue need a closer look.
 - **Probably stay VMs:**
   - cephfs: OSDs on loop devices, FUSE mounts.
-  - samba: CTDB moves IP addresses.
+  - samba: CTDB moves IP addresses. Gone since 2026-11-18: one smbd runs at a
+    time, behind an etcd lease (`toh.leases`).
 - **Test helpers:** `src/nix/test/machine.nix` sets QEMU options (memory, cores,
   `kvm-clock`) and reads `virtualisation.test.*`. They split into container
   defaults and VM defaults.
@@ -227,9 +228,7 @@ capability has a contract test that every current implementation passes.
    - Ceph: OSDs on BlueStore with a plain file instead of a block device, and
      `ceph-fuse` instead of the kernel mount. If the sandbox has no `/dev/fuse`,
      it goes into `extra-sandbox-paths`.
-   - Samba: containers have their own network namespace, so CTDB may move its
-     addresses there as it is. Turning the moving off would test less of what
-     makes Samba highly available, so only if that fails.
+   - Samba: no CTDB anymore, so only CephFS keeps it a VM.
    - chronyd: `chronyd -x` runs without touching the clock, so a test can still
      check the sync. Faking the clock goes further and needs a look.
 4. **Contract shape (S).** Write down how a contract test module looks,
