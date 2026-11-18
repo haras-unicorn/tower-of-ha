@@ -150,7 +150,7 @@
               (
                 { machineList, ... }:
                 builtins.map (other: ''
-                  command_node.wait_until_succeeds("ping -c 3 ${other.toh.meta.network.ip}", timeout=10)
+                  command_node.wait_until_succeeds("ping -c 3 ${other.toh.meta.network.ip}", timeout=60)
                 '') machineList
               )
             ];
