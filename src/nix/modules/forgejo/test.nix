@@ -3,6 +3,10 @@
 {
   self.nixosTests.services-forgejo = selfLib.test.makeNixosTest {
     toh.test.clusters.node = {
+      # NOTE: forgejo keeps its repositories on cephfs, which needs disks and a
+      # kernel mount, so this stays a VM test until the filesystem is a
+      # contract that a test can fake
+      kind = "vm";
       amount = 3;
       module = {
         toh.services.etcd.enable = true;
