@@ -213,6 +213,8 @@ ignoreWords:
   - authtool
   - addv
   - PYTHONPATH
+  - coturn
+  - dtls
   - fsid
   - losetup
   - radosgw

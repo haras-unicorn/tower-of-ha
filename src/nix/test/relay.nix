@@ -1,5 +1,18 @@
 { selfLib, ... }:
 
+# NOTE: two homes behind NAT routers and a relay on the "internet" between
+# them, the way people run a VPN from home:
+#
+#   node1 (vlan 1) - router1 \
+#                              vlan 3: relay, dns
+#   node2 (vlan 2) - router2 /
+#
+# In the proxy mode the routers drop traffic to each other, so the nodes can
+# only talk through the relay. In the punch mode they can, so the nodes find
+# each other through the relay and then punch through both NATs directly; the
+# test waits until node1's pings to node2 leave towards router2 and then cuts
+# the relay off.
+
 {
   self.lib.test.testModules.relay =
     {
@@ -16,6 +29,41 @@
       controllerDomain = "controller.${controllerZone}";
       controllerDomainSecret = "controller-domain";
 
+      internet = {
+        relay = "192.168.3.10";
+        dns = "192.168.3.30";
+        router1 = "192.168.3.1";
+        router2 = "192.168.3.2";
+      };
+
+      homes = {
+        "1" = {
+          router = "192.168.1.1";
+          node = "192.168.1.20";
+          otherRouter = internet.router2;
+        };
+        "2" = {
+          router = "192.168.2.1";
+          node = "192.168.2.20";
+          otherRouter = internet.router1;
+        };
+      };
+
+      stun = {
+        listening-port = 3478;
+        alt-listening-port = 3479;
+      };
+
+      vpnConfig = {
+        enable = true;
+      }
+      // lib.optionalAttrs cfg.stun {
+        stunServers = [
+          "${internet.dns}:${builtins.toString stun.listening-port}"
+          "${internet.dns}:${builtins.toString stun.alt-listening-port}"
+        ];
+      };
+
       # NOTE: with virtualisation.vlans the test framework adds its own
       # address next to the one picked here, and udp replies then leave
       # from an address the peer did not dial
@@ -23,6 +71,56 @@
         inherit vlan;
         assignIP = false;
       };
+
+      address = ip: [
+        {
+          address = ip;
+          prefixLength = 24;
+        }
+      ];
+
+      router =
+        home:
+        let
+          homeConfig = homes.${home};
+        in
+        {
+          virtualisation.interfaces.eth1 = vlanInterface (lib.toInt home);
+          virtualisation.interfaces.eth2 = vlanInterface 3;
+          networking.interfaces.eth1.ipv4.addresses = address homeConfig.router;
+          networking.interfaces.eth2.ipv4.addresses = address internet."router${home}";
+
+          networking.nat = {
+            enable = true;
+            internalInterfaces = [ "eth1" ];
+            externalInterface = "eth2";
+          };
+
+          networking.firewall.extraCommands = lib.mkIf (cfg.mode == "proxy") ''
+            iptables -I FORWARD 1 -d ${homeConfig.otherRouter} -j DROP
+            iptables -I FORWARD 1 -s ${homeConfig.otherRouter} -j DROP
+          '';
+        };
+
+      node =
+        home:
+        let
+          homeConfig = homes.${home};
+        in
+        {
+          virtualisation.interfaces.eth1 = vlanInterface (lib.toInt home);
+          networking.interfaces.eth1.ipv4.addresses = address homeConfig.node;
+          networking.defaultGateway = {
+            address = homeConfig.router;
+            interface = "eth1";
+          };
+          networking.nameservers = lib.mkForce [ internet.dns ];
+
+          toh.meta.network.ip = "${subnetConfig.prefix}.1${home}";
+          toh.meta.network.interface = "toh";
+
+          toh.services.${cfg.name} = vpnConfig;
+        };
     in
     {
       options.toh.test = {
@@ -38,6 +136,23 @@
             type = lib.types.str;
             description = "Test service unit name";
           };
+
+          stun = lib.mkEnableOption ''
+            a STUN server on the internet VLAN, set as the service's
+            `stunServers`, for VPNs that need STUN to punch through NAT
+          '';
+
+          mode = lib.mkOption {
+            type = lib.types.enum [
+              "proxy"
+              "punch"
+            ];
+            description = ''
+              `proxy` checks that the nodes talk through the relay when they
+              cannot reach each other, `punch` that they reach each other
+              directly through their NATs once the relay introduced them.
+            '';
+          };
         };
       };
 
@@ -52,10 +167,7 @@
             toh.test.dns.enable = true;
             toh.test.dns.zones = {
               ${controllerZone} = {
-                ${controllerDomain} = [
-                  "192.168.1.10"
-                  "192.168.2.10"
-                ];
+                ${controllerDomain} = [ internet.relay ];
               };
             };
 
@@ -78,83 +190,41 @@
           }
           (selfLib.test.ofKind config.toh.test.kind {
             dns = {
-              virtualisation.interfaces.eth1 = vlanInterface 1;
-              virtualisation.interfaces.eth2 = vlanInterface 2;
-              networking.interfaces.eth1.ipv4.addresses = [
-                {
-                  address = "192.168.1.30";
-                  prefixLength = 24;
-                }
-              ];
-              networking.interfaces.eth2.ipv4.addresses = [
-                {
-                  address = "192.168.2.30";
-                  prefixLength = 24;
-                }
+              virtualisation.interfaces.eth1 = vlanInterface 3;
+              networking.interfaces.eth1.ipv4.addresses = address internet.dns;
+
+              services.coturn = lib.mkIf cfg.stun {
+                enable = true;
+                listening-ips = [ internet.dns ];
+                inherit (stun) listening-port alt-listening-port;
+                no-cli = true;
+                no-tls = true;
+                no-dtls = true;
+                extraConfig = "stun-only";
+              };
+              networking.firewall.allowedUDPPorts = lib.mkIf cfg.stun [
+                stun.listening-port
+                stun.alt-listening-port
               ];
             };
 
             relay = {
-              virtualisation.interfaces.eth1 = vlanInterface 1;
-              virtualisation.interfaces.eth2 = vlanInterface 2;
-              networking.interfaces.eth1.ipv4.addresses = [
-                {
-                  address = "192.168.1.10";
-                  prefixLength = 24;
-                }
-              ];
-              networking.interfaces.eth2.ipv4.addresses = [
-                {
-                  address = "192.168.2.10";
-                  prefixLength = 24;
-                }
-              ];
-
-              networking.nameservers = lib.mkForce [
-                "192.168.1.30"
-                "192.168.2.30"
-              ];
+              virtualisation.interfaces.eth1 = vlanInterface 3;
+              networking.interfaces.eth1.ipv4.addresses = address internet.relay;
+              networking.nameservers = lib.mkForce [ internet.dns ];
 
               toh.meta.network.ip = "${subnetConfig.prefix}.1";
               toh.meta.network.interface = "toh";
               toh.meta.domains.machineSecret = controllerDomainSecret;
 
-              toh.services.${cfg.name}.enable = true;
+              toh.services.${cfg.name} = vpnConfig;
             };
 
-            node1 = {
-              virtualisation.interfaces.eth1 = vlanInterface 1;
-              networking.interfaces.eth1.ipv4.addresses = [
-                {
-                  address = "192.168.1.20";
-                  prefixLength = 24;
-                }
-              ];
+            router1 = router "1";
+            router2 = router "2";
 
-              networking.nameservers = lib.mkForce [ "192.168.1.30" ];
-
-              toh.meta.network.ip = "${subnetConfig.prefix}.11";
-              toh.meta.network.interface = "toh";
-
-              toh.services.${cfg.name}.enable = true;
-            };
-
-            node2 = {
-              virtualisation.interfaces.eth1 = vlanInterface 2;
-              networking.interfaces.eth1.ipv4.addresses = [
-                {
-                  address = "192.168.2.20";
-                  prefixLength = 24;
-                }
-              ];
-
-              networking.nameservers = lib.mkForce [ "192.168.2.30" ];
-
-              toh.meta.network.ip = "${subnetConfig.prefix}.12";
-              toh.meta.network.interface = "toh";
-
-              toh.services.${cfg.name}.enable = true;
-            };
+            node1 = node "1";
+            node2 = node "2";
           })
           {
             toh.test.commands.suffix = ''
@@ -174,21 +244,37 @@
               node1.succeed("ip addr show toh | grep -q '${subnetConfig.prefix}.11'")
               node2.succeed("ip addr show toh | grep -q '${subnetConfig.prefix}.12'")
 
-              node1.succeed("ping -c 3 192.168.1.10")
-              node2.succeed("ping -c 3 192.168.2.10")
-              relay.succeed("ping -c 3 192.168.1.20")
-              relay.succeed("ping -c 3 192.168.2.20")
+              node1.succeed("ping -c 3 ${internet.relay}")
+              node2.succeed("ping -c 3 ${internet.relay}")
+              relay.fail("ping -c 1 ${homes."1".node}")
+              relay.fail("ping -c 1 ${homes."2".node}")
+              node1.fail("ping -c 1 ${homes."2".node}")
+              node2.fail("ping -c 1 ${homes."1".node}")
 
-              node1.succeed("ping -c 3 ${subnetConfig.prefix}.1")
-              node2.succeed("ping -c 3 ${subnetConfig.prefix}.1")
+              node1.wait_until_succeeds("ping -c 1 ${subnetConfig.prefix}.1", timeout=60)
+              node2.wait_until_succeeds("ping -c 1 ${subnetConfig.prefix}.1", timeout=60)
               relay.succeed("ping -c 3 ${subnetConfig.prefix}.11")
               relay.succeed("ping -c 3 ${subnetConfig.prefix}.12")
 
+              node1.wait_until_succeeds("ping -c 1 ${subnetConfig.prefix}.12", timeout=60)
+              node2.wait_until_succeeds("ping -c 1 ${subnetConfig.prefix}.11", timeout=60)
               node1.succeed("ping -c 3 ${subnetConfig.prefix}.12")
               node2.succeed("ping -c 3 ${subnetConfig.prefix}.11")
+            ''
+            + lib.optionalString (cfg.mode == "punch") ''
 
-              node1.fail("ping -c 1 192.168.2.10 || ping -c 1 192.168.2.20")
-              node2.fail("ping -c 1 192.168.1.10 || ping -c 1 192.168.1.20")
+              node1.succeed("iptables -I OUTPUT 1 -d ${internet.router2} -p udp -m comment --comment toh-direct")
+              node1.wait_until_succeeds("""
+                count() { iptables -vnxL OUTPUT | awk '/toh-direct/ {print $1}'; }
+                before=$(count)
+                ping -c 5 -i 0.2 ${subnetConfig.prefix}.12 >/dev/null
+                [ $(( $(count) - before )) -ge 5 ]
+              """, timeout=90)
+
+              relay.succeed("iptables -I INPUT 1 -p udp -j DROP")
+              relay.succeed("iptables -I OUTPUT 1 -p udp -j DROP")
+              node1.succeed("ping -c 3 ${subnetConfig.prefix}.12")
+              node2.succeed("ping -c 3 ${subnetConfig.prefix}.11")
             '';
           }
         ]

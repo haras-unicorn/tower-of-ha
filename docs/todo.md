@@ -16,12 +16,6 @@ They are sorted by the [plan](./plan.md) step that is likely to fix them.
 
 Found while fixing the tests, not `TODO` comments.
 
-- `src/nix/overlays/samba-ctdb/4.x-no-persistent-install.patch`: one hunk no
-  longer applies to samba 4.25.1, whose `ctdb/wscript` changed. Rebase it on top
-  of the nixpkgs patch of the same name.
-- `src/nix/test/relay.nix`: the relay domain resolves to one address per VLAN,
-  but EasyTier and Nebula only dial the first one, so the node on the second
-  VLAN never reaches the relay.
 - `src/nix/modules/chronyd/test.nix`: an optional VM test where chrony really
   sets the clock, next to the container test that runs it with `-x`.
 - `src/nix/modules/cephfs/default.nix`: `keyType` only changes the allowed

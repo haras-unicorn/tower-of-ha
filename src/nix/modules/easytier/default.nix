@@ -38,6 +38,17 @@
       options.toh.services = {
         easytier = {
           enable = lib.mkEnableOption "EasyTier";
+
+          stunServers = lib.mkOption {
+            type = lib.types.nullOr (lib.types.listOf lib.types.str);
+            default = null;
+            example = [ "stun.example.com:3478" ];
+            description = ''
+              STUN servers, as `host:port`, that EasyTier asks for its public
+              address before punching through NAT. `null` keeps EasyTier's own
+              list of public servers.
+            '';
+          };
         };
       };
 
@@ -75,6 +86,9 @@
             listeners = [
               "udp://0.0.0.0:${builtins.toString port}"
             ];
+          }
+          // lib.optionalAttrs (cfg.stunServers != null) {
+            stun_servers = cfg.stunServers;
           };
         };
 
