@@ -16,8 +16,6 @@ They are sorted by the [plan](./plan.md) step that is likely to fix them.
 
 Found while fixing the tests, not `TODO` comments.
 
-- `src/nix/modules/chronyd/test.nix`: an optional VM test where chrony really
-  sets the clock, next to the container test that runs it with `-x`.
 - `src/nix/modules/cephfs/default.nix`: `keyType` only changes the allowed
   ciphers. The keys still come from cryl, which the kernel test wraps to make
   aes keys.
