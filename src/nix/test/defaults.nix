@@ -24,6 +24,11 @@
           ]
           ++ (builtins.attrValues selfLib.test.nixosModules);
 
+          # NOTE: newer ceph makes 32 byte keys and kernels before 7.0 refuse
+          # them; ceph-fuse also mounts faster, so tests use it unless they
+          # test the kernel client
+          toh.services.cephfs.mountDriver = lib.mkDefault "fuse";
+
           services.openssh.settings.PermitRootLogin = lib.mkForce "yes";
           services.openssh.settings.PasswordAuthentication = lib.mkForce true;
         };
