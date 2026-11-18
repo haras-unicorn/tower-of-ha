@@ -1,3 +1,5 @@
+{ selfLib, ... }:
+
 {
   self.lib.test.testModules.dns =
     {
@@ -37,55 +39,66 @@
         };
       };
 
-      config = lib.mkIf testConfig.toh.test.dns.enable {
-        defaults = (
-          { config, nodes, ... }:
-          lib.mkIf (config.toh.meta.machine.name != "dns" && config.toh.test.network.enable) (
-            lib.mkMerge [
-              (lib.mkIf config.toh.services.coredns.enable {
-                toh.services.coredns.forwarders = lib.mkForce [ nodes.dns.toh.meta.network.ip ];
-              })
-              (lib.mkIf (!config.toh.services.coredns.enable) {
-                networking.nameservers = lib.mkForce [ nodes.dns.toh.meta.network.ip ];
-              })
-            ]
-          )
-        );
-
-        toh.test.commands.prefix = lib.mkBefore ''
-          dns.wait_for_unit("coredns.service")
-        '';
-
-        nodes.dns =
-          { config, ... }:
+      config = lib.mkIf testConfig.toh.test.dns.enable (
+        lib.mkMerge [
           {
-            services.coredns = {
-              enable = true;
-              config =
-                let
-                  zoneBlocks = lib.mapAttrsToList (zone: records: ''
-                    ${zone} {
-                      hosts {
-                        ${lib.concatStringsSep "\n" (
-                          lib.mapAttrsToList (
-                            name: ips:
-                            let
-                              ipList = if builtins.isList ips then ips else [ ips ];
-                            in
-                            lib.concatMapStrings (ip: "${ip} ${name}") ipList
-                          ) records
-                        )}
-                        fallthrough
-                      }
-                    }
-                  '') testConfig.toh.test.dns.zones;
-                in
-                lib.concatStringsSep "\n" zoneBlocks;
-            };
+            defaults = (
+              {
+                config,
+                nodes,
+                containers,
+                ...
+              }:
+              let
+                dnsIp = (nodes // containers).dns.toh.meta.network.ip;
+              in
+              lib.mkIf (config.toh.meta.machine.name != "dns" && testConfig.toh.test.network.enable) (
+                lib.mkMerge [
+                  (lib.mkIf config.toh.services.coredns.enable {
+                    toh.services.coredns.forwarders = lib.mkForce [ dnsIp ];
+                  })
+                  (lib.mkIf (!config.toh.services.coredns.enable) {
+                    networking.nameservers = lib.mkForce [ dnsIp ];
+                  })
+                ]
+              )
+            );
 
-            networking.firewall.allowedUDPPorts = [ port ];
-            networking.firewall.allowedTCPPorts = [ port ];
-          };
-      };
+            toh.test.commands.prefix = lib.mkBefore ''
+              dns.wait_for_unit("coredns.service")
+            '';
+          }
+          (selfLib.test.ofKind testConfig.toh.test.kind {
+            dns = {
+              services.coredns = {
+                enable = true;
+                config =
+                  let
+                    zoneBlocks = lib.mapAttrsToList (zone: records: ''
+                      ${zone} {
+                        hosts {
+                          ${lib.concatStringsSep "\n" (
+                            lib.mapAttrsToList (
+                              name: ips:
+                              let
+                                ipList = if builtins.isList ips then ips else [ ips ];
+                              in
+                              lib.concatMapStrings (ip: "${ip} ${name}") ipList
+                            ) records
+                          )}
+                          fallthrough
+                        }
+                      }
+                    '') testConfig.toh.test.dns.zones;
+                  in
+                  lib.concatStringsSep "\n" zoneBlocks;
+              };
+
+              networking.firewall.allowedUDPPorts = [ port ];
+              networking.firewall.allowedTCPPorts = [ port ];
+            };
+          })
+        ]
+      );
     };
 }

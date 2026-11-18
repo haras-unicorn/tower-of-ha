@@ -1,3 +1,5 @@
+{ selfLib, ... }:
+
 {
   self.lib.test.testModules.mesh =
     {
@@ -54,96 +56,100 @@
         };
       };
 
-      config = lib.mkIf cfg.enable {
-        name = "services-${cfg.name}-mesh";
-
-        toh.test.network.enable = false;
-
-        toh.test.dns.enable = true;
-        toh.test.dns.zones = {
-          ${controllerZone} = {
-            ${controllerDomain} = controllerAddress;
-          };
-        };
-
-        nodes.dns =
-          { lib, ... }:
-          {
-            virtualisation.vlans = [ vlan ];
-            networking.interfaces.eth1.ipv4.addresses = [
-              {
-                address = dnsAddress;
-                prefixLength = 24;
-              }
-            ];
-
-            toh.meta.network.ip = dnsAddress;
-            toh.meta.network.interface = "eth1";
-          };
-
-        toh.test.cryl.cluster = [
-          {
-            mesh = {
-              generations = [
+      config = lib.mkIf cfg.enable (
+        lib.mkMerge [
+          (selfLib.test.ofKind config.toh.test.kind {
+            dns = {
+              virtualisation.vlans = [ vlan ];
+              networking.interfaces.eth1.ipv4.addresses = [
                 {
-                  generator = "text";
-                  arguments = {
-                    name = controllerDomainSecret;
-                    text = controllerDomain;
-                  };
+                  address = dnsAddress;
+                  prefixLength = 24;
                 }
               ];
+
+              toh.meta.network.ip = dnsAddress;
+              toh.meta.network.interface = "eth1";
             };
-          }
-        ];
-
-        toh.test.clusters.node.kind = "vm";
-        toh.test.clusters.node.amount = amount;
-        toh.test.clusters.node.module =
-          { lib, config, ... }:
-          let
-            addressNumber = addressOffset + config.toh.test.clusters.number;
-            addressNumberString = builtins.toString addressNumber;
-            address = "192.168.${vlanString}.${addressNumberString}";
-
-            meshAddressNumber = config.toh.test.clusters.number;
-            meshAddressNumberString = builtins.toString meshAddressNumber;
-            meshAddress = "${subnetConfig.prefix}.${meshAddressNumberString}";
-          in
+          })
           {
-            virtualisation.vlans = [ vlan ];
-            networking.interfaces.eth1.ipv4.addresses = [
+            name = "services-${cfg.name}-mesh";
+
+            toh.test.network.enable = false;
+
+            toh.test.dns.enable = true;
+            toh.test.dns.zones = {
+              ${controllerZone} = {
+                ${controllerDomain} = controllerAddress;
+              };
+            };
+
+            toh.test.cryl.cluster = [
               {
-                inherit address;
-                prefixLength = 24;
+                mesh = {
+                  generations = [
+                    {
+                      generator = "text";
+                      arguments = {
+                        name = controllerDomainSecret;
+                        text = controllerDomain;
+                      };
+                    }
+                  ];
+                };
               }
             ];
-            networking.nameservers = lib.mkForce [ dnsAddress ];
 
-            toh.meta.network.ip = meshAddress;
-            toh.meta.network.interface = "toh";
-            toh.meta.domains.machineSecret = lib.mkIf (enableController config) controllerDomainSecret;
+            # NOTE: the mesh services need a TUN device, which containers lack
+            toh.test.kind = "vm";
+            toh.test.clusters.node.amount = amount;
+            toh.test.clusters.node.module =
+              { lib, config, ... }:
+              let
+                addressNumber = addressOffset + config.toh.test.clusters.number;
+                addressNumberString = builtins.toString addressNumber;
+                address = "192.168.${vlanString}.${addressNumberString}";
 
-            toh.services.${cfg.name}.enable = true;
-          };
+                meshAddressNumber = config.toh.test.clusters.number;
+                meshAddressNumberString = builtins.toString meshAddressNumber;
+                meshAddress = "${subnetConfig.prefix}.${meshAddressNumberString}";
+              in
+              {
+                virtualisation.vlans = [ vlan ];
+                networking.interfaces.eth1.ipv4.addresses = [
+                  {
+                    inherit address;
+                    prefixLength = 24;
+                  }
+                ];
+                networking.nameservers = lib.mkForce [ dnsAddress ];
 
-        toh.test.commands.enable = true;
-        toh.test.commands.perNodeInCluster.node = [
-          ''command_node.wait_for_unit("network-online.target")''
-          ''command_node.wait_for_unit("${cfg.unit}")''
-          ''command_node.wait_until_succeeds("ip link show toh")''
-          (node: ''
-            command_node.succeed(
-              "ip addr show toh | grep -q '${node.toh.meta.network.ip}'"
-            )
-          '')
-          (
-            { machineList, ... }:
-            builtins.map (other: ''
-              command_node.wait_until_succeeds("ping -c 3 ${other.toh.meta.network.ip}", timeout=10)
-            '') machineList
-          )
-        ];
-      };
+                toh.meta.network.ip = meshAddress;
+                toh.meta.network.interface = "toh";
+                toh.meta.domains.machineSecret = lib.mkIf (enableController config) controllerDomainSecret;
+
+                toh.services.${cfg.name}.enable = true;
+              };
+
+            toh.test.commands.enable = true;
+            toh.test.commands.perNodeInCluster.node = [
+              ''command_node.wait_for_unit("network-online.target")''
+              ''command_node.wait_for_unit("${cfg.unit}")''
+              ''command_node.wait_until_succeeds("ip link show toh")''
+              (node: ''
+                command_node.succeed(
+                  "ip addr show toh | grep -q '${node.toh.meta.network.ip}'"
+                )
+              '')
+              (
+                { machineList, ... }:
+                builtins.map (other: ''
+                  command_node.wait_until_succeeds("ping -c 3 ${other.toh.meta.network.ip}", timeout=10)
+                '') machineList
+              )
+            ];
+          }
+        ]
+      );
     };
 }

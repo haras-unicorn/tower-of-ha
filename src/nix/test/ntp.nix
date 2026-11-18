@@ -1,13 +1,15 @@
+{ selfLib, ... }:
+
 {
   self.lib.test.testModules.ntp =
     {
       lib,
       config,
-      nodes,
-      pkgs,
       ...
     }:
     let
+      testConfig = config;
+
       port = 123;
     in
     {
@@ -17,40 +19,50 @@
         };
       };
 
-      config = lib.mkIf config.toh.test.ntp.enable {
-        defaults =
-          { config, nodes, ... }:
-          lib.mkIf (config.toh.meta.machine.name != "ntp" && config.toh.test.network.enable) {
-            networking.timeServers = lib.mkForce [ nodes.ntp.toh.meta.network.ip ];
-          };
-
-        toh.test.commands.prefix = lib.mkBefore ''
-          ntp.wait_for_unit("chronyd.service")
-        '';
-
-        nodes.ntp =
-          { config, ... }:
+      config = lib.mkIf testConfig.toh.test.ntp.enable (
+        lib.mkMerge [
           {
-            services.timesyncd.enable = false;
+            defaults =
+              {
+                config,
+                nodes,
+                containers,
+                ...
+              }:
+              lib.mkIf (config.toh.meta.machine.name != "ntp" && testConfig.toh.test.network.enable) {
+                networking.timeServers = lib.mkForce [ (nodes // containers).ntp.toh.meta.network.ip ];
+              };
 
-            services.chrony = {
-              enable = true;
-              servers = [ ];
-              initstepslew.enabled = false;
-              extraConfig = ''
-                local stratum 10
-                allow 192.168.0.0/16
-                allow ${config.toh.meta.network.subnet.ip}/${builtins.toString config.toh.meta.network.subnet.bits}
-                port ${builtins.toString port}
-                log tracking measurements statistics
-              '';
-            };
+            toh.test.commands.prefix = lib.mkBefore ''
+              ntp.wait_for_unit("chronyd.service")
+            '';
+          }
+          (selfLib.test.ofKind testConfig.toh.test.kind {
+            ntp =
+              { config, ... }:
+              {
+                services.timesyncd.enable = false;
 
-            systemd.services.chronyd.after = [ "network-online.target" ];
-            systemd.services.chronyd.requires = [ "network-online.target" ];
+                services.chrony = {
+                  enable = true;
+                  servers = [ ];
+                  initstepslew.enabled = false;
+                  extraConfig = ''
+                    local stratum 10
+                    allow 192.168.0.0/16
+                    allow ${config.toh.meta.network.subnet.ip}/${builtins.toString config.toh.meta.network.subnet.bits}
+                    port ${builtins.toString port}
+                    log tracking measurements statistics
+                  '';
+                };
 
-            networking.firewall.allowedUDPPorts = [ port ];
-          };
-      };
+                systemd.services.chronyd.after = [ "network-online.target" ];
+                systemd.services.chronyd.requires = [ "network-online.target" ];
+
+                networking.firewall.allowedUDPPorts = [ port ];
+              };
+          })
+        ]
+      );
     };
 }

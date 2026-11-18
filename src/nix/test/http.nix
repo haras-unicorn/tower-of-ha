@@ -72,8 +72,12 @@ in
     {
       lib,
       config,
+      machines,
       ...
     }:
+    let
+      servers = builtins.filter ({ value, ... }: value.enable) (lib.attrsToList config.toh.test.http);
+    in
     {
       options.toh.test = {
         http = lib.mkOption {
@@ -83,39 +87,39 @@ in
         };
       };
 
-      config = {
-        toh.test.dns.zones = lib.mkMerge (
-          builtins.map (
-            { name, value }:
-            lib.mkIf value.enable (
-              selfLib.dns.routeToIp value.domains config.nodes."http-${name}".toh.meta.network.ip
-            )
-          ) (lib.attrsToList config.toh.test.http)
-        );
+      config = lib.mkMerge [
+        {
+          toh.test.dns.zones = lib.mkMerge (
+            builtins.map (
+              { name, value }:
+              selfLib.dns.routeToIp value.domains machines."http-${name}".toh.meta.network.ip
+            ) servers
+          );
 
-        toh.test.commands.prefix = lib.mkMerge (
-          builtins.map (
-            { name, value }:
-            let
-              pythonName = builtins.replaceStrings [ "-" ] [ "_" ] name;
-            in
-            lib.mkIf value.enable (
+          toh.test.commands.prefix = lib.mkMerge (
+            builtins.map (
+              { name, ... }:
+              let
+                pythonName = builtins.replaceStrings [ "-" ] [ "_" ] name;
+              in
               lib.mkBefore ''
                 http_${pythonName}.wait_for_unit("http.service")
               ''
-            )
-          ) (lib.attrsToList config.toh.test.http)
-        );
-
-        nodes = lib.mkMerge (
-          builtins.map (
-            { name, value }:
-            lib.mkIf value.enable {
-              "http-${name}".toh.test.http = value;
-            }
-          ) (lib.attrsToList config.toh.test.http)
-        );
-      };
+            ) servers
+          );
+        }
+        (selfLib.test.ofKind config.toh.test.kind (
+          builtins.listToAttrs (
+            builtins.map (
+              { name, value }:
+              {
+                name = "http-${name}";
+                value.toh.test.http = value;
+              }
+            ) servers
+          )
+        ))
+      ];
     };
 
   self.lib.test.nixosModules.http =

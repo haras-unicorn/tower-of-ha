@@ -1,3 +1,5 @@
+{ selfLib, ... }:
+
 {
   self.lib.test.testModules.relay =
     {
@@ -31,155 +33,163 @@
         };
       };
 
-      config = lib.mkIf cfg.enable {
-        name = "services-${cfg.name}-relay";
-
-        toh.test.network.enable = false;
-
-        toh.test.dns.enable = true;
-        toh.test.dns.zones = {
-          ${controllerZone} = {
-            ${controllerDomain} = [
-              "192.168.1.10"
-              "192.168.2.10"
-            ];
-          };
-        };
-
-        toh.test.cryl.cluster = [
+      config = lib.mkIf cfg.enable (
+        lib.mkMerge [
           {
-            relay = {
-              generations = [
+            name = "services-${cfg.name}-relay";
+
+            # NOTE: the relay services need a TUN device, which containers lack
+            toh.test.kind = "vm";
+
+            toh.test.network.enable = false;
+
+            toh.test.dns.enable = true;
+            toh.test.dns.zones = {
+              ${controllerZone} = {
+                ${controllerDomain} = [
+                  "192.168.1.10"
+                  "192.168.2.10"
+                ];
+              };
+            };
+
+            toh.test.cryl.cluster = [
+              {
+                relay = {
+                  generations = [
+                    {
+                      generator = "text";
+                      arguments = {
+                        name = controllerDomainSecret;
+                        text = controllerDomain;
+                      };
+                    }
+                  ];
+                };
+              }
+            ];
+
+          }
+          (selfLib.test.ofKind config.toh.test.kind {
+            dns = {
+              virtualisation.vlans = [
+                1
+                2
+              ];
+              networking.interfaces.eth1.ipv4.addresses = [
                 {
-                  generator = "text";
-                  arguments = {
-                    name = controllerDomainSecret;
-                    text = controllerDomain;
-                  };
+                  address = "192.168.1.30";
+                  prefixLength = 24;
+                }
+              ];
+              networking.interfaces.eth2.ipv4.addresses = [
+                {
+                  address = "192.168.2.30";
+                  prefixLength = 24;
                 }
               ];
             };
+
+            relay = {
+              virtualisation.vlans = [
+                1
+                2
+              ];
+              networking.interfaces.eth1.ipv4.addresses = [
+                {
+                  address = "192.168.1.10";
+                  prefixLength = 24;
+                }
+              ];
+              networking.interfaces.eth2.ipv4.addresses = [
+                {
+                  address = "192.168.2.10";
+                  prefixLength = 24;
+                }
+              ];
+
+              networking.nameservers = lib.mkForce [
+                "192.168.1.30"
+                "192.168.2.30"
+              ];
+
+              toh.meta.network.ip = "${subnetConfig.prefix}.1";
+              toh.meta.network.interface = "toh";
+              toh.meta.domains.machineSecret = controllerDomainSecret;
+
+              toh.services.${cfg.name}.enable = true;
+            };
+
+            node1 = {
+              virtualisation.vlans = [ 1 ];
+              networking.interfaces.eth1.ipv4.addresses = [
+                {
+                  address = "192.168.1.20";
+                  prefixLength = 24;
+                }
+              ];
+
+              networking.nameservers = lib.mkForce [ "192.168.1.30" ];
+
+              toh.meta.network.ip = "${subnetConfig.prefix}.11";
+              toh.meta.network.interface = "toh";
+
+              toh.services.${cfg.name}.enable = true;
+            };
+
+            node2 = {
+              virtualisation.vlans = [ 2 ];
+              networking.interfaces.eth1.ipv4.addresses = [
+                {
+                  address = "192.168.2.20";
+                  prefixLength = 24;
+                }
+              ];
+
+              networking.nameservers = lib.mkForce [ "192.168.2.30" ];
+
+              toh.meta.network.ip = "${subnetConfig.prefix}.12";
+              toh.meta.network.interface = "toh";
+
+              toh.services.${cfg.name}.enable = true;
+            };
+          })
+          {
+            toh.test.commands.suffix = ''
+              relay.wait_for_unit("network-online.target")
+              node1.wait_for_unit("network-online.target")
+              node2.wait_for_unit("network-online.target")
+
+              relay.wait_for_unit("${cfg.unit}")
+              node1.wait_for_unit("${cfg.unit}")
+              node2.wait_for_unit("${cfg.unit}")
+
+              relay.wait_until_succeeds("ip link show toh")
+              node1.wait_until_succeeds("ip link show toh")
+              node2.wait_until_succeeds("ip link show toh")
+
+              relay.succeed("ip addr show toh | grep -q '${subnetConfig.prefix}.1'")
+              node1.succeed("ip addr show toh | grep -q '${subnetConfig.prefix}.11'")
+              node2.succeed("ip addr show toh | grep -q '${subnetConfig.prefix}.12'")
+
+              node1.succeed("ping -c 3 192.168.1.10")
+              node2.succeed("ping -c 3 192.168.2.10")
+              relay.succeed("ping -c 3 192.168.1.20")
+              relay.succeed("ping -c 3 192.168.2.20")
+
+              node1.succeed("ping -c 3 ${subnetConfig.prefix}.1")
+              node2.succeed("ping -c 3 ${subnetConfig.prefix}.1")
+              relay.succeed("ping -c 3 ${subnetConfig.prefix}.11")
+              relay.succeed("ping -c 3 ${subnetConfig.prefix}.12")
+
+              node1.succeed("ping -c 3 ${subnetConfig.prefix}.12")
+              node2.succeed("ping -c 3 ${subnetConfig.prefix}.11")
+
+              node1.fail("ping -c 1 192.168.2.10 || ping -c 1 192.168.2.20")
+              node2.fail("ping -c 1 192.168.1.10 || ping -c 1 192.168.1.20")
+            '';
           }
-        ];
-
-        nodes = {
-          dns = {
-            virtualisation.vlans = [
-              1
-              2
-            ];
-            networking.interfaces.eth1.ipv4.addresses = [
-              {
-                address = "192.168.1.30";
-                prefixLength = 24;
-              }
-            ];
-            networking.interfaces.eth2.ipv4.addresses = [
-              {
-                address = "192.168.2.30";
-                prefixLength = 24;
-              }
-            ];
-          };
-
-          relay = {
-            virtualisation.vlans = [
-              1
-              2
-            ];
-            networking.interfaces.eth1.ipv4.addresses = [
-              {
-                address = "192.168.1.10";
-                prefixLength = 24;
-              }
-            ];
-            networking.interfaces.eth2.ipv4.addresses = [
-              {
-                address = "192.168.2.10";
-                prefixLength = 24;
-              }
-            ];
-
-            networking.nameservers = lib.mkForce [
-              "192.168.1.30"
-              "192.168.2.30"
-            ];
-
-            toh.meta.network.ip = "${subnetConfig.prefix}.1";
-            toh.meta.network.interface = "toh";
-            toh.meta.domains.machineSecret = controllerDomainSecret;
-
-            toh.services.${cfg.name}.enable = true;
-          };
-
-          node1 = {
-            virtualisation.vlans = [ 1 ];
-            networking.interfaces.eth1.ipv4.addresses = [
-              {
-                address = "192.168.1.20";
-                prefixLength = 24;
-              }
-            ];
-
-            networking.nameservers = lib.mkForce [ "192.168.1.30" ];
-
-            toh.meta.network.ip = "${subnetConfig.prefix}.11";
-            toh.meta.network.interface = "toh";
-
-            toh.services.${cfg.name}.enable = true;
-          };
-
-          node2 = {
-            virtualisation.vlans = [ 2 ];
-            networking.interfaces.eth1.ipv4.addresses = [
-              {
-                address = "192.168.2.20";
-                prefixLength = 24;
-              }
-            ];
-
-            networking.nameservers = lib.mkForce [ "192.168.2.30" ];
-
-            toh.meta.network.ip = "${subnetConfig.prefix}.12";
-            toh.meta.network.interface = "toh";
-
-            toh.services.${cfg.name}.enable = true;
-          };
-        };
-
-        toh.test.commands.suffix = ''
-          relay.wait_for_unit("network-online.target")
-          node1.wait_for_unit("network-online.target")
-          node2.wait_for_unit("network-online.target")
-
-          relay.wait_for_unit("${cfg.unit}")
-          node1.wait_for_unit("${cfg.unit}")
-          node2.wait_for_unit("${cfg.unit}")
-
-          relay.wait_until_succeeds("ip link show toh")
-          node1.wait_until_succeeds("ip link show toh")
-          node2.wait_until_succeeds("ip link show toh")
-
-          relay.succeed("ip addr show toh | grep -q '${subnetConfig.prefix}.1'")
-          node1.succeed("ip addr show toh | grep -q '${subnetConfig.prefix}.11'")
-          node2.succeed("ip addr show toh | grep -q '${subnetConfig.prefix}.12'")
-
-          node1.succeed("ping -c 3 192.168.1.10")
-          node2.succeed("ping -c 3 192.168.2.10")
-          relay.succeed("ping -c 3 192.168.1.20")
-          relay.succeed("ping -c 3 192.168.2.20")
-
-          node1.succeed("ping -c 3 ${subnetConfig.prefix}.1")
-          node2.succeed("ping -c 3 ${subnetConfig.prefix}.1")
-          relay.succeed("ping -c 3 ${subnetConfig.prefix}.11")
-          relay.succeed("ping -c 3 ${subnetConfig.prefix}.12")
-
-          node1.succeed("ping -c 3 ${subnetConfig.prefix}.12")
-          node2.succeed("ping -c 3 ${subnetConfig.prefix}.11")
-
-          node1.fail("ping -c 1 192.168.2.10 || ping -c 1 192.168.2.20")
-          node2.fail("ping -c 1 192.168.1.10 || ping -c 1 192.168.1.20")
-        '';
-      };
+        ]
+      );
     };
 }

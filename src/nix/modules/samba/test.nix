@@ -16,8 +16,11 @@
           {
             name = "services-samba";
 
+            # NOTE: samba keeps its shares on cephfs, which needs disks and a
+            # kernel mount
+            toh.test.kind = "vm";
+
             toh.test.clusters.node = {
-              kind = "vm";
               amount = 2;
               module = {
                 toh.services.cephfs.enable = true;

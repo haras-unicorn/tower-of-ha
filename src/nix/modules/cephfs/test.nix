@@ -5,8 +5,10 @@
       checks.test-services-cephfs = pkgs.tohPackages.testers.runToHTest {
         name = "services-cephfs";
 
+        # NOTE: ceph OSDs need disks and the mounts a kernel module
+        toh.test.kind = "vm";
+
         toh.test.clusters.node = {
-          kind = "vm";
           amount = 3;
           module = {
             toh.services.cephfs.enable = true;
@@ -32,8 +34,10 @@
       checks.test-services-cephfs-mount = pkgs.tohPackages.testers.runToHTest {
         name = "services-cephfs-mount";
 
+        # NOTE: ceph OSDs need disks and the mounts a kernel module
+        toh.test.kind = "vm";
+
         toh.test.clusters.node = {
-          kind = "vm";
           amount = 3;
           module = {
             toh.services.cephfs.enable = true;

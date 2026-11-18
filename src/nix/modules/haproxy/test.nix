@@ -128,8 +128,9 @@
             };
 
             config = {
+              toh.test.kind = "vm";
+
               toh.test.clusters.node = {
-                kind = "vm";
                 inherit amount;
                 module =
                   { config, ... }:
