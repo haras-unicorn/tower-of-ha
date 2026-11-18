@@ -13,6 +13,8 @@
     }:
     let
       cfg = config.toh.services.chronyd;
+
+      maxCorrection = builtins.toString config.services.chrony.initstepslew.threshold;
     in
     {
       options.toh.services = {
@@ -57,11 +59,8 @@
           wantedBy = [ "chronyd.service" ];
           path = [ pkgs.chrony ];
           script = ''
-            while true; do
-              if timedatectl | grep -q "System clock synchronized: yes"; then
-                exit 0
-              fi
-              chronyc makestep
+            until chronyc waitsync 1 ${maxCorrection}; do
+              chronyc makestep || echo "Could not step the clock, chrony slews it"
               sleep 10
             done
           '';
