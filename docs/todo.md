@@ -12,6 +12,20 @@ They are sorted by the [plan](./plan.md) step that is likely to fix them.
 - `src/nix/meta/cluster.nix:16`: `toh.meta.cluster.machines` uses `types.raw`.
   It should use the real NixOS configuration type.
 
+## Step 2: Containers and service tests
+
+Found while fixing the tests, not `TODO` comments.
+
+- `src/nix/overlays/samba-ctdb/4.x-no-persistent-install.patch`: one hunk no
+  longer applies to samba 4.25.1, whose `ctdb/wscript` changed. Rebase it on top
+  of the nixpkgs patch of the same name.
+- `src/nix/test/relay.nix`: the relay domain resolves to one address per VLAN,
+  but EasyTier and Nebula only dial the first one, so the node on the second
+  VLAN never reaches the relay.
+- `src/nix/modules/cephfs/test.nix`: the optional kernel mount test makes aes
+  keys, but the monitors refuse them. The allowed ciphers of a new cluster have
+  to include aes.
+
 ## Step 5: Remove Nebula
 
 These go away with the Nebula module.
