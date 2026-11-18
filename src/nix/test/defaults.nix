@@ -9,23 +9,27 @@
     };
   };
 
-  self.lib.test.testModules.defaults = {
-    node.pkgsReadOnly = false;
+  self.lib.test.testModules.defaults =
+    { lib, ... }:
+    {
+      globalTimeout = lib.mkDefault 300;
 
-    defaults =
-      { lib, ... }:
-      {
-        imports = [
-          selfLib.nixosModules.default
-        ]
-        ++ (builtins.attrValues selfLib.test.nixosModules);
+      node.pkgsReadOnly = false;
 
-        services.openssh.settings.PermitRootLogin = lib.mkForce "yes";
-        services.openssh.settings.PasswordAuthentication = lib.mkForce true;
-      };
+      defaults =
+        { lib, ... }:
+        {
+          imports = [
+            selfLib.nixosModules.default
+          ]
+          ++ (builtins.attrValues selfLib.test.nixosModules);
 
-    # NOTE: containers have no /dev/watchdog, and a watchdog bound in from
-    # the host would reset the host
-    containerDefaults.toh.services.patroni.softwareWatchdog = false;
-  };
+          services.openssh.settings.PermitRootLogin = lib.mkForce "yes";
+          services.openssh.settings.PasswordAuthentication = lib.mkForce true;
+        };
+
+      # NOTE: containers have no /dev/watchdog, and a watchdog bound in from
+      # the host would reset the host
+      containerDefaults.toh.services.patroni.softwareWatchdog = false;
+    };
 }
