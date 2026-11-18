@@ -28,8 +28,38 @@
           services.openssh.settings.PasswordAuthentication = lib.mkForce true;
         };
 
-      # NOTE: containers have no /dev/watchdog, and a watchdog bound in from
-      # the host would reset the host
-      containerDefaults.toh.services.patroni.softwareWatchdog = false;
+      containerDefaults =
+        { pkgs, config, ... }:
+        {
+          # NOTE: containers have no /dev/watchdog, and a watchdog bound in
+          # from the host would reset the host
+          toh.services.patroni.softwareWatchdog = false;
+
+          # NOTE: containers cannot set the clock of the host, so chrony only
+          # serves and tracks time there
+          services.chrony.extraFlags = [ "-x" ];
+
+          # NOTE: nixos starts sshd on demand in containers, but machines run
+          # it as a daemon, and the tests should see the same units
+          services.openssh.startWhenNeeded = false;
+
+          # NOTE: ssh refuses included config files that root does not own,
+          # and store files are not owned by root in the build sandbox; toh
+          # does not use this proxy
+          programs.ssh.systemd-ssh-proxy.enable = false;
+
+          # NOTE: without pam, sshd refuses key logins to accounts locked
+          # with a leading "!"; "*" still allows no password login
+          users.users.${config.toh.meta.user.user}.hashedPassword = "*";
+
+          # NOTE: pam does not work in the build sandbox, so tests could not
+          # switch users; this is the same hack nixpkgs uses for login
+          security.pam.services.su.text = ''
+            auth sufficient ${pkgs.linux-pam}/lib/security/pam_permit.so
+            account sufficient ${pkgs.linux-pam}/lib/security/pam_permit.so
+            password sufficient ${pkgs.linux-pam}/lib/security/pam_permit.so
+            session sufficient ${pkgs.linux-pam}/lib/security/pam_permit.so
+          '';
+        };
     };
 }
