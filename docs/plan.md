@@ -229,8 +229,8 @@ capability has a contract test that every current implementation passes.
      `ceph-fuse` instead of the kernel mount. If the sandbox has no `/dev/fuse`,
      it goes into `extra-sandbox-paths`.
    - Samba: no CTDB anymore, so only CephFS keeps it a VM.
-   - chronyd: `chronyd -x` runs without touching the clock, so a test can still
-     check the sync. Faking the clock goes further and needs a look.
+   - chronyd: **done.** The checked test runs as containers with `chronyd -x`,
+     and the optional `services-chronyd-clock` VM test sets the real clock.
 4. **Contract shape (S).** Write down how a contract test module looks,
    following `toh.test.mesh` and `toh.test.relay`: it takes the implementation
    as a parameter and checks only behavior.
