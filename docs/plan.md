@@ -220,7 +220,8 @@ capability has a contract test that every current implementation passes.
    supports containers, the secrets test module forces the machines cryl sees.
 2. **Move the tests (L).** Every test from the "should move" list, one or a few
    per chunk. The rest get a written reason to stay VMs. Done when
-   `nix flake check` passes.
+   `nix flake check` passes. The tests without helper servers moved on
+   2026-11-18. Forgejo stays a VM, because it keeps its repositories on CephFS.
 3. **Contract shape (S).** Write down how a contract test module looks,
    following `toh.test.mesh` and `toh.test.relay`: it takes the implementation
    as a parameter and checks only behavior.
@@ -325,6 +326,15 @@ live only in the test modules, so invariant 6 does not hold yet.
   (`src/nix/overlays/ceph.nix`) adds one Python dependency, which means building
   Ceph from source. Both are friction: the copy has to follow nixpkgs, and the
   build is long. Find a way to the same result without either.
+- **A flake when containers start.** Sometimes systemd in one container fails to
+  start a process ("Failed to spawn executor: No such file or directory"). The
+  targets of that machine then fail, and later the test driver loses it
+  ("Transport endpoint is not connected"). Seen in maddy and Patroni on
+  2026-11-18; both passed on a re-run. Find out whether it comes from ToH or
+  from the nixpkgs container tests, and fix it here or in nixpkgs.
+- **Simplify the services.** Much of the service code repeats itself. Move the
+  shared parts into `self.lib`, with unit tests there, and keep the modules
+  thin.
 - **OpenBao fixes**, in a step not picked yet: TLS, keeping root material out of
   OpenBao, recovering from a failed init, the token timer, the shred, and the
   certificate check on the age key fetch.
