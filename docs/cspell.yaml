@@ -23,6 +23,7 @@ words:
   - nspawn
   - openbao
   - opencode
+  - PYTHONPATH
   - sandboxing
   - setuid
   - specialisation

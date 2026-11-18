@@ -16,7 +16,7 @@
     let
       cfg = config.toh.services.cephfs;
 
-      cephPackage = pkgs.tohPackages.ceph;
+      cephPackage = pkgs.ceph;
 
       machines = selfLib.cluster.serviceMachines config "cephfs";
       ips = builtins.concatStringsSep "," (builtins.map (machine: machine.meta.network.ip) machines);

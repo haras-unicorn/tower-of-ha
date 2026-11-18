@@ -212,6 +212,7 @@ ignoreWords:
   - monmaptool
   - authtool
   - addv
+  - PYTHONPATH
   - fsid
   - losetup
   - radosgw

@@ -10,7 +10,7 @@
       ...
     }:
     let
-      cephPackage = pkgs.tohPackages.ceph;
+      cephPackage = pkgs.ceph;
 
       anyMachines = selfLib.cluster.anyServiceMachines config "cephfs";
 
@@ -121,6 +121,11 @@
               after = afterServices;
               requires = afterServices;
               path = [ cephPackage ];
+              # NOTE: cephfs-shell imports distro, which the python env of
+              # nixpkgs' ceph lacks; adding it there rebuilds all of ceph
+              environment.PYTHONPATH = lib.makeSearchPath cephPackage.pythonEnv.sitePackages [
+                cephPackage.pythonEnv.pkgs.distro
+              ];
               script = ''
                 ${lib.optionalString erase ''
                   shopt -s extglob
