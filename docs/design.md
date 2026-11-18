@@ -13,8 +13,8 @@ Every statement here is one of three kinds:
 
 Tower Of HA (ToH) is a set of NixOS modules that turn a few cheap machines into
 one highly available service stack: VPN, DNS, proxy, database, key-value store,
-S3, LDAP, single sign-on, email, git, passwords, files, secrets and, later, chat
-and observability. It is free software from top to bottom.
+S3, LDAP, single sign-on, email, git, files, secrets and, later, chat and
+observability. It is free software from top to bottom.
 
 The target hardware is a handful of Raspberry Pis. That is the yardstick for
 memory, CPU and disk.

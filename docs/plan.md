@@ -311,6 +311,10 @@ live only in the test modules, so invariant 6 does not hold yet.
 ## Parked
 
 - The `matrix` branch, until step 3.
+- **Vaultwarden as an example.** Dropped from the suite on 2026-11-18, because
+  it is an app on top of the stack and not part of it. It comes back later as
+  the example of how to turn software that is not distributed into a highly
+  available service, in a way that is simple for users to repeat.
 - **Redesign the NixOS-level `toh.overlays`.** Modules still add CLI parts as
   overlays that depend on the machine config. That is hard to read, and setting
   `nixpkgs.overlays` in a machine means tests and containers cannot use a
