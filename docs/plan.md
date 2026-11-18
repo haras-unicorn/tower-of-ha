@@ -18,9 +18,11 @@ How to read it:
 ## Order
 
 **Decided** on 2026-11-16. Changed on 2026-11-17: the move to containers went
-from step 1 to step 2, because step 1 leaves the tests alone.
+from step 1 to step 2, because step 1 leaves the tests alone. Changed on
+2026-11-18: the deployable suite went from step 1 to the end, because it adds
+friction while the services and cryl still change.
 
-1. Modernize: haraspkgs, fix the nasty patterns, a working NixOS module suite.
+1. Modernize: haraspkgs, fix the nasty patterns.
 2. Containers, and tests independent of the services (originally step 6).
 3. Matrix.
 4. Observability.
@@ -31,6 +33,7 @@ from step 1 to step 2, because step 1 leaves the tests alone.
 9. CLI.
 10. ACL.
 11. Workflow tests.
+12. A deployable suite, with an example cluster (originally part of step 1).
 
 The service-independent tests come right after step 1, so that every later step
 (new services, swapped services) has a contract to pass. The step numbers below
@@ -176,10 +179,9 @@ A first sort of the 26 test files. Not tried yet, so all of it is **read**.
 
 ## Step 1: Modernize
 
-Make the flake workable. Done when the flake evaluates on haraspkgs, nothing in
-it is unfree, and an example cluster built from `nixosModules.default` evaluates
-a `nixosConfiguration` per machine. The NixOS tests are left alone and may break
-on the way. Step 2 brings them back.
+Make the flake workable. Done when the flake evaluates on haraspkgs and nothing
+in it is unfree. The NixOS tests are left alone and may break on the way. Step 2
+brings them back.
 
 1. **Design docs (S).** This plan, the design and [todo.md](./todo.md), with the
    answers from the first review.
@@ -200,12 +202,8 @@ on the way. Step 2 brings them back.
    stops setting `allowUnfree = true` (`src/nix/overlays/nixpkgs/default.nix`),
    and a check fails when anything in the flake is unfree (invariant 1). Done
    when that check passes.
-6. **NixOS module suite (L).** Export every module as `self.nixosModules`, with
-   `default` importing all of them. Move the sops-nix wiring and the base
-   `toh-*-online` targets out of the test modules and into the suite. Add an
-   example cluster the way a user would write it: one shared module, one module
-   per machine, and `toh.meta.cluster.machines` filled from all of them. Done
-   when the example evaluates a `nixosConfiguration` per machine.
+6. **NixOS module suite.** Moved to [step 12](#step-12-deployable-suite). Chunk
+   3 already exports every module as `self.nixosModules`.
 7. **Style and small bugs (M).** `with`, `rec`, bare builtins, `machinea`, the
    stale state version. The `makePath` and DNS zone bugs, each with a unit test.
 8. **Docs (S).** README, CONTRIBUTING, AGENTS, a Diátaxis layout for this book,
@@ -295,6 +293,19 @@ capability has a contract test that every current implementation passes.
 1. **Lifecycle (L).** Tests that drive the CLI through the first install, adding
    and removing a machine, switching configurations, renewing secrets and
    restoring a backup, with the invariants checked after every step.
+
+## Step 12: Deployable suite
+
+Done when an example cluster built from `nixosModules.default` evaluates a
+`nixosConfiguration` per machine. Until then the sops-nix wiring and the targets
+live only in the test modules, so invariant 6 does not hold yet.
+
+1. **Machine basics in the suite (M).** Move the sops-nix wiring and the base
+   `toh-*-online` targets out of the test modules and into the suite, and wire
+   in cryl the way its flake module expects at that time.
+2. **Example cluster (M).** Written the way a user would: one shared module, one
+   module per machine, and `toh.meta.cluster.machines` filled from all of them,
+   under `self.nixosConfigurations`.
 
 ## Parked
 
