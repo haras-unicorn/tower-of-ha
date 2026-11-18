@@ -57,6 +57,7 @@ ignoreWords:
   - timedatectl
   - chronyc
   - makestep
+  - waitsync
   - Chrony
   - pkill
   - stdenv
@@ -209,6 +210,7 @@ ignoreWords:
   - cephfs
   - monmap
   - monmaptool
+  - authtool
   - fsid
   - losetup
   - radosgw
