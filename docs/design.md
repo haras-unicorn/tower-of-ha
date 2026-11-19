@@ -305,6 +305,73 @@ any implementation must have. The `toh.meta` options for a capability say
 nothing about the implementation. The proxy addresses moved out of the HAProxy
 module into `toh.meta.proxy` on 2026-11-18, so Envoy can serve the same ones.
 
+**Decided** on 2026-11-19: the shape of a contract.
+
+- **One test module per capability**, `src/nix/test/contracts/<capability>.nix`,
+  with its options under `toh.test.contracts.<capability>`.
+- **The implementation is a tag.** `implementation` is an `attrTag`, so a test
+  picks one implementation and could pass it options. The tags come from an
+  internal option, `implementationModules`, an `attrsOf deferredModule` with one
+  submodule of options per implementation. The contract does not know any
+  implementation.
+- **An implementation plugs itself in** with a test module next to its service,
+  in its `test.nix`. That module adds its tag to `implementationModules`, and
+  when a test picks that tag, sets up the servers: its own service and whatever
+  it depends on. For now every implementation submodule is empty, because every
+  option there would need its own tests.
+- **A separate client** checks the capability. It runs nothing of the
+  implementation and knows only `toh.meta.*`: it registers an app, gets its
+  connection details back, connects and uses the capability. It does not wait on
+  readiness targets or units, only on the connection working. Names resolve
+  through the DNS helper server of the tests, so the client does not depend on
+  the DNS implementation either.
+- **Happy path first.** A contract checks that the capability works. Losing a
+  machine and other unhappy paths come in later contracts, and the nasty faults
+  in [step 8](./plan.md#step-8-chaos-engineering).
+- **Implementation tests stay** for what only that implementation has, like
+  `patronictl list`. A contract chunk drops the service tests that its contract
+  now covers.
+
+With Patroni, the database contract looks like this:
+
+```nix
+# src/nix/modules/patroni/test.nix
+self.lib.test.testModules.contracts-database-patroni =
+  { lib, config, ... }:
+  let
+    cfg = config.toh.test.contracts.database;
+    picked = cfg.enable && cfg.implementation ? patroni;
+  in
+  {
+    toh.test.contracts.database.implementationModules.patroni = { };
+
+    toh.test.contracts.database.server = lib.mkIf picked {
+      toh.services.etcd.enable = true;
+      toh.services.coredns.enable = true;
+      toh.services.haproxy.enable = true;
+      toh.services.patroni.enable = true;
+    };
+  };
+
+self.nixosTests.contracts-database-patroni = selfLib.test.makeNixosTest {
+  toh.test.contracts.database = {
+    enable = true;
+    implementation.patroni = { };
+  };
+};
+```
+
+`server` is an internal `deferredModule` that the contract imports on each of
+its servers, so the contract keeps the names and number of its machines to
+itself.
+
+Writing this down showed a leak that the client will hit. Patroni makes the
+credentials of an app only on machines that run Patroni, so an app on any other
+machine cannot be registered at all: its `toh.meta.database.instances` entry
+points at a Patroni user that does not exist there. Valkey looks the same, and
+Garage already makes them on every machine that registers an app. Each contract
+chunk checks and fixes this for its own capability.
+
 ### Tests
 
 **Decided**: containers first, starting in step 2. Step 1 leaves the tests

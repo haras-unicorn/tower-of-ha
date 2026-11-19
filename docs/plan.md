@@ -240,9 +240,14 @@ capability has a contract test that every current implementation passes.
    contract shape, so the contracts are written against the final meta.
 5. **Contract shape (S).** Write down how a contract test module looks,
    following `toh.test.mesh` and `toh.test.relay`: it takes the implementation
-   as a parameter and checks only behavior.
+   as a parameter and checks only behavior. **Done** on 2026-11-19, in the
+   [design](./design.md#capabilities-and-contracts).
 6. **One contract per chunk (M each).** VPN (exists), DNS, proxy, database,
-   key-value, S3, LDAP, OIDC, email, git, file sharing, secrets, time.
+   key-value, S3, LDAP, OIDC, email, git, file sharing, secrets, time. Each
+   chunk writes the happy path of one contract in the shape from chunk 5, plugs
+   in every current implementation, and fixes what the separate client finds,
+   like credentials that are only made on the machines of the service. The VPN
+   chunk moves `toh.test.mesh` and `toh.test.relay` to the new shape.
 
 ## Step 3: Matrix
 

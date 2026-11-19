@@ -10,6 +10,7 @@ ignoreWords:
   - ddns
   - ctdb
   - patroni
+  - patronictl
   - valkey
   - vaultwarden
   - forgejo
