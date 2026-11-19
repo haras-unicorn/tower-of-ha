@@ -56,6 +56,7 @@ in
         cfg,
         names,
         client,
+        dnsHelper ? true,
       }:
       lib.mkMerge [
         {
@@ -64,7 +65,7 @@ in
             module = cfg.server;
           };
 
-          toh.test.dns.enable = true;
+          toh.test.dns.enable = dnsHelper;
           toh.test.dns.zones = builtins.mapAttrs (name: addresses: {
             ${name} = addresses;
           }) names;

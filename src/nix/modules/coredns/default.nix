@@ -63,6 +63,9 @@
           networking.networkmanager.dns = "none";
           networking.nameservers = lib.mkBefore [ "127.0.0.1" ];
 
+          networking.firewall.allowedUDPPorts = [ 53 ];
+          networking.firewall.allowedTCPPorts = [ 53 ];
+
           services.coredns = {
             enable = true;
             config = ''

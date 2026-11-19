@@ -1,6 +1,21 @@
 { selfLib, ... }:
 
 {
+  self.lib.test.testModules.contracts-dns-coredns = selfLib.test.contract.implementation {
+    capability = "dns";
+    implementation = "coredns";
+    server = {
+      toh.services.coredns.enable = true;
+    };
+  };
+
+  self.nixosTests.contracts-dns-coredns = selfLib.test.makeNixosTest {
+    toh.test.contracts.dns = {
+      enable = true;
+      implementation.coredns = { };
+    };
+  };
+
   self.nixosTests.services-coredns = selfLib.test.makeNixosTest {
     toh.test.dns.enable = true;
     toh.test.dns.zones = {
