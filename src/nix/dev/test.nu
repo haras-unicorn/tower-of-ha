@@ -2,6 +2,7 @@ def main [
   --jobs (-j): int = 1
   --filter (-f): string = ""
   --skipped
+  --tail (-t): int = 40
 ] {
   if $jobs < 1 {
     error make { msg: "--jobs must be at least 1" }
@@ -43,6 +44,15 @@ def main [
   let passed = $results | where status == "passed" | length
   let skipped = $results | where status == "skipped" | length
   let failed = $results | where status == "failed" | get name
+
+  for name in $failed {
+    print $"\n== ($name): the last ($tail) lines of its log"
+    try {
+      ^nix log $"($tests).($name)" | lines | last $tail | str join "\n" | print
+    } catch {
+      print "no log found"
+    }
+  }
 
   print ""
   print $"($passed) passed, ($failed | length) failed, ($skipped) skipped"

@@ -17,6 +17,8 @@ let
         amount = 3;
         fetchAmount = amount * 3;
         fetchAmountString = builtins.toString fetchAmount;
+        routingTimeout = 120;
+        routingTimeoutString = builtins.toString routingTimeout;
 
         ips = lib.concatMapStringsSep ", " (node: ''"${node.toh.meta.network.ip}"'') machineList;
         downNode = builtins.head machineList;
@@ -166,10 +168,21 @@ let
           };
 
           toh.test.commands.prefix = ''
-            import time
-
             node_ips = set([ ${ips} ])
             remaining_ips = set([ ${remainingIps} ])
+
+            def routes_to(machine, url, expected, what):
+              def routed(last_try):
+                ips = set()
+                for _ in range(${fetchAmountString}):
+                  status, output = machine.execute(f"curl -s {url}")
+                  if status == 0:
+                    ips.add(output.strip())
+                if last_try:
+                  assert ips == expected, f"{what}: {ips} != {expected}"
+                return ips == expected
+
+              retry(routed, timeout_seconds=${routingTimeoutString})
           '';
 
           toh.test.commands.perNodeInCluster.node = [
@@ -177,37 +190,16 @@ let
             ''command_node.wait_for_unit("haproxy.service")''
             ''command_node.wait_for_unit("http.service")''
             (node: ''
-              # NOTE: python is freaking slow
-              ${if node.toh.test.clusters.number == 1 then "time.sleep(10)" else ""}
-
-              ips = set([
-                command_node.succeed("curl -s ${urlFromNode node}").strip()
-                for _ in range(${fetchAmountString})
-              ])
-              assert ips == node_ips, f"{ips} != {node_ips}"
+              routes_to(command_node, "${urlFromNode node}", node_ips, "Routing at start failed")
             '')
           ];
 
           toh.test.commands.suffix = ''
             ${downNodeName}.succeed("systemctl stop http.service")
-
-            time.sleep(10)
-
-            ips = set([
-              ${upNodeName}.succeed("curl -s ${urlFromNode upNode}").strip()
-              for _ in range(${fetchAmountString})
-            ])
-            assert ips == remaining_ips, f"Routing after stop failed: {ips} != {remaining_ips}"
+            routes_to(${upNodeName}, "${urlFromNode upNode}", remaining_ips, "Routing after stop failed")
 
             ${downNodeName}.succeed("systemctl start http.service")
-
-            time.sleep(20)
-
-            ips = set([
-              ${upNodeName}.succeed("curl -s ${urlFromNode upNode}").strip()
-              for _ in range(${fetchAmountString})
-            ])
-            assert ips == node_ips, f"Routing after restart failed: {ips} != {node_ips}"
+            routes_to(${upNodeName}, "${urlFromNode upNode}", node_ips, "Routing after restart failed")
           '';
         };
       }

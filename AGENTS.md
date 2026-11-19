@@ -46,7 +46,8 @@ builds each one with its own `nix` process, so the memory of an evaluation is
 freed when its test ends. `dev test --jobs <n>` runs `n` tests at once and
 `--filter <regex>` picks the tests whose names match, for example
 `--filter 'ceph|samba'`. A test that sets `passthru.skipped = true` is left out
-unless `--skipped` is given.
+unless `--skipped` is given. Before the totals, `dev test` prints the last
+`--tail` lines of the log of every failed test.
 
 The tests are also memory hungry to run: each one boots several machines with
 databases, filesystems and networks. A test that runs out of time under swapping

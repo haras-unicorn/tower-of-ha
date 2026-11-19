@@ -305,7 +305,7 @@
           };
 
           test = {
-            description = "Run the NixOS tests (--jobs, --filter, --skipped).";
+            description = "Run the NixOS tests (--jobs, --filter, --skipped, --tail).";
             packages = [ testRunner ];
             commands = ''dev-test "$@"'';
           };
