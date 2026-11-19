@@ -1,6 +1,28 @@
 { selfLib, ... }:
 
 {
+  self.lib.test.testModules.contracts-secrets-openbao = selfLib.test.contract.implementation {
+    capability = "secrets";
+    implementation = "openbao";
+    server = {
+      toh.services.coredns.enable = true;
+      toh.services.haproxy.enable = true;
+      toh.services.etcd.enable = true;
+      toh.services.openbao.enable = true;
+      toh.services.patroni.enable = true;
+    };
+    client = {
+      toh.services.openbao.token.enable = true;
+    };
+  };
+
+  self.nixosTests.contracts-secrets-openbao = selfLib.test.makeNixosTest {
+    toh.test.contracts.secrets = {
+      enable = true;
+      implementation.openbao = { };
+    };
+  };
+
   self.nixosTests.services-openbao = selfLib.test.makeNixosTest {
     toh.test.clusters.node.amount = 3;
     toh.test.clusters.node.module = {
