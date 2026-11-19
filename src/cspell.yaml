@@ -220,6 +220,10 @@ ignoreWords:
   - cephx
   - getmap
   - objectstore
+  - setpriv
+  - reuid
+  - regid
+  - psqlrc
   - fsid
   - losetup
   - radosgw

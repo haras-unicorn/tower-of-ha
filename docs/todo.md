@@ -19,6 +19,10 @@ Found while fixing the tests, not `TODO` comments.
 - `src/nix/modules/cephfs/default.nix`: `keyType` only changes the allowed
   ciphers. The keys still come from cryl, which the kernel test wraps to make
   aes keys.
+- `src/nix/modules/patroni/init.nix`: every Patroni machine runs the init at the
+  same time, and when the `alter user ... with password` statements race
+  (`tuple concurrently updated`), Postgres logs the failed statement with the
+  superuser passwords into the journal.
 
 ## Step 5: Remove Nebula
 

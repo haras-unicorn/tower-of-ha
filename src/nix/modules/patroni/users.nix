@@ -12,6 +12,8 @@
     let
       osUsers = config.users.users;
 
+      runsPatroni = config.toh.services.patroni.enable;
+
       proxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.postgresql.endpoint;
 
       mergeByUser =
@@ -148,12 +150,12 @@
         toh.services.patroni.init.sql.files = mergeByUser (
           {
             user,
-            installSecrets,
+            generateSecrets,
             isSuperuser,
             ...
           }:
           lib.mkBefore [
-            (lib.mkIf (installSecrets && !isSuperuser) {
+            (lib.mkIf (generateSecrets && !isSuperuser && runsPatroni) {
               ${user} = config.toh.meta.sops.secrets."patroni-${user}-init".path;
             })
           ]
@@ -163,6 +165,7 @@
           {
             user,
             installSecrets,
+            generateSecrets,
             env,
             url,
             ca,
@@ -174,44 +177,48 @@
             group,
             ...
           }:
-          lib.mkIf installSecrets {
-            "patroni-${user}-ca" = {
-              inherit owner group;
-              key = "openssl-ca-public";
-              path = ca;
-              mode = "0644";
-            };
-            "patroni-${user}-public" = {
-              inherit owner group;
-              path = crt;
-              mode = "0644";
-            };
-            "patroni-${user}-private" = {
-              inherit owner group;
-              path = key;
-              mode = "0400";
-            };
-            "patroni-${user}-env" = {
-              inherit owner group;
-              path = env;
-              mode = "0400";
-            };
-            "patroni-${user}-url" = {
-              inherit owner group;
-              path = url;
-              mode = "0400";
-            };
-            "patroni-${user}-init" = lib.mkIf (!isSuperuser) {
-              owner = config.systemd.services.patroni.serviceConfig.User;
-              group = config.systemd.services.patroni.serviceConfig.Group;
-              mode = "0400";
-            };
-            "patroni-${user}-pass" = {
-              inherit owner group;
-              path = password;
-              mode = "0400";
-            };
-          }
+          lib.mkMerge [
+            (lib.mkIf installSecrets {
+              "patroni-${user}-ca" = {
+                inherit owner group;
+                key = "openssl-ca-public";
+                path = ca;
+                mode = "0644";
+              };
+              "patroni-${user}-public" = {
+                inherit owner group;
+                path = crt;
+                mode = "0644";
+              };
+              "patroni-${user}-private" = {
+                inherit owner group;
+                path = key;
+                mode = "0400";
+              };
+              "patroni-${user}-env" = {
+                inherit owner group;
+                path = env;
+                mode = "0400";
+              };
+              "patroni-${user}-url" = {
+                inherit owner group;
+                path = url;
+                mode = "0400";
+              };
+              "patroni-${user}-pass" = {
+                inherit owner group;
+                path = password;
+                mode = "0400";
+              };
+            })
+            (lib.mkIf (generateSecrets && !isSuperuser && runsPatroni) {
+              "patroni-${user}-init" = {
+                owner = config.systemd.services.patroni.serviceConfig.User;
+                group = config.systemd.services.patroni.serviceConfig.Group;
+                mode = "0400";
+              };
+            })
+          ]
         );
 
         toh.meta.cryl.machine = mergeByUser (
@@ -312,7 +319,7 @@
                       };
                     };
                   }
-                  (lib.mkIf (!isSuperuser) {
+                  (lib.mkIf (!isSuperuser && runsPatroni) {
                     generator = "mustache";
                     arguments = {
                       name = "patroni-${user}-init";

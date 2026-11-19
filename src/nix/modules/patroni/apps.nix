@@ -38,6 +38,28 @@
 
       mergeByMachineApps =
         forEachApp: lib.mkIf anyMachines (lib.mkMerge (builtins.map forEachApp machineApps));
+
+      appUser =
+        secretsFlag:
+        {
+          name,
+          user,
+          group,
+          dbName,
+          dbUser,
+          ...
+        }:
+        {
+          ${name} = {
+            inherit
+              user
+              group
+              dbName
+              dbUser
+              ;
+            ${secretsFlag} = true;
+          };
+        };
     in
     {
       toh.meta.database.instances = mergeByMachineApps (
@@ -117,26 +139,9 @@
         ]
       );
 
-      toh.services.patroni.users = mergeByClusterApps (
-        {
-          name,
-          user,
-          group,
-          dbName,
-          dbUser,
-          ...
-        }:
-        {
-          ${name} = {
-            inherit
-              user
-              group
-              dbName
-              dbUser
-              ;
-            installSecrets = true;
-          };
-        }
-      );
+      toh.services.patroni.users = lib.mkMerge [
+        (mergeByMachineApps (appUser "installSecrets"))
+        (mergeByClusterApps (appUser "generateSecrets"))
+      ];
     };
 }

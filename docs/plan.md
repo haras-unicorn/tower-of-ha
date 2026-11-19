@@ -248,6 +248,9 @@ capability has a contract test that every current implementation passes.
    in every current implementation, and fixes what the separate client finds,
    like credentials that are only made on the machines of the service. The VPN
    chunk moves `toh.test.mesh` and `toh.test.relay` to the new shape.
+   - Database: **done** on 2026-11-19, with Patroni. A machine that registers an
+     app now installs its credentials, and the Patroni machines only make them
+     and keep the init secret. The contract replaces `services-patroni-app`.
 
 ## Step 3: Matrix
 

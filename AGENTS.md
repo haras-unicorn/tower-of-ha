@@ -22,7 +22,9 @@ flake-parts module.
   `test.nix` its NixOS test, and other files are its assets (Nushell scripts,
   for example).
 - `src/nix/overlays/`: packages and package helpers under `pkgs.tohPackages`.
-- `src/nix/test/`: shared helpers and modules for the NixOS tests.
+- `src/nix/test/`: shared helpers and modules for the NixOS tests. Under
+  `contracts/`, one contract test per capability; each implementation plugs
+  itself in from its own `test.nix` (see the design's contract shape).
 - `src/nix/cli/`: the base of the `toh` CLI.
 - `src/nix/dev/`: the dev shell and the docs package.
 - `docs/`: the mdbook.
