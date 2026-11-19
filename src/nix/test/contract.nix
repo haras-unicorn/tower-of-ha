@@ -2,10 +2,20 @@
 
 let
   app = "contract";
+
+  clientModule = client: {
+    imports = [ client ];
+
+    users.groups.${app} = { };
+    users.users.${app} = {
+      isSystemUser = true;
+      group = app;
+    };
+  };
 in
 {
   self.lib.test.contract = {
-    inherit app;
+    inherit app clientModule;
 
     options = capability: cfg: {
       enable = lib.mkEnableOption "the ${capability} contract test";
@@ -71,15 +81,7 @@ in
           }) names;
         }
         (selfLib.test.ofKind kind {
-          client = {
-            imports = [ client ];
-
-            users.groups.${app} = { };
-            users.users.${app} = {
-              isSystemUser = true;
-              group = app;
-            };
-          };
+          client = clientModule client;
         })
       ];
 
