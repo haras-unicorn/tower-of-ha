@@ -50,6 +50,7 @@
         }:
         {
           ${name} = {
+            user = name;
             password = kvUser.password;
             url = kvUser.url;
             prefix = lib.mkIf (prefix != "all" && prefix != "none") prefix;

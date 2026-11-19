@@ -11,7 +11,7 @@
     let
       cfg = config.toh.test.contracts.database;
 
-      app = "contract";
+      app = selfLib.test.contract.app;
       table = "contract";
       row = "works";
 
@@ -25,17 +25,8 @@
         lib.mkMerge [
           (selfLib.test.contract.base {
             inherit cfg;
+            kind = config.toh.test.kind;
             names.${host} = clientMeta.relays;
-          })
-          {
-            toh.test.commands.suffix = ''
-              client.wait_until_succeeds("contract-database 'select count(*) from ${table}'", timeout=300)
-              client.succeed("contract-database \"insert into ${table} values ('${row}')\"")
-              read = client.succeed("contract-database 'select value from ${table}'").strip()
-              assert read == "${row}", f"read back {read!r} instead of '${row}'"
-            '';
-          }
-          (selfLib.test.ofKind config.toh.test.kind {
             client =
               { config, pkgs, ... }:
               let
@@ -70,12 +61,6 @@
                 };
               in
               {
-                users.groups.${app} = { };
-                users.users.${app} = {
-                  isSystemUser = true;
-                  group = app;
-                };
-
                 toh.meta.database.apps.${app}.init.sql.script = ''
                   create table ${table} (value text);
                 '';
@@ -83,6 +68,14 @@
                 environment.systemPackages = [ clients.${database.protocol} ];
               };
           })
+          {
+            toh.test.commands.suffix = ''
+              client.wait_until_succeeds("contract-database 'select count(*) from ${table}'", timeout=300)
+              client.succeed("contract-database \"insert into ${table} values ('${row}')\"")
+              read = client.succeed("contract-database 'select value from ${table}'").strip()
+              assert read == "${row}", f"read back {read!r} instead of '${row}'"
+            '';
+          }
         ]
       );
     };

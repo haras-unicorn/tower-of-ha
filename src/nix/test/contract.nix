@@ -1,7 +1,12 @@
-{ lib, ... }:
+{ lib, selfLib, ... }:
 
+let
+  app = "contract";
+in
 {
   self.lib.test.contract = {
+    inherit app;
+
     options = capability: cfg: {
       enable = lib.mkEnableOption "the ${capability} contract test";
 
@@ -46,18 +51,36 @@
     };
 
     base =
-      { cfg, names }:
       {
-        toh.test.clusters.server = {
-          amount = cfg.servers;
-          module = cfg.server;
-        };
+        kind,
+        cfg,
+        names,
+        client,
+      }:
+      lib.mkMerge [
+        {
+          toh.test.clusters.server = {
+            amount = cfg.servers;
+            module = cfg.server;
+          };
 
-        toh.test.dns.enable = true;
-        toh.test.dns.zones = builtins.mapAttrs (name: addresses: {
-          ${name} = addresses;
-        }) names;
-      };
+          toh.test.dns.enable = true;
+          toh.test.dns.zones = builtins.mapAttrs (name: addresses: {
+            ${name} = addresses;
+          }) names;
+        }
+        (selfLib.test.ofKind kind {
+          client = {
+            imports = [ client ];
+
+            users.groups.${app} = { };
+            users.users.${app} = {
+              isSystemUser = true;
+              group = app;
+            };
+          };
+        })
+      ];
 
     implementation =
       {

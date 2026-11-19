@@ -224,6 +224,7 @@ ignoreWords:
   - reuid
   - regid
   - psqlrc
+  - VALKEYCLI
   - fsid
   - losetup
   - radosgw

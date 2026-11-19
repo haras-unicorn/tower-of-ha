@@ -86,6 +86,11 @@
             type = lib.types.attrsOf (
               lib.types.submodule ({
                 options = {
+                  user = lib.mkOption {
+                    type = lib.types.str;
+                    description = "KV store user name";
+                  };
+
                   password = lib.mkOption {
                     type = lib.types.str;
                     description = "KV store user password file path";

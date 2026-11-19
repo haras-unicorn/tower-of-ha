@@ -30,7 +30,7 @@
           owner = value.user;
         }
       ) (lib.attrsToList cfg.users);
-      anyUsers = usersList != [ ];
+      servesUsers = cfg.enable && usersList != [ ];
 
       mergeByUser = forEachUser: lib.mkMerge (builtins.map forEachUser usersList);
     in
@@ -149,7 +149,7 @@
         };
 
         toh.meta.sops.secrets = lib.mkMerge [
-          (lib.mkIf anyUsers {
+          (lib.mkIf servesUsers {
             "valkey-acl" = {
               owner = valkeyUser;
               group = valkeyGroup;
@@ -201,7 +201,7 @@
         ];
 
         toh.meta.cryl.machine = lib.mkMerge [
-          (lib.mkIf anyUsers (
+          (lib.mkIf servesUsers (
             lib.mkAfter [
               {
                 "valkey-acl" = {
