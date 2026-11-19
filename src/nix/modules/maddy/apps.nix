@@ -9,8 +9,6 @@
       ...
     }:
     let
-      cfg = config.toh.services.maddy;
-
       anyMachines = selfLib.cluster.anyServiceMachines config "maddy";
 
       appAttrsToList =
@@ -23,15 +21,6 @@
             ldapUser = config.toh.meta.ldap.users.${name};
           }
         ) (lib.attrsToList apps);
-
-      clusterApps = appAttrsToList (
-        builtins.zipAttrsWith (_: builtins.head) (
-          builtins.map (machine: machine.meta.email.apps) config.toh.meta.cluster.machineList
-        )
-      );
-
-      mergeByClusterApps =
-        forEachApp: lib.mkIf cfg.enable (lib.mkMerge (builtins.map forEachApp clusterApps));
 
       machineApps = appAttrsToList config.toh.meta.email.apps;
 
@@ -53,12 +42,16 @@
           }
         );
 
-        toh.meta.ldap.apps = mergeByClusterApps (
-          { name, ... }:
+        toh.meta.ldap.apps = mergeByMachineApps (
+          {
+            name,
+            user,
+            group,
+            ...
+          }:
           {
             ${name} = {
-              user = name;
-              group = name;
+              inherit user group;
               permissions = [ ];
             };
           }

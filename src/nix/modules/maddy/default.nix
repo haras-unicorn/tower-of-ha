@@ -32,6 +32,12 @@
       ldapConfig = config.toh.meta.ldap;
       ldapUser = config.toh.meta.ldap.users.maddy;
 
+      clusterEmailApps = builtins.zipAttrsWith (_: builtins.head) (
+        builtins.map (machine: machine.meta.email.apps) config.toh.meta.cluster.machineList
+      );
+
+      accounts = [ "maddy" ] ++ builtins.attrNames clusterEmailApps;
+
       imapProxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.maddy-imap.endpoint;
       smtpProxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.maddy-smtp.endpoint;
       submissionProxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.maddy-submission.endpoint;
@@ -40,6 +46,15 @@
       options.toh.services = {
         maddy = {
           enable = lib.mkEnableOption "Maddy mail server";
+
+          accountsRetrySeconds = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 5;
+            description = ''
+              Seconds between tries to create the IMAP accounts, which fail
+              until the database user of Maddy is ready.
+            '';
+          };
         };
       };
 
@@ -49,6 +64,14 @@
             admin = selfLib.email.makeAddress {
               name = "maddy";
               host = config.toh.meta.email.domain;
+            };
+
+            submission = {
+              inherit (submissionProxyAttrs) host port;
+            };
+
+            imap = {
+              inherit (imapProxyAttrs) host port;
             };
           };
         })
@@ -119,6 +142,7 @@
                 storage.imapsql local_mailboxes {
                   driver ${imapSqlDriver}
                   dsn "${imapSqlDsn}"
+                  delivery_map email_localpart
                   msg_store s3 {
                     endpoint ${s3Host}
                     secure yes
@@ -333,27 +357,39 @@
           toh.meta.database.apps.maddy = {
             user = owner;
             group = group;
-            # NOTE: doing app init here because this just changes the db stuff anyway
-            # it should also run database migrations
-            init.nushell.script =
-              let
-                # NOTE: getting config here like this because
-                # theres a possibility this runs on a machine without maddy
-                configFile = pkgs.writeText "maddy-config" config.environment.etc."maddy/maddy.conf".text;
-                maddyctl = ''${config.services.maddy.package}/bin/maddyctl --config "${configFile}"'';
-              in
-              builtins.concatStringsSep "\n" (
-                lib.mapAttrsToList (name: _: ''
-                  if not (${maddyctl} imap-acct list | str contains "${name}") {
-                    ${maddyctl} imap-acct create "${name}"
+          };
+
+          # NOTE: services.maddy.ensureAccounts exits 0 when the database
+          # refuses it, so it gives up for good when it starts before the
+          # database user of maddy is ready
+          systemd.services.maddy-accounts = {
+            description = "Maddy IMAP accounts";
+            wantedBy = [ "maddy.service" ];
+            after = [ "maddy.service" ];
+            bindsTo = [ "maddy.service" ];
+            unitConfig.StartLimitIntervalSec = 0;
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              User = owner;
+              Group = group;
+              EnvironmentFile = env;
+              Restart = "on-failure";
+              RestartSec = cfg.accountsRetrySeconds;
+            };
+            script = lib.getExe (
+              pkgs.tohPackages.writeNushellApplication {
+                name = "maddy-accounts";
+                runtimeInputs = [ config.services.maddy.package ];
+                text = ''
+                  let accounts = r#'${builtins.toJSON accounts}'# | from json
+                  let existing = maddyctl imap-acct list | lines
+                  for account in ($accounts | where $it not-in $existing) {
+                    maddyctl imap-acct create $account
                   }
-                '') config.toh.meta.email.apps
-              )
-              + ''
-                if not (${maddyctl} imap-acct list | str contains "maddy") {
-                  ${maddyctl} imap-acct create "maddy"
-                }
-              '';
+                '';
+              }
+            );
           };
 
           toh.meta.s3.apps.maddy = {

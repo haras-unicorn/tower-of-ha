@@ -34,6 +34,12 @@
       proxyAttrs =
         serviceName: selfLib.services.endpoint.toAttrs config.toh.meta.proxies.${serviceName}.endpoint;
 
+      proxyHosts = lib.unique (
+        builtins.map (serviceName: (proxyAttrs serviceName).host) (
+          builtins.attrNames config.toh.meta.proxies
+        )
+      );
+
       serviceNamesToMachineServices = lib.zipAttrs (
         builtins.map (machine: machine.meta.services) config.toh.meta.cluster.machineList
       );
@@ -314,7 +320,8 @@
                       "localhost"
                       "${config.toh.meta.network.ip}"
                       "127.0.0.1"
-                    ];
+                    ]
+                    ++ proxyHosts;
                     config = "haproxy-cert-config";
                     request_config = "haproxy-cert-request-config";
                     private = "haproxy-private";

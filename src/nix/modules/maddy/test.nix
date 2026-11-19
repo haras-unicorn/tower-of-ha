@@ -1,6 +1,27 @@
 { selfLib, ... }:
 
 {
+  self.lib.test.testModules.contracts-email-maddy = selfLib.test.contract.implementation {
+    capability = "email";
+    implementation = "maddy";
+    server = {
+      toh.services.coredns.enable = true;
+      toh.services.haproxy.enable = true;
+      toh.services.etcd.enable = true;
+      toh.services.patroni.enable = true;
+      toh.services.garage.enable = true;
+      toh.services.lldap.enable = true;
+      toh.services.maddy.enable = true;
+    };
+  };
+
+  self.nixosTests.contracts-email-maddy = selfLib.test.makeNixosTest {
+    toh.test.contracts.email = {
+      enable = true;
+      implementation.maddy = { };
+    };
+  };
+
   self.nixosTests.services-maddy = selfLib.test.makeNixosTest {
     toh.test.clusters.node = {
       amount = 3;

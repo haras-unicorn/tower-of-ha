@@ -20,6 +20,30 @@
             description = "Admin email address.";
           };
 
+          submission = {
+            host = lib.mkOption {
+              type = lib.types.str;
+              description = "Host that takes mail submission over implicit TLS.";
+            };
+
+            port = lib.mkOption {
+              type = lib.types.port;
+              description = "Port of mail submission over implicit TLS.";
+            };
+          };
+
+          imap = {
+            host = lib.mkOption {
+              type = lib.types.str;
+              description = "Host that serves IMAP over implicit TLS.";
+            };
+
+            port = lib.mkOption {
+              type = lib.types.port;
+              description = "Port of IMAP over implicit TLS.";
+            };
+          };
+
           apps = lib.mkOption {
             default = { };
             description = "Static email inbox registrations for services";
