@@ -70,6 +70,10 @@
           }
           (selfLib.test.ofKind testConfig.toh.test.kind {
             dns = {
+              # NOTE: the helper is a machine of the cluster to ToH but does not
+              # trust its CA, so it could not get a token from a secrets service
+              toh.services.openbao.token.enable = false;
+
               services.coredns = {
                 enable = true;
                 config =

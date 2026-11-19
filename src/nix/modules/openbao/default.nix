@@ -108,7 +108,7 @@
           port
         ];
 
-        toh.meta.services.openbao = {
+        toh.meta.services.secrets = {
           endpoint.http = {
             inherit port;
           };
@@ -120,7 +120,7 @@
 
         # NOTE: for init we need one that forwards
         # even before initialization and unseal
-        toh.meta.services.openbao-init = {
+        toh.meta.services.secrets-init = {
           endpoint.http = {
             inherit port;
           };

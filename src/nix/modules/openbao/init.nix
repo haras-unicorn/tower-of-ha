@@ -89,7 +89,7 @@
             TOH_OPENBAO_MACHINE_ACL_TEMPLATE_FILE = builtins.toString machineAclTemplate;
             TOH_OPENBAO_ADMIN_ACL_FILE = builtins.toString adminAcl;
             TOH_OPENBAO_ADDRESS =
-              selfLib.services.endpoint.toUrl config.toh.meta.proxies.openbao-init.endpoint
+              selfLib.services.endpoint.toUrl config.toh.meta.proxies.secrets-init.endpoint
                 { };
             TOH_OPENBAO_MACHINE_NAME = config.toh.meta.machine.name;
             TOH_OPENBAO_MACHINE_PASSWORDS = builtins.toJSON (

@@ -3,8 +3,9 @@
 # NOTE: the contract is that the bao CLI works with the implementation, which
 # only Vault and OpenBao offer; the CLI of ToH is built on it, so the secrets
 # capability cannot do without it. The client uses the token its machine
-# fetched and the place the machine may write to, which is why the proxy it
-# asks is still named after OpenBao.
+# fetched (every machine of a cluster with a secrets service gets one) and the
+# place the machine may write to, so the contract is tied to how OpenBao lays
+# out its secrets.
 
 {
   self.lib.test.testModules.contracts-secrets =
@@ -20,7 +21,7 @@
       value = "works";
 
       clientMeta = machines.client.toh.meta;
-      proxy = clientMeta.proxies.openbao.endpoint;
+      proxy = clientMeta.proxies.secrets.endpoint;
     in
     {
       options.toh.test.contracts.secrets = selfLib.test.contract.options "secrets" cfg;

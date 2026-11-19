@@ -15,6 +15,8 @@
       user = selfLib.openbao.user;
       group = selfLib.openbao.group;
 
+      anyMachines = selfLib.cluster.anyServiceMachines config "openbao";
+
       hours = 2;
       refreshHours = hours / 2;
     in
@@ -23,7 +25,10 @@
         openbao = {
           token = {
             enable = lib.mkEnableOption "OpenBao token management" // {
-              default = cfg.enable;
+              # NOTE: the init makes a user for every machine of the cluster,
+              # so every machine has the password to get a token with
+              default = anyMachines;
+              defaultText = lib.literalExpression "true when a machine of the cluster runs OpenBao";
             };
           };
         };
@@ -40,7 +45,7 @@
             TOH_OPENBAO_MACHINE_USERNAME = config.toh.meta.machine.name;
             TOH_OPENBAO_MACHINE_PASSWORD_PATH =
               config.toh.meta.sops.secrets."openbao-machine-${config.toh.meta.machine.name}-pass".path;
-            TOH_OPENBAO_ADDRESS = selfLib.services.endpoint.toUrl config.toh.meta.proxies.openbao.endpoint { };
+            TOH_OPENBAO_ADDRESS = selfLib.services.endpoint.toUrl config.toh.meta.proxies.secrets.endpoint { };
           };
         };
 

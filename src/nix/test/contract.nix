@@ -53,16 +53,6 @@ in
         '';
       };
 
-      client = lib.mkOption {
-        type = lib.types.deferredModule;
-        default = { };
-        internal = true;
-        description = ''
-          Module of every client, for an implementation that has a part that
-          runs on the machines of its users, like a token service.
-        '';
-      };
-
       servers = lib.mkOption {
         type = lib.types.ints.positive;
         default = 3;
@@ -91,12 +81,7 @@ in
           }) names;
         }
         (selfLib.test.ofKind kind {
-          client = clientModule {
-            imports = [
-              client
-              cfg.client
-            ];
-          };
+          client = clientModule client;
         })
       ];
 
@@ -105,7 +90,6 @@ in
         capability,
         implementation,
         server,
-        client ? { },
         test ? { },
       }:
       { config, ... }:
@@ -120,7 +104,6 @@ in
             toh.test.contracts.${capability} = {
               implementationModules.${implementation} = { };
               server = lib.mkIf picked server;
-              client = lib.mkIf picked client;
             };
           }
           (lib.mkIf picked testConfig)

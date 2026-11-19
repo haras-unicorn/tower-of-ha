@@ -11,9 +11,6 @@
       toh.services.openbao.enable = true;
       toh.services.patroni.enable = true;
     };
-    client = {
-      toh.services.openbao.token.enable = true;
-    };
   };
 
   self.nixosTests.contracts-secrets-openbao = selfLib.test.makeNixosTest {
