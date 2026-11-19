@@ -133,6 +133,7 @@
             repository = {
               ROOT = forgejoCfg.repositoryRoot;
               DEFAULT_BRANCH = "main";
+              ENABLE_PUSH_CREATE_USER = true;
             };
 
             database = {

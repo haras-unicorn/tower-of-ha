@@ -64,6 +64,26 @@
             );
           };
 
+          users = lib.mkOption {
+            description = "Git users of the apps on this machine";
+            default = { };
+            type = lib.types.attrsOf (
+              lib.types.submodule {
+                options = {
+                  name = lib.mkOption {
+                    type = lib.types.str;
+                    description = "Git user name";
+                  };
+
+                  password = lib.mkOption {
+                    type = lib.types.path;
+                    description = "Path to the git user password";
+                  };
+                };
+              }
+            );
+          };
+
           url = lib.mkOption {
             type = lib.types.str;
             readOnly = true;

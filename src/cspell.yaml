@@ -227,6 +227,7 @@ ignoreWords:
   - VALKEYCLI
   - LDAPTLS
   - urlencode
+  - CAINFO
   - fsid
   - losetup
   - radosgw
