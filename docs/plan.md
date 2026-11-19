@@ -251,6 +251,32 @@ capability has a contract test that every current implementation passes.
    - Database: **done** on 2026-11-19, with Patroni. A machine that registers an
      app now installs its credentials, and the Patroni machines only make them
      and keep the init secret. The contract replaces `services-patroni-app`.
+   - Key-value: **done** on 2026-11-19, with Valkey. The ACL file stays on the
+     Valkey machines, and `toh.meta.kv.instances` got the user name.
+   - S3: **done** on 2026-11-19, with Garage. Garage machines keep their own
+     copy of the app keys to import them.
+   - LDAP: **done** on 2026-11-19, with LLDAP, which needed no change.
+   - DNS: **done** on 2026-11-19, with CoreDNS, which now opens port 53. The
+     client runs without the DNS helper and resolves a node name.
+   - Proxy: **done** on 2026-11-19, with HAProxy, which needed no change. The
+     client offers a service and reaches it back through the proxy.
+   - Email: **done** on 2026-11-19, with Maddy. `toh.meta.email` got submission
+     and IMAP endpoints, the HAProxy certificate names every proxy host, and
+     Maddy makes mailboxes for every app of the cluster and delivers by local
+     part.
+   - OIDC: **done** on 2026-11-19, with Authelia, which needed no change. The
+     client reads the discovery document and pushes an authorization request
+     with its secret, because a login needs a browser.
+   - Files: **done** on 2026-11-19, with CephFS, as the `filesystem` contract.
+     The client mounts one directory twice and reads back through the second
+     mount what it wrote through the first.
+   - VPN: not started. `toh.test.mesh` and `toh.test.relay` are VM tests with
+     their own networks, so moving them is its own chunk.
+   - Git: not started. Forgejo has no credentials for apps, only logins through
+     Authelia, so a client cannot push yet. It needs a design first.
+   - File sharing and time: not started. Samba has no `toh.meta` options for a
+     client, and chronyd only syncs its own machine. Each needs a design first.
+   - Secrets: parked with OpenBao.
 
 ## Step 3: Matrix
 

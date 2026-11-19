@@ -324,7 +324,8 @@ module into `toh.meta.proxy` on 2026-11-18, so Envoy can serve the same ones.
   connection details back, connects and uses the capability. It does not wait on
   readiness targets or units, only on the connection working. Names resolve
   through the DNS helper server of the tests, so the client does not depend on
-  the DNS implementation either.
+  the DNS implementation either. The DNS contract is the exception: it turns the
+  helper off, so the client asks the implementation.
 - **Happy path first.** A contract checks that the capability works. Losing a
   machine and other unhappy paths come in later contracts, and the nasty faults
   in [step 8](./plan.md#step-8-chaos-engineering).
@@ -362,14 +363,18 @@ itself. `selfLib.test.contract` (`src/nix/test/contract.nix`) holds what every
 contract shares: the options above, the servers and DNS names (`base`), and the
 test module an implementation plugs in with (`implementation`). An
 implementation that needs more from the test, like a helper server, passes it as
-`test`.
+`test`. `base` takes a `dnsHelper` switch. It cannot follow from whether there
+are names to map, because the names come from the machines, and which machines
+exist depends on the helper.
 
 Writing this down showed a leak that the client will hit. Patroni makes the
 credentials of an app only on machines that run Patroni, so an app on any other
 machine cannot be registered at all: its `toh.meta.database.instances` entry
-points at a Patroni user that does not exist there. Valkey looks the same, and
-Garage already makes them on every machine that registers an app. Each contract
-chunk checks and fixes this for its own capability.
+points at a Patroni user that does not exist there. Each contract chunk checks
+and fixes this for its own capability. The fix is the same everywhere: the
+machine that registers an app installs its credentials, and the machines of the
+service keep their own copy for setting it up. Patroni, Valkey, Garage and Maddy
+needed it.
 
 ### Tests
 

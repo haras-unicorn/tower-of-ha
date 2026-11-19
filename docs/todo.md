@@ -39,6 +39,10 @@ These go away with the Nebula module.
   the backends by locality: this machine first, then the rack, the datacenter,
   the region and other regions. Envoy has locality-weighted load balancing built
   in.
+- `src/nix/modules/haproxy/default.nix`: right after start, HAProxy sends
+  connections to backends whose first health check has not run yet. The kv
+  contract saw writes land on a Valkey replica. Envoy should hold back until a
+  backend passed its first check.
 
 ## Step 7: Behavior and invariant tests
 
@@ -53,6 +57,9 @@ These go away with the Nebula module.
 - `src/nix/meta/user.nix:1`: more than one user, with ACL.
 - `src/nix/modules/openssh/default.nix:1`: accept SSH only from the VPN.
 - `src/nix/modules/cephfs/default.nix:3`: ACL for mounts.
+- `src/nix/modules/cephfs/mounts.nix`: every machine with a mount gets the
+  CephFS admin keyring, so any app machine can read and change the whole
+  filesystem. The filesystem contract runs on that today.
 
 ## Parked: OpenBao fixes
 
