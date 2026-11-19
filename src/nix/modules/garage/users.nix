@@ -14,6 +14,11 @@
 
       cfg = config.toh.services.garage;
 
+      runsGarage = cfg.enable;
+
+      initKeyId = user: config.toh.meta.sops.secrets."garage-init-key-${user}-id".path;
+      initSecretKey = user: config.toh.meta.sops.secrets."garage-init-key-${user}-secret".path;
+
       usersList = builtins.map (
         { name, value }:
         value
@@ -94,24 +99,39 @@
           {
             user,
             installSecrets,
+            generateSecrets,
             keyId,
             secretKey,
             owner,
             group,
             ...
           }:
-          lib.mkIf installSecrets {
-            "garage-key-${user}-id" = {
-              inherit owner group;
-              path = keyId;
-              mode = "0400";
-            };
-            "garage-key-${user}-secret" = {
-              inherit owner group;
-              path = secretKey;
-              mode = "0400";
-            };
-          }
+          lib.mkMerge [
+            (lib.mkIf installSecrets {
+              "garage-key-${user}-id" = {
+                inherit owner group;
+                path = keyId;
+                mode = "0400";
+              };
+              "garage-key-${user}-secret" = {
+                inherit owner group;
+                path = secretKey;
+                mode = "0400";
+              };
+            })
+            (lib.mkIf (generateSecrets && runsGarage) {
+              "garage-init-key-${user}-id" = {
+                owner = selfLib.garage.user;
+                group = selfLib.garage.group;
+                mode = "0400";
+              };
+              "garage-init-key-${user}-secret" = {
+                owner = selfLib.garage.user;
+                group = selfLib.garage.group;
+                mode = "0400";
+              };
+            })
+          ]
         );
 
         toh.meta.cryl.machine = mergeByUser (
@@ -136,6 +156,22 @@
                     arguments = {
                       from = "cluster/garage-key-${user}-secret";
                       to = "garage-key-${user}-secret";
+                    };
+                  }
+                ]
+                ++ lib.optionals runsGarage [
+                  {
+                    generator = "copy";
+                    arguments = {
+                      from = "cluster/garage-key-${user}-id";
+                      to = "garage-init-key-${user}-id";
+                    };
+                  }
+                  {
+                    generator = "copy";
+                    arguments = {
+                      from = "cluster/garage-key-${user}-secret";
+                      to = "garage-init-key-${user}-secret";
                     };
                   }
                 ];
@@ -180,13 +216,12 @@
           {
             user,
             generateSecrets,
-            keyId,
-            secretKey,
             ...
           }:
-          lib.mkIf generateSecrets [
+          lib.mkIf (generateSecrets && runsGarage) [
             {
-              inherit keyId secretKey;
+              keyId = initKeyId user;
+              secretKey = initSecretKey user;
             }
           ]
         );
@@ -194,14 +229,14 @@
         toh.services.garage.init.buckets = mergeByUser (
           {
             name,
+            user,
             generateSecrets,
-            keyId,
             ...
           }:
-          lib.mkIf generateSecrets [
+          lib.mkIf (generateSecrets && runsGarage) [
             {
               bucket = name;
-              inherit keyId;
+              keyId = initKeyId user;
             }
           ]
         );

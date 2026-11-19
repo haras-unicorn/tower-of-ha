@@ -1,6 +1,23 @@
 { selfLib, ... }:
 
 {
+  self.lib.test.testModules.contracts-s3-garage = selfLib.test.contract.implementation {
+    capability = "s3";
+    implementation = "garage";
+    server = {
+      toh.services.coredns.enable = true;
+      toh.services.haproxy.enable = true;
+      toh.services.garage.enable = true;
+    };
+  };
+
+  self.nixosTests.contracts-s3-garage = selfLib.test.makeNixosTest {
+    toh.test.contracts.s3 = {
+      enable = true;
+      implementation.garage = { };
+    };
+  };
+
   self.nixosTests.services-garage = selfLib.test.makeNixosTest {
     toh.test.clusters.node = {
       amount = 3;
