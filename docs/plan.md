@@ -217,6 +217,11 @@ brings them back.
 Done when every test runs again, as containers where it can, and every
 capability has a contract test that every current implementation passes.
 
+**Closed** on 2026-11-19. Every capability has its contract and each contract
+passed on its own. The human runs the full `nix flake check` after this, and its
+result is not recorded here; a failure in it is a bug to fix on the way, not a
+reason to reopen the step.
+
 1. **Container harness (M).** Port the test helpers to `self.nixosTests`
    containers, with a separate VM path for the tests that need it. Pilot with
    etcd. Done when the etcd test passes as containers. **Done.** Until cryl
