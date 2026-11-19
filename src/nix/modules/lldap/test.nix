@@ -1,6 +1,25 @@
 { selfLib, ... }:
 
 {
+  self.lib.test.testModules.contracts-ldap-lldap = selfLib.test.contract.implementation {
+    capability = "ldap";
+    implementation = "lldap";
+    server = {
+      toh.services.etcd.enable = true;
+      toh.services.coredns.enable = true;
+      toh.services.haproxy.enable = true;
+      toh.services.patroni.enable = true;
+      toh.services.lldap.enable = true;
+    };
+  };
+
+  self.nixosTests.contracts-ldap-lldap = selfLib.test.makeNixosTest {
+    toh.test.contracts.ldap = {
+      enable = true;
+      implementation.lldap = { };
+    };
+  };
+
   self.nixosTests.services-lldap = selfLib.test.makeNixosTest {
     toh.test.clusters.node = {
       amount = 3;
