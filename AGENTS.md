@@ -74,6 +74,10 @@ source of truth is `src/nix/dev/default.nix`; edit that, not the files.
 Work happens on a branch in small commits that are reviewed one at a time. CI
 runs `dev check`; `nix flake check` is off in CI until the tests work again.
 
+When a chunk of `docs/plan.md` is done, the plan records what was done, under
+that chunk and with the date, in the same change. The plan is the log of what
+happened to the work, so it also says when something changed on the way.
+
 ### Review phase (temporary)
 
 While `fix/modernize` is in its big-changes phase, the human skims the log and

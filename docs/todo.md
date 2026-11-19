@@ -46,6 +46,9 @@ These go away with the Nebula module.
   connections to backends whose first health check has not run yet. The kv
   contract saw writes land on a Valkey replica. Envoy should hold back until a
   backend passed its first check.
+- `src/nix/meta/time.nix`: free HAProxy does not play well with UDP proxying,
+  which Envoy does, so once Envoy carries UDP, check whether time can use
+  `toh.meta.services` and the proxy and drop its own meta.
 
 ## Step 7: Behavior and invariant tests
 
@@ -63,6 +66,13 @@ These go away with the Nebula module.
 - `src/nix/modules/cephfs/mounts.nix`: every machine with a mount gets the
   CephFS admin keyring, so any app machine can read and change the whole
   filesystem. The filesystem contract runs on that today.
+
+## Step 2 leftovers
+
+- `src/nix/test/contracts/time.nix`: the contract queries the servers with
+  `chronyd -Q`, which is chrony again. Switch to a client that is not tied to an
+  implementation, a plain NTP client. It is fine as chrony for now, and
+  `pkgs.ntp` could not be used because its source is not in the store.
 
 ## Parked: OpenBao fixes
 

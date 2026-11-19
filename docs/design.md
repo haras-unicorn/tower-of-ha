@@ -110,6 +110,15 @@ Made on 2026-11-17, after review.
 - **`TODO` comments go into [todo.md](./todo.md)** for now, since most of them
   will be fixed in that pull request.
 
+Made on 2026-11-19, while writing the contracts.
+
+- **The Synapse workers run on every machine.** The main process holds the etcd
+  lease and fails over, and the workers run on every machine, so a lost machine
+  only loses its share of the work. Some worker roles allow only one instance,
+  like the one that runs the background tasks. The Synapse chunk decides for
+  each of them whether it takes the lease with the main process or is sharded
+  across machines.
+
 ## Architecture today
 
 This is how the code on `main` works, as read on 2026-11-16.
@@ -326,10 +335,10 @@ module into `toh.meta.proxy` on 2026-11-18, so Envoy can serve the same ones.
   the DNS implementation either. The DNS contract is the exception: it turns the
   helper off, so the client asks the implementation. Two contracts bend the rest
   of this on purpose. The time client is no ToH machine: it asks the servers of
-  `toh.meta.time.servers` over plain NTP. The secrets client runs the token
-  service of the implementation, passed as `client`, because the `bao` CLI needs
-  the token its machine fetched; that contract is that the CLI works, which only
-  Vault and OpenBao offer.
+  `toh.meta.time.servers` over plain NTP. The secrets client uses the token its
+  machine fetched, because the `bao` CLI needs one; that contract is that the
+  CLI works, which only Vault and OpenBao offer, so it is tied to how OpenBao
+  lays out its secrets.
 - **Happy path first.** A contract checks that the capability works. Losing a
   machine and other unhappy paths come in later contracts, and the nasty faults
   in [step 8](./plan.md#step-8-chaos-engineering).
@@ -428,6 +437,3 @@ None of these block step 1.
 1. **Which observability stack?** It has to be light enough for Raspberry Pis
    (invariant 9). The README lists Fluentd and OpenSearch, and OpenSearch is a
    heavy Java service. To be decided in step 4.
-2. **How do the Synapse workers fit the failover?** The main process fails over
-   through an etcd lease. Whether workers run on every machine is to be decided
-   in step 3.

@@ -286,17 +286,24 @@ capability has a contract test that every current implementation passes.
      the contract asks each server over NTP. The intranet goal that follows from
      it is in [todo.md](./todo.md).
    - Secrets: **done** on 2026-11-19, with OpenBao. The contract is that the
-     `bao` CLI works: a client logs in with the token its machine fetched, then
-     writes and reads the secret of its machine. The OpenBao init is unchanged,
-     and its problems stay [parked](#parked).
+     `bao` CLI works: a client uses the token its machine fetched, then writes
+     and reads the secret of its machine. The token service now defaults to on
+     for every machine of a cluster with OpenBao, and the proxy is named
+     `secrets`. The OpenBao init is unchanged, and its problems stay
+     [parked](#parked).
 
    Every capability in the list above has its contract now.
 
 ## Step 3: Matrix
 
-1. **Failover design (S).** The main process holds an etcd lease. Decide where
-   the workers run ([open question 2](./design.md#open-questions)) on paper
-   first.
+Not blocked since 2026-11-19, when the failover was decided: the main process
+holds an etcd lease and the workers run on every machine (see the
+[design](./design.md#decisions)).
+
+1. **Failover design (S).** **Decided** on 2026-11-19. What is left is the
+   worker roles that allow only one instance, like the one for background tasks:
+   for each, whether it takes the lease with the main process or is sharded
+   across machines. That goes in the Synapse chunk.
 2. **Synapse (L).** Bring the module over from the `matrix` branch, onto the new
    base, with the failover from chunk 1. It must pass a new chat contract.
 3. **Clients and federation (M).** Well-known files, federation through the
