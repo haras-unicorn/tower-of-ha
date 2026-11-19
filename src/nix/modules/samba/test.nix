@@ -1,6 +1,25 @@
 { lib, selfLib, ... }:
 
 {
+  self.lib.test.testModules.contracts-share-samba = selfLib.test.contract.implementation {
+    capability = "share";
+    implementation = "samba";
+    server = {
+      toh.services.etcd.enable = true;
+      toh.services.coredns.enable = true;
+      toh.services.haproxy.enable = true;
+      toh.services.cephfs.enable = true;
+      toh.services.samba.enable = true;
+    };
+  };
+
+  self.nixosTests.contracts-share-samba = selfLib.test.makeNixosTest {
+    toh.test.contracts.share = {
+      enable = true;
+      implementation.samba = { };
+    };
+  };
+
   self.nixosTests.services-samba =
     let
       user = "test";
