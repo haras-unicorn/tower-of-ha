@@ -222,6 +222,16 @@ passed on its own. The human runs the full `nix flake check` after this, and its
 result is not recorded here; a failure in it is a bug to fix on the way, not a
 reason to reopen the step.
 
+**Changed** on 2026-11-19, after closing. The full `nix flake check` could not
+run: `--max-jobs 1` and `--no-build` made no difference, because it evaluates
+every NixOS test in one process (about 50 GB), so the problem is evaluation and
+not the running of the tests. The tests stopped being flake checks. They are
+`lib.<system>.nixosTests.<name>`, and the new `dev test` builds them one at a
+time, each in its own process. CI runs `dev check`, `nix flake check` and
+`dev test`. "Done when `nix flake check` passes" in chunk 2 now reads as "done
+when `dev test` passes". The command was written without being able to run it
+against the real flake, so its first run is its test.
+
 1. **Container harness (M).** Port the test helpers to `self.nixosTests`
    containers, with a separate VM path for the tests that need it. Pilot with
    etcd. Done when the etcd test passes as containers. **Done.** Until cryl

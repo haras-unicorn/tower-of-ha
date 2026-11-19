@@ -1,9 +1,10 @@
 { selfLib, ... }:
 
 {
+  # NOTE: tests are not flake checks, because `nix flake check` evaluates all
+  # of them in one process, which takes tens of GB; `dev test` runs them one
+  # process each
   self.lib.test.makeNixosTest = module: {
-    flake = true;
-
     value = _: {
       imports = [ module ] ++ (builtins.attrValues selfLib.test.testModules);
     };

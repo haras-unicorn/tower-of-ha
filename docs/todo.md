@@ -73,6 +73,13 @@ These go away with the Nebula module.
   `chronyd -Q`, which is chrony again. Switch to a client that is not tied to an
   implementation, a plain NTP client. It is fine as chrony for now, and
   `pkgs.ntp` could not be used because its source is not in the store.
+- CI now runs `dev test`, which has not run on a CI machine yet. The runner
+  needs `/dev/fuse` and `/dev/net/tun` in `extra-sandbox-paths` and enough RAM
+  for one test at a time, and it may be too slow. If a hosted runner cannot do
+  it, CI goes back to `dev check` and `nix flake check`, and the tests run on
+  the human's machine.
+- `dev test` runs the tests in series. A CI matrix with one job per test name
+  would be faster, if the runners can take it.
 
 ## Parked: OpenBao fixes
 

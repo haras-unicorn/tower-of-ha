@@ -115,6 +115,25 @@
           };
         };
 
+        # NOTE: these two need kvm or a kernel that is not out yet, so a
+        # plain `dev test` leaves them out; naming them runs them
+        skippedTests = [
+          "services-cephfs-kernel-mount"
+          "services-chronyd-clock"
+        ];
+
+        testRunner = pkgs.harasPackages.writeNushellApplication {
+          name = "dev-test";
+          runtimeInputs = [ pkgs.nix ];
+          text = pkgs.harasPackages.renderMustacheText {
+            name = "dev-test-text";
+            text = builtins.readFile ./test.nu;
+            vars = {
+              skippedJson = builtins.toJSON skippedTests;
+            };
+          };
+        };
+
         external = [
           pkgs.nil
           pkgs.nix
@@ -298,6 +317,12 @@
             commands = ''nix build ".#docs" --no-link --print-out-paths'';
           };
 
+          test = {
+            description = "Run the NixOS tests one at a time, or the named ones.";
+            packages = [ testRunner ];
+            commands = ''dev-test "$@"'';
+          };
+
           check-links = {
             description = "Check Markdown links.";
             packages = [
@@ -319,8 +344,11 @@
             installable = null;
 
             steps = [
-              # NOTE: `nix flake check` stays off until the tests work again
               { run = "nix develop --command dev check"; }
+              { run = "nix flake check"; }
+              # NOTE: not a flake check, because evaluating all the tests in
+              # one process takes tens of GB
+              { run = "nix develop --command dev test"; }
             ];
           };
 

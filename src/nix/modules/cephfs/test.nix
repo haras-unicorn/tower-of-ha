@@ -94,62 +94,58 @@ in
 
   # NOTE: kernels before 7.0 refuse the 32 byte keys newer ceph makes, and
   # the test vms run an older kernel, so this test makes cryl generate the
-  # old 16 byte keys; it stays out of the checks until the kernel catches up
-  self.nixosTests.services-cephfs-kernel-mount =
-    selfLib.test.makeNixosTest (
-      { lib, pkgs, ... }:
-      {
-        # NOTE: ceph OSDs need disks and the mounts a kernel module
-        toh.test.kind = "vm";
+  # old 16 byte keys; `dev test` skips it until the kernel catches up
+  self.nixosTests.services-cephfs-kernel-mount = selfLib.test.makeNixosTest (
+    { lib, pkgs, ... }:
+    {
+      # NOTE: ceph OSDs need disks and the mounts a kernel module
+      toh.test.kind = "vm";
 
-        # NOTE: cryl has no option for the key type, so its ceph-authtool
-        # is swapped for one that asks for aes; the cryl wrapper puts its
-        # own tools first in PATH, so this wraps the unwrapped cryl with the
-        # same tools behind the swapped one
-        cryl.package =
-          let
-            crylPackages = inputs.cryl.packages.${pkgs.stdenv.hostPlatform.system};
+      # NOTE: cryl has no option for the key type, so its ceph-authtool
+      # is swapped for one that asks for aes; the cryl wrapper puts its
+      # own tools first in PATH, so this wraps the unwrapped cryl with the
+      # same tools behind the swapped one
+      cryl.package =
+        let
+          crylPackages = inputs.cryl.packages.${pkgs.stdenv.hostPlatform.system};
 
-            crylTools = builtins.map (name: crylPackages.${name}) (
-              builtins.filter (lib.hasPrefix "build-input") (builtins.attrNames crylPackages)
-            );
+          crylTools = builtins.map (name: crylPackages.${name}) (
+            builtins.filter (lib.hasPrefix "build-input") (builtins.attrNames crylPackages)
+          );
 
-            aesCephAuthtool =
-              pkgs.runCommand "ceph-authtool-aes"
-                {
-                  nativeBuildInputs = [ pkgs.makeWrapper ];
-                }
-                ''
-                  makeWrapper ${pkgs.ceph-client}/bin/ceph-authtool \
-                    $out/bin/ceph-authtool \
-                    --add-flags "--key-type aes"
-                '';
-          in
-          pkgs.runCommand "cryl-aes-ceph-keys"
-            {
-              nativeBuildInputs = [ pkgs.makeWrapper ];
-              meta.mainProgram = "cryl";
-            }
-            ''
-              makeWrapper ${crylPackages.unwrapped}/bin/cryl $out/bin/cryl \
-                --prefix PATH : ${lib.makeBinPath ([ aesCephAuthtool ] ++ crylTools)}
-            '';
+          aesCephAuthtool =
+            pkgs.runCommand "ceph-authtool-aes"
+              {
+                nativeBuildInputs = [ pkgs.makeWrapper ];
+              }
+              ''
+                makeWrapper ${pkgs.ceph-client}/bin/ceph-authtool \
+                  $out/bin/ceph-authtool \
+                  --add-flags "--key-type aes"
+              '';
+        in
+        pkgs.runCommand "cryl-aes-ceph-keys"
+          {
+            nativeBuildInputs = [ pkgs.makeWrapper ];
+            meta.mainProgram = "cryl";
+          }
+          ''
+            makeWrapper ${crylPackages.unwrapped}/bin/cryl $out/bin/cryl \
+              --prefix PATH : ${lib.makeBinPath ([ aesCephAuthtool ] ++ crylTools)}
+          '';
 
-        toh.test.clusters.node = {
-          amount = 3;
-          module = {
-            toh.services.cephfs.enable = true;
-            toh.services.cephfs.mountDriver = "kernel";
-            toh.services.cephfs.keyType = "aes";
-            toh.meta.filesystem.mounts."/mnt" = { };
-          };
+      toh.test.clusters.node = {
+        amount = 3;
+        module = {
+          toh.services.cephfs.enable = true;
+          toh.services.cephfs.mountDriver = "kernel";
+          toh.services.cephfs.keyType = "aes";
+          toh.meta.filesystem.mounts."/mnt" = { };
         };
+      };
 
-        # NOTE: allowing aes keys is what the insecure key checks warn about
-        toh.test.commands.perNodeInCluster.node = mountCommands [ "AUTH_INSECURE" ];
-      }
-    )
-    // {
-      flake = false;
-    };
+      # NOTE: allowing aes keys is what the insecure key checks warn about
+      toh.test.commands.perNodeInCluster.node = mountCommands [ "AUTH_INSECURE" ];
+    }
+  );
 }

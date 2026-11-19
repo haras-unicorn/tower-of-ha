@@ -36,20 +36,25 @@ The dev shell loads through direnv. It provides one `dev` command:
 - `dev format` formats everything.
 - `dev check` runs spelling, markdown, `nil` and generated-file checks.
 - `dev docs` builds the book, `dev check-links` checks its links.
+- `dev test` runs the NixOS tests, see below.
 
-`nix flake check` also runs the unit tests and the NixOS tests. The NixOS tests
-are slow, so run the ones you need by name: `checks.<system>.nixos-test-<name>`.
-They are also memory hungry: each one boots several machines with databases,
-filesystems and networks, so a full run with many parallel jobs takes tens of GB
-of RAM. Keep `--max-jobs` low on smaller machines; a test that runs out of time
-under swapping usually passes on its own. Optional tests set `flake = false`,
-stay out of the checks and build as `lib.<system>.nixosTests.<name>`. Tests run
-as containers; one that sets `toh.test.kind = "vm"` says why in a `NOTE`
-comment. The CephFS tests, and the tests of services that keep data on it, need
-`/dev/fuse` in the host's `extra-sandbox-paths`, and the VPN tests need
-`/dev/net/tun`. When a service needs something a container cannot give (the real
-clock, a kernel client), the checked test fakes it or uses a workaround, and an
-optional VM test covers the real thing.
+`nix flake check` runs the unit tests and the other checks, but not the NixOS
+tests. Evaluating all of them in one process takes tens of GB of RAM, because
+each test evaluates several full NixOS machines. So the tests are not flake
+checks. Every test builds as `lib.<system>.nixosTests.<name>`, and `dev test`
+builds them one `nix build` at a time, so the memory of each evaluation is freed
+before the next. `dev test <name>...` runs only the named tests. A plain
+`dev test` leaves out the tests listed as skipped in `src/nix/dev/default.nix`.
+
+The tests are also memory hungry to run: each one boots several machines with
+databases, filesystems and networks. A test that runs out of time under swapping
+usually passes on its own. Tests run as containers; one that sets
+`toh.test.kind = "vm"` says why in a `NOTE` comment. The CephFS tests, and the
+tests of services that keep data on it, need `/dev/fuse` in the host's
+`extra-sandbox-paths`, and the VPN tests need `/dev/net/tun`. When a service
+needs something a container cannot give (the real clock, a kernel client), the
+container test fakes it or uses a workaround, and a skipped VM test covers the
+real thing.
 
 ## Generated files
 
@@ -72,7 +77,7 @@ source of truth is `src/nix/dev/default.nix`; edit that, not the files.
 ## Workflow
 
 Work happens on a branch in small commits that are reviewed one at a time. CI
-runs `dev check`; `nix flake check` is off in CI until the tests work again.
+runs `dev check`, `nix flake check` and `dev test`.
 
 When a chunk of `docs/plan.md` is done, the plan records what was done, under
 that chunk and with the date, in the same change. The plan is the log of what
