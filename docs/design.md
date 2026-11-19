@@ -337,15 +337,10 @@ With Patroni, the database contract looks like this:
 ```nix
 # src/nix/modules/patroni/test.nix
 self.lib.test.testModules.contracts-database-patroni =
-  { lib, config, ... }:
-  let
-    cfg = config.toh.test.contracts.database;
-    picked = cfg.enable && cfg.implementation ? patroni;
-  in
-  {
-    toh.test.contracts.database.implementationModules.patroni = { };
-
-    toh.test.contracts.database.server = lib.mkIf picked {
+  selfLib.test.contract.implementation {
+    capability = "database";
+    implementation = "patroni";
+    server = {
       toh.services.etcd.enable = true;
       toh.services.coredns.enable = true;
       toh.services.haproxy.enable = true;
@@ -363,7 +358,11 @@ self.nixosTests.contracts-database-patroni = selfLib.test.makeNixosTest {
 
 `server` is an internal `deferredModule` that the contract imports on each of
 its servers, so the contract keeps the names and number of its machines to
-itself.
+itself. `selfLib.test.contract` (`src/nix/test/contract.nix`) holds what every
+contract shares: the options above, the servers and DNS names (`base`), and the
+test module an implementation plugs in with (`implementation`). An
+implementation that needs more from the test, like a helper server, passes it as
+`test`.
 
 Writing this down showed a leak that the client will hit. Patroni makes the
 credentials of an app only on machines that run Patroni, so an app on any other

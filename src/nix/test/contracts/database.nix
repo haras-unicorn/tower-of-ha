@@ -19,60 +19,15 @@
       host = clientMeta.database.host;
     in
     {
-      options.toh.test.contracts.database = {
-        enable = lib.mkEnableOption "the database contract test";
-
-        implementation = lib.mkOption {
-          type = lib.types.attrTag (
-            builtins.mapAttrs (
-              name: module:
-              lib.mkOption {
-                type = lib.types.submodule module;
-                description = "The ${name} implementation of the database";
-              }
-            ) cfg.implementationModules
-          );
-          description = "The database implementation under test";
-        };
-
-        implementationModules = lib.mkOption {
-          type = lib.types.attrsOf lib.types.deferredModule;
-          default = { };
-          internal = true;
-          description = ''
-            The options of every database implementation, by tag. Each
-            implementation adds its own from a test module.
-          '';
-        };
-
-        server = lib.mkOption {
-          type = lib.types.deferredModule;
-          default = { };
-          internal = true;
-          description = ''
-            Module of every server. The picked implementation sets it to its
-            service and whatever that service depends on.
-          '';
-        };
-
-        servers = lib.mkOption {
-          type = lib.types.ints.positive;
-          default = 3;
-          description = "Number of servers";
-        };
-      };
+      options.toh.test.contracts.database = selfLib.test.contract.options "database" cfg;
 
       config = lib.mkIf cfg.enable (
         lib.mkMerge [
+          (selfLib.test.contract.base {
+            inherit cfg;
+            names.${host} = clientMeta.relays;
+          })
           {
-            toh.test.clusters.server = {
-              amount = cfg.servers;
-              module = cfg.server;
-            };
-
-            toh.test.dns.enable = true;
-            toh.test.dns.zones.${host}.${host} = clientMeta.relays;
-
             toh.test.commands.suffix = ''
               client.wait_until_succeeds("contract-database 'select count(*) from ${table}'", timeout=300)
               client.succeed("contract-database \"insert into ${table} values ('${row}')\"")

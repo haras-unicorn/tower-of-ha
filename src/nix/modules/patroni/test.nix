@@ -1,22 +1,16 @@
 { selfLib, ... }:
 
 {
-  self.lib.test.testModules.contracts-database-patroni =
-    { lib, config, ... }:
-    let
-      cfg = config.toh.test.contracts.database;
-      picked = cfg.enable && cfg.implementation ? patroni;
-    in
-    {
-      toh.test.contracts.database.implementationModules.patroni = { };
-
-      toh.test.contracts.database.server = lib.mkIf picked {
-        toh.services.etcd.enable = true;
-        toh.services.coredns.enable = true;
-        toh.services.haproxy.enable = true;
-        toh.services.patroni.enable = true;
-      };
+  self.lib.test.testModules.contracts-database-patroni = selfLib.test.contract.implementation {
+    capability = "database";
+    implementation = "patroni";
+    server = {
+      toh.services.etcd.enable = true;
+      toh.services.coredns.enable = true;
+      toh.services.haproxy.enable = true;
+      toh.services.patroni.enable = true;
     };
+  };
 
   self.nixosTests.contracts-database-patroni = selfLib.test.makeNixosTest {
     toh.test.contracts.database = {
