@@ -1,14 +1,17 @@
 { selfLib, ... }:
 
+# NOTE: the mesh layout of the vpn contract: every node is on one vlan and
+# reaches every other node through the vpn
+
 {
-  self.lib.test.testModules.mesh =
+  self.lib.test.testModules.contracts-vpn-mesh =
     {
       lib,
       config,
       ...
     }:
     let
-      cfg = config.toh.test.mesh;
+      cfg = config.toh.test.contracts.vpn;
 
       vlan = 1;
       vlanString = builtins.toString vlan;
@@ -24,7 +27,7 @@
       addressOffset = 10;
       addressPrefix = "192.168.${vlanString}";
 
-      amount = cfg.amount;
+      amount = cfg.servers;
 
       subnetConfig = config.toh.test.network.subnet;
 
@@ -42,29 +45,7 @@
       dnsAddress = addressPrefix + "." + builtins.toString (addressOffset + 32);
     in
     {
-      options.toh.test = {
-        mesh = {
-          enable = lib.mkEnableOption "ToH mesh test";
-
-          amount = lib.mkOption {
-            type = lib.types.ints.unsigned;
-            default = 5;
-            description = "Amount of nodes to test with";
-          };
-
-          name = lib.mkOption {
-            type = lib.types.str;
-            description = "Test service config name";
-          };
-
-          unit = lib.mkOption {
-            type = lib.types.str;
-            description = "Test service unit name";
-          };
-        };
-      };
-
-      config = lib.mkIf cfg.enable (
+      config = lib.mkIf (cfg.enable && cfg.network == "mesh") (
         lib.mkMerge [
           (selfLib.test.ofKind config.toh.test.kind {
             dns = {
@@ -119,6 +100,8 @@
                 meshAddress = "${subnetConfig.prefix}.${meshAddressNumberString}";
               in
               {
+                imports = [ cfg.server ];
+
                 virtualisation.interfaces.eth1 = vlanInterface;
                 networking.interfaces.eth1.ipv4.addresses = [
                   {
@@ -131,17 +114,14 @@
                 toh.meta.network.ip = meshAddress;
                 toh.meta.network.interface = "toh";
                 toh.meta.domains.machineSecret = lib.mkIf (enableController config) controllerDomainSecret;
-
-                toh.services.${cfg.name}.enable = true;
               };
 
             toh.test.commands.enable = true;
             toh.test.commands.perNodeInCluster.node = [
               ''command_node.wait_for_unit("network-online.target")''
-              ''command_node.wait_for_unit("${cfg.unit}")''
               ''command_node.wait_until_succeeds("ip link show toh")''
               (node: ''
-                command_node.succeed(
+                command_node.wait_until_succeeds(
                   "ip addr show toh | grep -q '${node.toh.meta.network.ip}'"
                 )
               '')

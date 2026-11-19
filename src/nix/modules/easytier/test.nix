@@ -1,30 +1,37 @@
-{ selfLib, ... }:
+{ lib, selfLib, ... }:
 
+let
+  test =
+    network: mode:
+    selfLib.test.makeNixosTest {
+      toh.test.contracts.vpn = {
+        enable = true;
+        implementation.easytier = { };
+        inherit network mode;
+      };
+    };
+in
 {
-  self.nixosTests.services-easytier-mesh = selfLib.test.makeNixosTest {
-    toh.test.mesh = {
-      enable = true;
-      name = "easytier";
-      unit = "easytier-toh.service";
+  self.lib.test.testModules.contracts-vpn-easytier = selfLib.test.contract.implementation {
+    capability = "vpn";
+    implementation = "easytier";
+    server = {
+      toh.services.easytier.enable = true;
     };
+    test =
+      config:
+      let
+        stunServers = config.toh.test.contracts.vpn.stunServers;
+      in
+      {
+        toh.test.contracts.vpn.stun = true;
+        toh.test.contracts.vpn.server = {
+          toh.services.easytier.stunServers = lib.mkIf (stunServers != [ ]) stunServers;
+        };
+      };
   };
 
-  self.nixosTests.services-easytier-relay-proxy = selfLib.test.makeNixosTest {
-    toh.test.relay = {
-      enable = true;
-      name = "easytier";
-      unit = "easytier-toh.service";
-      mode = "proxy";
-    };
-  };
-
-  self.nixosTests.services-easytier-relay-punch = selfLib.test.makeNixosTest {
-    toh.test.relay = {
-      enable = true;
-      name = "easytier";
-      unit = "easytier-toh.service";
-      mode = "punch";
-      stun = true;
-    };
-  };
+  self.nixosTests.contracts-vpn-easytier-mesh = test "mesh" "proxy";
+  self.nixosTests.contracts-vpn-easytier-relay-proxy = test "relay" "proxy";
+  self.nixosTests.contracts-vpn-easytier-relay-punch = test "relay" "punch";
 }

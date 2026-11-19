@@ -46,9 +46,10 @@ under swapping usually passes on its own. Optional tests set `flake = false`,
 stay out of the checks and build as `lib.<system>.nixosTests.<name>`. Tests run
 as containers; one that sets `toh.test.kind = "vm"` says why in a `NOTE`
 comment. The CephFS tests, and the tests of services that keep data on it, need
-`/dev/fuse` in the host's `extra-sandbox-paths`. When a service needs something
-a container cannot give (the real clock, a kernel client), the checked test
-fakes it or uses a workaround, and an optional VM test covers the real thing.
+`/dev/fuse` in the host's `extra-sandbox-paths`, and the VPN tests need
+`/dev/net/tun`. When a service needs something a container cannot give (the real
+clock, a kernel client), the checked test fakes it or uses a workaround, and an
+optional VM test covers the real thing.
 
 ## Generated files
 

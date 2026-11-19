@@ -96,6 +96,7 @@ in
       let
         cfg = config.toh.test.contracts.${capability};
         picked = cfg.enable && cfg.implementation ? ${implementation};
+        testConfig = if builtins.isFunction test then test config else test;
       in
       {
         config = lib.mkMerge [
@@ -105,7 +106,7 @@ in
               server = lib.mkIf picked server;
             };
           }
-          (lib.mkIf picked test)
+          (lib.mkIf picked testConfig)
         ];
       };
   };

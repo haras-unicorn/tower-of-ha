@@ -154,7 +154,8 @@ A first sort of the 26 test files. Not tried yet, so all of it is **read**.
   garage, haproxy, journald, lldap, maddy, openbao, openssh, patroni, pki, sssd,
   valkey, vaultwarden, and the plain `test` test.
 - **Need work:**
-  - easytier and nebula need a TUN device in the container.
+  - easytier and nebula need a TUN device in the container. Moved on 2026-11-19:
+    containers get `/dev/net/tun` from the host.
   - chronyd cannot set the clock in a container. Its test could check config and
     sync status only, or stay a VM.
   - networkmanager and geoclue need a closer look.
@@ -271,8 +272,9 @@ capability has a contract test that every current implementation passes.
      second client mounts the directory of the first and reads back what the
      first wrote. The first version used two mounts on one client, which a local
      filesystem also passes.
-   - VPN: not started. `toh.test.mesh` and `toh.test.relay` are VM tests with
-     their own networks, so moving them is its own chunk.
+   - VPN: **done** on 2026-11-19, with EasyTier and Nebula. `toh.test.mesh` and
+     `toh.test.relay` became the `mesh` and `relay` networks of the `vpn`
+     contract, and run as containers with `/dev/net/tun` from the host.
    - Git: **done** on 2026-11-19, with Forgejo. Apps get local Forgejo users
      through `toh.meta.git.users`, and pushing creates a repository.
    - File sharing: not started. Samba has no `toh.meta` options for a client. It

@@ -1,7 +1,7 @@
 { selfLib, ... }:
 
-# NOTE: two homes behind NAT routers and a relay on the "internet" between
-# them, the way people run a VPN from home:
+# NOTE: the relay layout of the vpn contract: two homes behind NAT routers and
+# a relay on the "internet" between them, the way people run a VPN from home:
 #
 #   node1 (vlan 1) - router1 \
 #                              vlan 3: relay, dns
@@ -14,14 +14,14 @@
 # the relay off.
 
 {
-  self.lib.test.testModules.relay =
+  self.lib.test.testModules.contracts-vpn-relay =
     {
       config,
       lib,
       ...
     }:
     let
-      cfg = config.toh.test.relay;
+      cfg = config.toh.test.contracts.vpn;
 
       subnetConfig = config.toh.test.network.subnet;
 
@@ -54,15 +54,12 @@
         alt-listening-port = 3479;
       };
 
-      vpnConfig = {
-        enable = true;
-      }
-      // lib.optionalAttrs cfg.stun {
-        stunServers = [
-          "${internet.dns}:${builtins.toString stun.listening-port}"
-          "${internet.dns}:${builtins.toString stun.alt-listening-port}"
-        ];
-      };
+      useStun = cfg.stun && cfg.mode == "punch";
+
+      stunServers = [
+        "${internet.dns}:${builtins.toString stun.listening-port}"
+        "${internet.dns}:${builtins.toString stun.alt-listening-port}"
+      ];
 
       # NOTE: with virtualisation.vlans the test framework adds its own
       # address next to the one picked here, and udp replies then leave
@@ -108,6 +105,8 @@
           homeConfig = homes.${home};
         in
         {
+          imports = [ cfg.server ];
+
           virtualisation.interfaces.eth1 = vlanInterface (lib.toInt home);
           networking.interfaces.eth1.ipv4.addresses = address homeConfig.node;
           networking.defaultGateway = {
@@ -118,47 +117,14 @@
 
           toh.meta.network.ip = "${subnetConfig.prefix}.1${home}";
           toh.meta.network.interface = "toh";
-
-          toh.services.${cfg.name} = vpnConfig;
         };
     in
     {
-      options.toh.test = {
-        relay = {
-          enable = lib.mkEnableOption "ToH relay test";
-
-          name = lib.mkOption {
-            type = lib.types.str;
-            description = "Test service config name";
-          };
-
-          unit = lib.mkOption {
-            type = lib.types.str;
-            description = "Test service unit name";
-          };
-
-          stun = lib.mkEnableOption ''
-            a STUN server on the internet VLAN, set as the service's
-            `stunServers`, for VPNs that need STUN to punch through NAT
-          '';
-
-          mode = lib.mkOption {
-            type = lib.types.enum [
-              "proxy"
-              "punch"
-            ];
-            description = ''
-              `proxy` checks that the nodes talk through the relay when they
-              cannot reach each other, `punch` that they reach each other
-              directly through their NATs once the relay introduced them.
-            '';
-          };
-        };
-      };
-
-      config = lib.mkIf cfg.enable (
+      config = lib.mkIf (cfg.enable && cfg.network == "relay") (
         lib.mkMerge [
           {
+            toh.test.contracts.vpn.stunServers = lib.mkIf useStun stunServers;
+
             toh.test.network.enable = false;
 
             toh.test.dns.enable = true;
@@ -190,7 +156,7 @@
               virtualisation.interfaces.eth1 = vlanInterface 3;
               networking.interfaces.eth1.ipv4.addresses = address internet.dns;
 
-              services.coturn = lib.mkIf cfg.stun {
+              services.coturn = lib.mkIf useStun {
                 enable = true;
                 listening-ips = [ internet.dns ];
                 inherit (stun) listening-port alt-listening-port;
@@ -199,13 +165,15 @@
                 no-dtls = true;
                 extraConfig = "stun-only";
               };
-              networking.firewall.allowedUDPPorts = lib.mkIf cfg.stun [
+              networking.firewall.allowedUDPPorts = lib.mkIf useStun [
                 stun.listening-port
                 stun.alt-listening-port
               ];
             };
 
             relay = {
+              imports = [ cfg.server ];
+
               virtualisation.interfaces.eth1 = vlanInterface 3;
               networking.interfaces.eth1.ipv4.addresses = address internet.relay;
               networking.nameservers = lib.mkForce [ internet.dns ];
@@ -213,8 +181,6 @@
               toh.meta.network.ip = "${subnetConfig.prefix}.1";
               toh.meta.network.interface = "toh";
               toh.meta.domains.machineSecret = controllerDomainSecret;
-
-              toh.services.${cfg.name} = vpnConfig;
             };
 
             router1 = router "1";
@@ -229,17 +195,13 @@
               node1.wait_for_unit("network-online.target")
               node2.wait_for_unit("network-online.target")
 
-              relay.wait_for_unit("${cfg.unit}")
-              node1.wait_for_unit("${cfg.unit}")
-              node2.wait_for_unit("${cfg.unit}")
-
               relay.wait_until_succeeds("ip link show toh")
               node1.wait_until_succeeds("ip link show toh")
               node2.wait_until_succeeds("ip link show toh")
 
-              relay.succeed("ip addr show toh | grep -q '${subnetConfig.prefix}.1'")
-              node1.succeed("ip addr show toh | grep -q '${subnetConfig.prefix}.11'")
-              node2.succeed("ip addr show toh | grep -q '${subnetConfig.prefix}.12'")
+              relay.wait_until_succeeds("ip addr show toh | grep -q '${subnetConfig.prefix}.1'")
+              node1.wait_until_succeeds("ip addr show toh | grep -q '${subnetConfig.prefix}.11'")
+              node2.wait_until_succeeds("ip addr show toh | grep -q '${subnetConfig.prefix}.12'")
 
               node1.succeed("ping -c 3 ${internet.relay}")
               node2.succeed("ping -c 3 ${internet.relay}")

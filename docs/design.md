@@ -205,9 +205,8 @@ test module `src/nix/test/targets.nix`. A real machine would not have them.
 `pkgs.tohPackages.testers.runToHTest` wraps `runNixOSTest` with QEMU VMs of 8
 GiB and 4 cores each, and test modules under `src/nix/test/` for clusters,
 scripted commands, a fake network, DNS, NTP, S3, HTTP and so on. The VPN tests
-(`toh.test.mesh`, `toh.test.relay`) are already independent of the
-implementation: they take a service name and a unit, and both EasyTier and
-Nebula run them.
+were the first to be independent of the implementation, and the contract shape
+below follows them.
 
 ## Target architecture
 
@@ -373,9 +372,11 @@ itself. `selfLib.test.contract` (`src/nix/test/contract.nix`) holds what every
 contract shares: the options above, the servers and DNS names (`base`), and the
 test module an implementation plugs in with (`implementation`). An
 implementation that needs more from the test, like a helper server, passes it as
-`test`. `base` takes a `dnsHelper` switch. It cannot follow from whether there
-are names to map, because the names come from the machines, and which machines
-exist depends on the helper.
+`test`, which can also be a function of the test config, for an implementation
+that reads something the contract makes, like the address of the STUN server of
+the VPN contract. `base` takes a `dnsHelper` switch. It cannot follow from
+whether there are names to map, because the names come from the machines, and
+which machines exist depends on the helper.
 
 Writing this down showed a leak that the client will hit. Patroni makes the
 credentials of an app only on machines that run Patroni, so an app on any other
@@ -414,7 +415,9 @@ Containers share the host kernel. By the NixOS manual, they cannot:
 
 What the tests ran into, and how they get around it:
 
-- the VPN needs a TUN device,
+- the VPN needs `/dev/net/tun`, which the host passes into the build sandbox
+  with `extra-sandbox-paths`; with it the test driver also links the containers
+  to its virtual switch through TAP devices,
 - chrony cannot set the clock, so it runs with `-x`, and an optional VM test
   sets the real clock,
 - Ceph cannot make loop devices, so OSDs keep their data in a plain file,

@@ -1,29 +1,26 @@
 { selfLib, ... }:
 
+let
+  test =
+    network: mode:
+    selfLib.test.makeNixosTest {
+      toh.test.contracts.vpn = {
+        enable = true;
+        implementation.nebula = { };
+        inherit network mode;
+      };
+    };
+in
 {
-  self.nixosTests.services-nebula-mesh = selfLib.test.makeNixosTest {
-    toh.test.mesh = {
-      enable = true;
-      name = "nebula";
-      unit = "nebula@toh.service";
+  self.lib.test.testModules.contracts-vpn-nebula = selfLib.test.contract.implementation {
+    capability = "vpn";
+    implementation = "nebula";
+    server = {
+      toh.services.nebula.enable = true;
     };
   };
 
-  self.nixosTests.services-nebula-relay-proxy = selfLib.test.makeNixosTest {
-    toh.test.relay = {
-      enable = true;
-      name = "nebula";
-      unit = "nebula@toh.service";
-      mode = "proxy";
-    };
-  };
-
-  self.nixosTests.services-nebula-relay-punch = selfLib.test.makeNixosTest {
-    toh.test.relay = {
-      enable = true;
-      name = "nebula";
-      unit = "nebula@toh.service";
-      mode = "punch";
-    };
-  };
+  self.nixosTests.contracts-vpn-nebula-mesh = test "mesh" "proxy";
+  self.nixosTests.contracts-vpn-nebula-relay-proxy = test "relay" "proxy";
+  self.nixosTests.contracts-vpn-nebula-relay-punch = test "relay" "punch";
 }
