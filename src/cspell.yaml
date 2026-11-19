@@ -229,6 +229,7 @@ ignoreWords:
   - urlencode
   - CAINFO
   - iburst
+  - passthru
   - fsid
   - losetup
   - radosgw

@@ -84,6 +84,7 @@ in
   # because it is slower and needs kvm
   self.nixosTests.services-chronyd-clock = selfLib.test.makeNixosTest {
     toh.test.kind = "vm";
+    passthru.skipped = true;
     toh.test.ntp.enable = true;
 
     nodes.machine = machine;

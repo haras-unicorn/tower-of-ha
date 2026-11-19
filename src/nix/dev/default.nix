@@ -115,23 +115,10 @@
           };
         };
 
-        # NOTE: these two need kvm or a kernel that is not out yet, so a
-        # plain `dev test` leaves them out; naming them runs them
-        skippedTests = [
-          "services-cephfs-kernel-mount"
-          "services-chronyd-clock"
-        ];
-
         testRunner = pkgs.harasPackages.writeNushellApplication {
           name = "dev-test";
           runtimeInputs = [ pkgs.nix ];
-          text = pkgs.harasPackages.renderMustacheText {
-            name = "dev-test-text";
-            text = builtins.readFile ./test.nu;
-            vars = {
-              skippedJson = builtins.toJSON skippedTests;
-            };
-          };
+          text = builtins.readFile ./test.nu;
         };
 
         external = [
@@ -318,7 +305,7 @@
           };
 
           test = {
-            description = "Run the NixOS tests one at a time, or the named ones.";
+            description = "Run the NixOS tests (--jobs, --filter, --skipped).";
             packages = [ testRunner ];
             commands = ''dev-test "$@"'';
           };

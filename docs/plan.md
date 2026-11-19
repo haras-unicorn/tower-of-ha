@@ -226,11 +226,12 @@ reason to reopen the step.
 run: `--max-jobs 1` and `--no-build` made no difference, because it evaluates
 every NixOS test in one process (about 50 GB), so the problem is evaluation and
 not the running of the tests. The tests stopped being flake checks. They are
-`lib.<system>.nixosTests.<name>`, and the new `dev test` builds them one at a
-time, each in its own process. CI runs `dev check`, `nix flake check` and
-`dev test`. "Done when `nix flake check` passes" in chunk 2 now reads as "done
-when `dev test` passes". The command was written without being able to run it
-against the real flake, so its first run is its test.
+`lib.<system>.nixosTests.<name>`, and the new `dev test` builds them in separate
+processes, as many at once as `--jobs` says (one by default). CI runs
+`dev check`, `nix flake check` and `dev test`. "Done when `nix flake check`
+passes" in chunk 2 now reads as "done when `dev test` passes". On its first run
+on the human's machine, memory went up and down with each test instead of piling
+up. Whether a full run passes is not recorded here.
 
 1. **Container harness (M).** Port the test helpers to `self.nixosTests`
    containers, with a separate VM path for the tests that need it. Pilot with

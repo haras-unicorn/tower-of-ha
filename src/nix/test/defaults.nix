@@ -15,6 +15,11 @@
     {
       globalTimeout = lib.mkDefault 300;
 
+      # NOTE: `dev test` leaves out the tests that set this, unless it is
+      # asked for them; a passthru attribute can be read without evaluating
+      # the machines of the test
+      passthru.skipped = lib.mkDefault false;
+
       node.pkgsReadOnly = false;
 
       defaults =

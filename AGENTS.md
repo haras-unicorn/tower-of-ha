@@ -42,9 +42,11 @@ The dev shell loads through direnv. It provides one `dev` command:
 tests. Evaluating all of them in one process takes tens of GB of RAM, because
 each test evaluates several full NixOS machines. So the tests are not flake
 checks. Every test builds as `lib.<system>.nixosTests.<name>`, and `dev test`
-builds them one `nix build` at a time, so the memory of each evaluation is freed
-before the next. `dev test <name>...` runs only the named tests. A plain
-`dev test` leaves out the tests listed as skipped in `src/nix/dev/default.nix`.
+builds each one with its own `nix` process, so the memory of an evaluation is
+freed when its test ends. `dev test --jobs <n>` runs `n` tests at once and
+`--filter <regex>` picks the tests whose names match, for example
+`--filter 'ceph|samba'`. A test that sets `passthru.skipped = true` is left out
+unless `--skipped` is given.
 
 The tests are also memory hungry to run: each one boots several machines with
 databases, filesystems and networks. A test that runs out of time under swapping

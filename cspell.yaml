@@ -31,3 +31,4 @@ ignoreWords:
   - haraspkgs
   - envrc
   - cooldown
+  - passthru

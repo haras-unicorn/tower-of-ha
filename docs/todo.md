@@ -78,8 +78,8 @@ These go away with the Nebula module.
   for one test at a time, and it may be too slow. If a hosted runner cannot do
   it, CI goes back to `dev check` and `nix flake check`, and the tests run on
   the human's machine.
-- `dev test` runs the tests in series. A CI matrix with one job per test name
-  would be faster, if the runners can take it.
+- `dev test` runs one test at a time in CI. A CI matrix with one job per test
+  name would be faster, if the runners can take it.
 
 ## Parked: OpenBao fixes
 

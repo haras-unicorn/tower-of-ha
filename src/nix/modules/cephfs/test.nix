@@ -100,6 +100,7 @@ in
     {
       # NOTE: ceph OSDs need disks and the mounts a kernel module
       toh.test.kind = "vm";
+      passthru.skipped = true;
 
       # NOTE: cryl has no option for the key type, so its ceph-authtool
       # is swapped for one that asks for aes; the cryl wrapper puts its
