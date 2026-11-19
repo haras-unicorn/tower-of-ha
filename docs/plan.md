@@ -277,11 +277,20 @@ capability has a contract test that every current implementation passes.
      contract, and run as containers with `/dev/net/tun` from the host.
    - Git: **done** on 2026-11-19, with Forgejo. Apps get local Forgejo users
      through `toh.meta.git.users`, and pushing creates a repository.
-   - File sharing: not started. Samba has no `toh.meta` options for a client. It
-     needs a design first.
-   - Time: not started. It comes with the
-     [intranet goal](./design.md#intranets), which has no step yet.
-   - Secrets: parked with OpenBao.
+   - File sharing: **done** on 2026-11-19, with Samba, as the `share` contract.
+     `toh.meta.share` has apps and shares like the git meta. The Samba machines
+     make a user and a CephFS directory per app, and set the Samba passwords
+     under the samba lease. A second client reads what the first wrote.
+   - Time: **done** on 2026-11-19, with chronyd. A machine can serve time
+     (`toh.meta.time.serve`), the others take it from the serving machines, and
+     the contract asks each server over NTP. The intranet goal that follows from
+     it is in [todo.md](./todo.md).
+   - Secrets: **done** on 2026-11-19, with OpenBao. The contract is that the
+     `bao` CLI works: a client logs in with the token its machine fetched, then
+     writes and reads the secret of its machine. The OpenBao init is unchanged,
+     and its problems stay [parked](#parked).
+
+   Every capability in the list above has its contract now.
 
 ## Step 3: Matrix
 

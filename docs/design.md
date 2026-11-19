@@ -324,7 +324,12 @@ module into `toh.meta.proxy` on 2026-11-18, so Envoy can serve the same ones.
   readiness targets or units, only on the connection working. Names resolve
   through the DNS helper server of the tests, so the client does not depend on
   the DNS implementation either. The DNS contract is the exception: it turns the
-  helper off, so the client asks the implementation.
+  helper off, so the client asks the implementation. Two contracts bend the rest
+  of this on purpose. The time client is no ToH machine: it asks the servers of
+  `toh.meta.time.servers` over plain NTP. The secrets client runs the token
+  service of the implementation, passed as `client`, because the `bao` CLI needs
+  the token its machine fetched; that contract is that the CLI works, which only
+  Vault and OpenBao offer.
 - **Happy path first.** A contract checks that the capability works. Losing a
   machine and other unhappy paths come in later contracts, and the nasty faults
   in [step 8](./plan.md#step-8-chaos-engineering).
