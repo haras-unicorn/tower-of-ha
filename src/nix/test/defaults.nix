@@ -51,13 +51,17 @@
           ...
         }:
         {
-          # NOTE: ceph-fuse needs /dev/fuse, which the build sandbox only has
-          # when the host adds it to extra-sandbox-paths
-          virtualisation.systemd-nspawn.options =
-            lib.mkIf (config.toh.services.cephfs.enable || config.toh.meta.filesystem.mounts != { })
-              [
-                "--bind=/dev/fuse"
-              ];
+          # NOTE: ceph-fuse needs /dev/fuse and the VPN services need
+          # /dev/net/tun, which the build sandbox only has when the host adds
+          # them to extra-sandbox-paths
+          virtualisation.systemd-nspawn.options = lib.mkMerge [
+            (lib.mkIf (config.toh.services.cephfs.enable || config.toh.meta.filesystem.mounts != { }) [
+              "--bind=/dev/fuse"
+            ])
+            (lib.mkIf (config.toh.services.easytier.enable || config.toh.services.nebula.enable) [
+              "--bind=/dev/net/tun"
+            ])
+          ];
 
           # NOTE: containers have no /dev/watchdog, and a watchdog bound in
           # from the host would reset the host

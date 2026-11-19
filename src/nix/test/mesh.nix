@@ -106,8 +106,6 @@
               }
             ];
 
-            # NOTE: the mesh services need a TUN device, which containers lack
-            toh.test.kind = "vm";
             toh.test.clusters.node.amount = amount;
             toh.test.clusters.node.module =
               { lib, config, ... }:

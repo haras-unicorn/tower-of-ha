@@ -159,9 +159,6 @@
       config = lib.mkIf cfg.enable (
         lib.mkMerge [
           {
-            # NOTE: the relay services need a TUN device, which containers lack
-            toh.test.kind = "vm";
-
             toh.test.network.enable = false;
 
             toh.test.dns.enable = true;
