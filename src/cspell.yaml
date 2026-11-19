@@ -228,6 +228,7 @@ ignoreWords:
   - LDAPTLS
   - urlencode
   - CAINFO
+  - iburst
   - fsid
   - losetup
   - radosgw

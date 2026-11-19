@@ -19,6 +19,25 @@ let
   };
 in
 {
+  self.lib.test.testModules.contracts-time-chronyd = selfLib.test.contract.implementation {
+    capability = "time";
+    implementation = "chronyd";
+    server = {
+      toh.services.chronyd.enable = true;
+      toh.services.chronyd.serve = true;
+    };
+    test = {
+      toh.test.ntp.enable = true;
+    };
+  };
+
+  self.nixosTests.contracts-time-chronyd = selfLib.test.makeNixosTest {
+    toh.test.contracts.time = {
+      enable = true;
+      implementation.chronyd = { };
+    };
+  };
+
   self.nixosTests.services-chronyd = selfLib.test.makeNixosTest {
     toh.test.ntp.enable = true;
 

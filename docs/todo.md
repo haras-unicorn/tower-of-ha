@@ -72,6 +72,13 @@ These go away with the Nebula module.
 
 Service work that fits no step so far.
 
+- **Intranets (needs more thinking).** ToH should also run in an intranet, where
+  only a little traffic goes in and out. A few relay machines would reach the
+  outside for what cannot be done fully inside, like time, and the other
+  machines would get it from them. Nothing is designed yet. Things to work out:
+  which relays, what else besides time they serve, and what ToH itself reaches
+  on the outside today (the public time servers in `chronyd`, and the public
+  STUN servers EasyTier uses when `stunServers` is unset).
 - `src/nix/meta/filesystem.nix:1`: more than one file system instance.
 - `src/nix/modules/cephfs/default.nix:1`: real disks for the OSDs.
 - `src/nix/modules/cephfs/default.nix:2`: more than one file system instance.
