@@ -72,7 +72,7 @@
 
       config = {
         toh.meta.filesystem = {
-          type = lib.mkIf anyMachines "ceph";
+          type = lib.mkIf anyMachines "cephfs";
         };
 
         system.fsPackages = lib.mkIf anyMounts [ cephPackage ];

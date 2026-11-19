@@ -54,6 +54,21 @@ let
     ];
 in
 {
+  self.lib.test.testModules.contracts-filesystem-cephfs = selfLib.test.contract.implementation {
+    capability = "filesystem";
+    implementation = "cephfs";
+    server = {
+      toh.services.cephfs.enable = true;
+    };
+  };
+
+  self.nixosTests.contracts-filesystem-cephfs = selfLib.test.makeNixosTest {
+    toh.test.contracts.filesystem = {
+      enable = true;
+      implementation.cephfs = { };
+    };
+  };
+
   self.nixosTests.services-cephfs = selfLib.test.makeNixosTest {
     toh.test.clusters.node = {
       amount = 3;
