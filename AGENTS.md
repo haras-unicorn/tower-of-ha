@@ -72,3 +72,11 @@ source of truth is `src/nix/dev/default.nix`; edit that, not the files.
 
 Work happens on a branch in small commits that are reviewed one at a time. CI
 runs `dev check`; `nix flake check` is off in CI until the tests work again.
+
+### Review phase (temporary)
+
+While `fix/modernize` is in its big-changes phase, the human skims the log and
+the diffs instead of reviewing every line. A skim checks only two things: that
+the tests really run, and that nothing reaches the internet when it should not.
+Once the shape of most things is settled, careful review starts, in rounds of
+review and fix until the human is satisfied. Remove this section then.
