@@ -267,15 +267,18 @@ capability has a contract test that every current implementation passes.
    - OIDC: **done** on 2026-11-19, with Authelia, which needed no change. The
      client reads the discovery document and pushes an authorization request
      with its secret, because a login needs a browser.
-   - Files: **done** on 2026-11-19, with CephFS, as the `filesystem` contract.
-     The client mounts one directory twice and reads back through the second
-     mount what it wrote through the first.
+   - Files: **done** on 2026-11-19, with CephFS, as the `filesystem` contract. A
+     second client mounts the directory of the first and reads back what the
+     first wrote. The first version used two mounts on one client, which a local
+     filesystem also passes.
    - VPN: not started. `toh.test.mesh` and `toh.test.relay` are VM tests with
      their own networks, so moving them is its own chunk.
-   - Git: not started. Forgejo has no credentials for apps, only logins through
-     Authelia, so a client cannot push yet. It needs a design first.
-   - File sharing and time: not started. Samba has no `toh.meta` options for a
-     client, and chronyd only syncs its own machine. Each needs a design first.
+   - Git: **done** on 2026-11-19, with Forgejo. Apps get local Forgejo users
+     through `toh.meta.git.users`, and pushing creates a repository.
+   - File sharing: not started. Samba has no `toh.meta` options for a client. It
+     needs a design first.
+   - Time: not started. It comes with the
+     [intranet goal](./design.md#intranets), which has no step yet.
    - Secrets: parked with OpenBao.
 
 ## Step 3: Matrix

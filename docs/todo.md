@@ -23,6 +23,9 @@ Found while fixing the tests, not `TODO` comments.
   same time, and when the `alter user ... with password` statements race
   (`tuple concurrently updated`), Postgres logs the failed statement with the
   superuser passwords into the journal.
+- `src/nix/modules/forgejo/apps.nu` and `auth.nu`: the Forgejo CLI takes
+  passwords and the OAuth client secret only as arguments, so they show up in
+  the process list of the Forgejo machine while the init runs.
 
 ## Step 5: Remove Nebula
 

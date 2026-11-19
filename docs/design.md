@@ -297,6 +297,16 @@ rules on each machine where EasyTier cannot express them. The proxy is not the
 only gate: a backend port is closed to everything except the machines that
 should reach it.
 
+### Intranets
+
+**Decided** as a goal on 2026-11-19, with no step yet. ToH should also run in an
+intranet, where only a little traffic goes in and out. A few relay machines
+reach the outside for what cannot be done fully inside, and the other machines
+get it from them. Time is the first example: the relays sync with time servers
+outside, and every other machine syncs with the relays. That makes time a
+capability with a contract like the others, where a client syncs its clock from
+the cluster.
+
 ### Capabilities and contracts
 
 **Decided** as step 2. Each capability gets a test module, in the shape of the
