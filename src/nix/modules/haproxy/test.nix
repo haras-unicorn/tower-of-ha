@@ -213,8 +213,24 @@ let
       }
     );
 in
-# NOTE: <frontend>-<backend>-<health>
 {
+  self.lib.test.testModules.contracts-proxy-haproxy = selfLib.test.contract.implementation {
+    capability = "proxy";
+    implementation = "haproxy";
+    server = {
+      toh.services.coredns.enable = true;
+      toh.services.haproxy.enable = true;
+    };
+  };
+
+  self.nixosTests.contracts-proxy-haproxy = selfLib.test.makeNixosTest {
+    toh.test.contracts.proxy = {
+      enable = true;
+      implementation.haproxy = { };
+    };
+  };
+
+  # NOTE: <frontend>-<backend>-<health>
   self.nixosTests.services-haproxy-http-http-http = makeProtocolTest {
     toh.test.haproxy.endpoint.http = true;
   };
