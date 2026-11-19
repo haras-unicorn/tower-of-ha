@@ -226,6 +226,7 @@ ignoreWords:
   - psqlrc
   - VALKEYCLI
   - LDAPTLS
+  - urlencode
   - fsid
   - losetup
   - radosgw

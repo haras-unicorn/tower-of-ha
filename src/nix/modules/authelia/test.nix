@@ -1,6 +1,29 @@
 { selfLib, ... }:
 
 {
+  self.lib.test.testModules.contracts-oidc-authelia = selfLib.test.contract.implementation {
+    capability = "oidc";
+    implementation = "authelia";
+    server = {
+      toh.services.haproxy.enable = true;
+      toh.services.coredns.enable = true;
+      toh.services.etcd.enable = true;
+      toh.services.patroni.enable = true;
+      toh.services.valkey.enable = true;
+      toh.services.lldap.enable = true;
+      toh.services.garage.enable = true;
+      toh.services.maddy.enable = true;
+      toh.services.authelia.enable = true;
+    };
+  };
+
+  self.nixosTests.contracts-oidc-authelia = selfLib.test.makeNixosTest {
+    toh.test.contracts.oidc = {
+      enable = true;
+      implementation.authelia = { };
+    };
+  };
+
   self.nixosTests.services-authelia = selfLib.test.makeNixosTest {
     toh.test.clusters.node = {
       amount = 3;
