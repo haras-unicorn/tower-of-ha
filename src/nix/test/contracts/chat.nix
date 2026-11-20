@@ -5,6 +5,10 @@
 # memory of one session; the password and the token never go on a command
 # line, curl reads the login from stdin and the header from a file
 
+# NOTE: each client logs in once and keeps the token, and only the steps
+# after the login are retried, because a retried login counts against the
+# login rate limit of the server, which a retry loop never gets under again
+
 {
   self.lib.test.testModules.contracts-chat =
     {
@@ -29,6 +33,9 @@
           chat = config.toh.meta.chat;
           user = chat.users.${app};
 
+          stateDirectory = "/var/lib/contract-chat";
+          authorization = "${stateDirectory}/authorization";
+
           run = pkgs.writeShellApplication {
             name = "contract-chat-run";
             # NOTE: jq programs use $ for their own variables in single quotes
@@ -49,29 +56,34 @@
                 jq --null-input --raw-output --arg value "$1" '$value | @uri'
               }
 
-              jq --null-input --rawfile password ${user.password} '{
-                type: "m.login.password",
-                identifier: { type: "m.id.user", user: "${user.name}" },
-                password: ($password | rtrimstr("\n"))
-              }' \
-                | curl --silent --fail "$api/login" --json @- \
-                | jq --raw-output '"Authorization: Bearer " + .access_token' \
-                > authorization
-
-              room="$(curl --silent --fail --header @authorization \
-                "$api/directory/room/$(encode '${user.room}')" \
-                | jq --raw-output .room_id)"
+              room() {
+                curl --silent --fail --header @${authorization} \
+                  "$api/directory/room/$(encode '${user.room}')" \
+                  | jq --raw-output .room_id
+              }
 
               case "$1" in
+                login)
+                  jq --null-input --rawfile password ${user.password} '{
+                    type: "m.login.password",
+                    identifier: { type: "m.id.user", user: "${user.name}" },
+                    password: ($password | rtrimstr("\n"))
+                  }' \
+                    | curl --silent --fail "$api/login" --json @- \
+                    | jq --raw-output '"Authorization: Bearer " + .access_token' \
+                    > ${authorization}
+                  ;;
                 write)
+                  room_id="$(room)"
                   jq --null-input --arg body ${value} '{ msgtype: "m.text", body: $body }' \
-                    | curl --silent --fail --request PUT --header @authorization --json @- \
-                      "$api/rooms/$(encode "$room")/send/m.room.message/$(date +%s%N)" \
+                    | curl --silent --fail --request PUT --header @${authorization} --json @- \
+                      "$api/rooms/$(encode "$room_id")/send/m.room.message/$(date +%s%N)" \
                     > /dev/null
                   ;;
                 read)
-                  curl --silent --fail --header @authorization \
-                    "$api/rooms/$(encode "$room")/messages?dir=b&limit=10" \
+                  room_id="$(room)"
+                  curl --silent --fail --header @${authorization} \
+                    "$api/rooms/$(encode "$room_id")/messages?dir=b&limit=10" \
                     | jq --raw-output \
                       '.chunk[] | select(.type == "m.room.message") | .content.body'
                   ;;
@@ -93,6 +105,8 @@
 
           toh.pki.installCa = true;
 
+          systemd.tmpfiles.rules = [ "d ${stateDirectory} 0700 ${app} ${app} -" ];
+
           environment.systemPackages = [ contract ];
         };
     in
@@ -110,8 +124,10 @@
           })
           {
             toh.test.commands.suffix = ''
+              client.wait_until_succeeds("contract-chat login", timeout=300)
               client.wait_until_succeeds("contract-chat write", timeout=300)
-              reader.wait_until_succeeds("contract-chat read | grep -qx ${value}", timeout=30)
+              reader.wait_until_succeeds("contract-chat login", timeout=60)
+              reader.wait_until_succeeds("contract-chat read | grep -x ${value} > /dev/null", timeout=30)
             '';
           }
         ]

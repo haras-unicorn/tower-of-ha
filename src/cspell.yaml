@@ -243,6 +243,7 @@ ignoreWords:
   - dbid
   - journalctl
   - pipefail
+  - unban
   - fsid
   - losetup
   - radosgw

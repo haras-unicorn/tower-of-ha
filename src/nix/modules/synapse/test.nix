@@ -32,6 +32,9 @@ in
         selfLib.services.endpoint.toAttrs
           (builtins.head machineList).toh.meta.proxies."synapse-replication".endpoint;
 
+      chat = selfLib.services.endpoint.toAttrs (builtins.head machineList)
+        .toh.meta.proxies.synapse.endpoint;
+
       nodes = builtins.concatStringsSep ", " (
         builtins.map (
           machine:
@@ -87,15 +90,48 @@ in
             timeout=120,
           )
 
+        def logged(machine, unit, text):
+          return machine.execute(
+            f"journalctl -u {unit} | grep -F '{text}' > /dev/null"
+          )[0] == 0
+
+        # NOTE: every request carries a query of its own, so the access logs
+        # tell which process answered it
+        def worker_answers(machine, path):
+          machine.wait_until_succeeds(
+            "curl --silent --fail"
+            " --resolve ${chat.host}:${builtins.toString chat.port}:127.0.0.1"
+            f" 'https://${chat.host}:${builtins.toString chat.port}{path}'",
+            timeout=120,
+          )
+
+          def answered(last_try):
+            return any(
+              logged(node[0], "matrix-synapse-worker.service", path)
+              for node in nodes
+            )
+
+          retry(answered, timeout_seconds=60)
+          assert not any(
+            logged(node[0], "matrix-synapse.service", path) for node in nodes
+          ), f"the main process answered {path}"
+
+        for node in nodes:
+          node[0].wait_until_succeeds(
+            "systemctl is-active matrix-synapse-worker.service", timeout=300
+          )
+
         first = wait_for_holder(None)
         uses_redis(first)
         replication_through_proxy(first)
+        worker_answers(first, "/_matrix/client/versions?toh=before-failover")
 
         first.succeed("systemctl stop toh-lease-synapse.service")
         second = wait_for_holder(first)
         assert second is not first, "the main process did not move"
         uses_redis(second)
         replication_through_proxy(second)
+        worker_answers(second, "/_matrix/federation/v1/version?toh=after-failover")
       '';
     }
   );

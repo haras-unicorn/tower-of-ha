@@ -151,10 +151,12 @@ Made on 2026-11-20, while writing Synapse.
   jobs, so the main process keeps the media. Workers need Redis, which is Valkey
   through the `kv` capability. The replication listener of the main process
   speaks only plain HTTP, so it is its own proxied service,
-  `synapse-replication`, and the workers reach it at the proxy address. That
-  also means they never need to know which machine holds the lease. The hop from
-  the proxy to the main process is plain until the proxy enforces TLS (see
-  [todo.md](./todo.md)).
+  `synapse-replication`, and the workers reach it at the proxy address. It is a
+  TCP service with TLS termination and not an HTTP one, because the workers send
+  the name of the main process as the host header, which routing by host cannot
+  use. That also means they never need to know which machine holds the lease.
+  The hop from the proxy to the main process is plain until the proxy enforces
+  TLS (see [todo.md](./todo.md)).
 - **The `chat` contract.** An app that registers in `toh.meta.chat.apps` gets a
   chat user and a room, and its machine gets the password and the alias of the
   room in `toh.meta.chat.users`. The client logs in through the proxy, writes a

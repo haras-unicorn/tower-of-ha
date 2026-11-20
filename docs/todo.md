@@ -85,8 +85,9 @@ These go away with the Nebula module.
 
 - `src/nix/modules/synapse`: URL previews are off, because Synapse would fetch
   pages from the internet. Decide if they are wanted, and if so how.
-- The chat contract logs in twice from one address, which fits the default login
-  rate limits of Synapse. Raise them if more contracts or apps log in often.
+- The chat contract logs in once per client and retries only the steps after the
+  login, which fits the default login rate limits of Synapse. Raise them if more
+  contracts or apps log in often.
 - `src/nix/modules/synapse/default.nix`: the proxy takes plain HTTP to the
   backend, like the other services, which breaks invariant 4 until the Envoy
   step. The replication listener of the main process is the same: Synapse only
@@ -95,6 +96,16 @@ These go away with the Nebula module.
   UDP, and only the proxies talk to each other across machines, so that only
   proxy ports have to be open and each machine is a bubble. The proxy has to
   enforce it before invariant 4 holds.
+- `src/nix/modules/synapse/worker.nix`: the worker takes only the paths that any
+  instance can serve. Inbound federation transactions
+  (`/_matrix/federation/v1/send/`) should go to one process per remote server,
+  and pagination (`/messages`) has to stay on one process per room, so both go
+  to the main process for now. `/sync` goes to the workers round robin, though
+  it is cheaper when a user stays on one worker. All three need the proxy to
+  balance by source address, by room or by user.
+- `src/nix/modules/synapse/config.nix`: the `kv` app of Synapse has
+  `prefix = "all"`, so it can read every key and channel of its database. Narrow
+  it in the hardening pass.
 
 ## Port clashes
 
@@ -139,3 +150,6 @@ Service work that fits no step so far.
   with a post-start script that finds the current primary through Sentinel, so
   no node has to be picked as the first primary.
 - `src/nix/modules/valkey/apps.nix:77`: remove the duplicated permissions.
+- Once everything goes through the proxies: harden and tune the stack for the
+  topology of a deployment on its own, and rewrite the load balancing rules from
+  latencies measured while it runs. Only an idea so far.

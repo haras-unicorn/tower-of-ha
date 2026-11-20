@@ -148,12 +148,18 @@
             };
           };
 
-          # NOTE: the replication listener has no health path, so the proxy
-          # only checks that it accepts connections, which only the lease
-          # holder does; it is plain HTTP behind the proxy, like every other
-          # backend until the proxy enforces TLS (invariant 4)
+          # NOTE: a TCP service and not an HTTP one, because the workers send
+          # the name of the main process as the host header and not the proxy
+          # address, so routing by host would find nothing; the replication
+          # listener has no health path, so the proxy only checks that it
+          # accepts connections, which only the lease holder does; it is plain
+          # behind the proxy, like every other backend until the proxy
+          # enforces TLS (invariant 4)
           toh.meta.services.synapse-replication = {
-            endpoint.http.port = cfg.replicationPort;
+            endpoint.tcp = {
+              port = cfg.replicationPort;
+              layer7Protocol = "http";
+            };
             health.endpoint.tcp.port = cfg.replicationPort;
           };
 

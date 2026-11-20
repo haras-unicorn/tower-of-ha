@@ -372,8 +372,25 @@ holds an etcd lease and the workers run on every machine (see the
       2. **The worker on every machine,** with its own unit that does not need
          the local main process, a route and a health check. The test checks
          that a request through the proxy is handled by a worker, also after the
-         main process moved.
-      3. **Federation paths** on the same worker, if piece 2 leaves them out.
+         main process moved. **Done** on 2026-11-20, together with piece 3:
+         `matrix-synapse-worker` runs on every Synapse machine and reaches the
+         main process at the `synapse-replication` proxy address over TLS. It
+         takes the sync, read and event sending paths of the client API and the
+         read paths of federation, from the list in the Synapse docs. Logins,
+         pagination, media and inbound federation transactions stay on the main
+         process (see [todo.md](./todo.md)). `services-synapse` waits for the
+         worker on every machine and checks in the access logs that a client
+         request before the failover and a federation request after it were
+         answered by a worker and not by the main process. In
+         `contracts-chat-synapse` the message goes in through a worker, which
+         hands it to the main process over replication. That run found two bugs.
+         The workers send the name of the main process as the host header, so
+         the proxy found no backend for replication by host;
+         `synapse-replication` became a TCP service with TLS termination. And
+         the contract retried its login with every other step, and the retries
+         kept it over the login rate limit of Synapse forever; each client now
+         logs in once and retries only the steps after it.
+      3. **Federation paths** on the same worker. Done with piece 2.
 3. **Clients and federation (M).** Well-known files, federation through the
    proxy, a web client if we want one.
 
