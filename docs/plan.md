@@ -340,16 +340,18 @@ holds an etcd lease and the workers run on every machine (see the
       dash in it, so `toh-filesystem-online.target` never came up, and the
       default Synapse port, 8008, is the one Patroni's REST API uses. The Ceph
       mount tests now mount a path with a dash, and Synapse listens on 8090.
-   2. **Path routing (M).** A service can have a `route`: paths of the proxy
-      address of another service, as prefixes or regular expressions, with a
-      `priority` that sorts the routes of an address (the lowest number first,
-      the service name only breaks a tie). It is in the proxy meta, the HAProxy
-      module and the proxy contract, so Envoy has to pass the same contract in
+   2. **Path routing (M).** An `http` or `https` endpoint can have a `route` (no
+      other protocol has the option): paths of the proxy address of another
+      service, as prefixes or regular expressions, with a `priority` that sorts
+      the routes of an address (the lowest number first, the service name only
+      breaks a tie). It is in the proxy meta, the HAProxy module and the proxy
+      contract, so Envoy has to pass the same contract in
       [step 6](#step-6-envoy-instead-of-haproxy). **Written** on 2026-11-20:
       `contracts-proxy-haproxy` passes, with a prefix route, a regular
       expression route that must match the whole path, and two routes of one
-      path that only the priority tells apart. The unit tests of the sorting
-      have not run, because the sandbox that built it cannot build `nix-unit`.
+      path that only the priority tells apart. The human's `nix flake check`
+      passed on it. After review the `route` moved from the service onto its
+      HTTP and HTTPS endpoints, and the unit tests were changed to match.
    3. **Workers (L).** The client and federation workers run on every machine,
       reach the main process through a proxied replication endpoint and Valkey,
       and get their traffic through routes. A media worker only if it can run on

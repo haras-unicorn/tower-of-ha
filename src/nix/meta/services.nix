@@ -153,6 +153,67 @@
           };
         };
 
+      httpRouteEndpointSubmodule =
+        { lib, ... }:
+        {
+          options = {
+            route = lib.mkOption {
+              default = null;
+              description = ''
+                Serve only some paths of the proxy address of another
+                service, instead of an address of its own. A request that
+                matches no route goes to the service itself.
+              '';
+              type = lib.types.nullOr (
+                lib.types.submodule {
+                  options = {
+                    service = lib.mkOption {
+                      type = lib.types.str;
+                      description = "The service whose proxy address this one serves paths of.";
+                    };
+
+                    priority = lib.mkOption {
+                      type = lib.types.int;
+                      default = 0;
+                      description = ''
+                        The routes of an address are tried from the
+                        lowest number to the highest, and the first one
+                        that matches takes the request. A negative number
+                        wins over routes that leave it at 0, and a
+                        positive one is a fallback for them. Routes with
+                        the same number are tried by the name of their
+                        service.
+                      '';
+                    };
+
+                    paths = lib.mkOption {
+                      description = ''
+                        The paths the route takes. A request matches when
+                        any of them does. A prefix is the start of the
+                        path. A regular expression has to match the whole
+                        path, without the query, and has to be valid for
+                        every proxy, so it sticks to what RE2 accepts.
+                      '';
+                      type = lib.types.listOf (
+                        lib.types.attrTag {
+                          prefix = lib.mkOption {
+                            type = lib.types.str;
+                            description = "The start of the path.";
+                          };
+                          regex = lib.mkOption {
+                            type = lib.types.str;
+                            description = "A regular expression for the whole path.";
+                          };
+                        }
+                      );
+                    };
+                  };
+                }
+              );
+            };
+          };
+        };
+
       makeEndpointSubmodule =
         {
           makeExtraEndpointImports ? (_: [ ]),
@@ -243,6 +304,18 @@
         else
           [ ];
 
+      makeExtraRouteEndpointSubmodules =
+        protocol:
+        if
+          builtins.elem protocol [
+            "http"
+            "https"
+          ]
+        then
+          [ httpRouteEndpointSubmodule ]
+        else
+          [ ];
+
       makeExtraLayer4EndpointSubmodules =
         protocol:
         if protocol == "tcp" then
@@ -313,6 +386,7 @@
                     builtins.removeAttrs endpointAttrs [
                       "protocol"
                       "persistCookie"
+                      "route"
                     ];
               in
               {
@@ -322,67 +396,12 @@
                       protocol:
                       makeExtraSecureEndpointSubmodules protocol
                       ++ makeExtraLayer4EndpointSubmodules protocol
-                      ++ makePersistentEndpointSubmodules protocol;
+                      ++ makePersistentEndpointSubmodules protocol
+                      ++ makeExtraRouteEndpointSubmodules protocol;
                   })
                 ];
 
                 options = {
-                  route = lib.mkOption {
-                    default = null;
-                    description = ''
-                      Serve only some paths of the proxy address of another
-                      service, instead of an address of its own. Only for
-                      HTTP and HTTPS services. A request that matches no route
-                      goes to the service itself.
-                    '';
-                    type = lib.types.nullOr (
-                      lib.types.submodule {
-                        options = {
-                          service = lib.mkOption {
-                            type = lib.types.str;
-                            description = "The service whose proxy address this one serves paths of.";
-                          };
-
-                          priority = lib.mkOption {
-                            type = lib.types.int;
-                            default = 0;
-                            description = ''
-                              The routes of an address are tried from the
-                              lowest number to the highest, and the first one
-                              that matches takes the request. A negative number
-                              wins over routes that leave it at 0, and a
-                              positive one is a fallback for them. Routes with
-                              the same number are tried by the name of their
-                              service.
-                            '';
-                          };
-
-                          paths = lib.mkOption {
-                            description = ''
-                              The paths the route takes. A request matches when
-                              any of them does. A prefix is the start of the
-                              path. A regular expression has to match the whole
-                              path, without the query, and has to be valid for
-                              every proxy, so it sticks to what RE2 accepts.
-                            '';
-                            type = lib.types.listOf (
-                              lib.types.attrTag {
-                                prefix = lib.mkOption {
-                                  type = lib.types.str;
-                                  description = "The start of the path.";
-                                };
-                                regex = lib.mkOption {
-                                  type = lib.types.str;
-                                  description = "A regular expression for the whole path.";
-                                };
-                              }
-                            );
-                          };
-                        };
-                      }
-                    );
-                  };
-
                   health = lib.mkOption {
                     default = { };
                     description = "Service health";

@@ -22,7 +22,7 @@
       # NOTE: a service with a route has no address of its own, it answers
       # on the address of the service it routes to
       proxiedServices = lib.filterAttrs (
-        _: services: (builtins.head services).route == null
+        _: services: selfLib.services.routeOf (builtins.head services) == null
       ) serviceNamesToMachineServices;
 
       makeProxy =

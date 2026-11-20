@@ -32,6 +32,10 @@ in
       "passthrough"
     ];
 
+    # NOTE: only HTTP and HTTPS endpoints can have a route, the endpoints of
+    # every other protocol have no such attribute
+    routeOf = service: (selfLib.services.endpoint.toAttrs service.endpoint).route or null;
+
     # NOTE: the order a proxy has to try the routes in, so that every proxy
     # implementation sorts the same way; priority comes first and the name
     # only breaks a tie, so the result does not depend on the machines
@@ -42,7 +46,7 @@ in
           lib.mapAttrsToList (
             name: services:
             let
-              route = (builtins.head services).route;
+              route = selfLib.services.routeOf (builtins.head services);
             in
             lib.optional (route != null) {
               inherit name;
@@ -149,7 +153,7 @@ in
   self.unitTests.services =
     let
       route = priority: {
-        route = {
+        endpoint.https.route = {
           service = "web";
           inherit priority;
           paths = [ { prefix = "/"; } ];
@@ -161,7 +165,8 @@ in
     {
       test-routes-skip-services-without-a-route = {
         expr = names {
-          web = [ { route = null; } ];
+          web = [ { endpoint.https.route = null; } ];
+          database = [ { endpoint.tcp = { }; } ];
           worker = [ (route 0) ];
         };
         expected = [ "worker" ];

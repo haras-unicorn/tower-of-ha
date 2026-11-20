@@ -46,11 +46,13 @@
           priority ? 0,
         }:
         {
-          endpoint.https.port = port;
-          route = {
-            service = app;
-            inherit priority;
-            paths = [ path ];
+          endpoint.https = {
+            inherit port;
+            route = {
+              service = app;
+              inherit priority;
+              paths = [ path ];
+            };
           };
         };
 

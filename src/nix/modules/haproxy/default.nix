@@ -167,7 +167,7 @@
 
       proxiedHttpServiceNames = builtins.attrNames (
         lib.filterAttrs (
-          _: services: (builtins.head services).route == null
+          _: services: selfLib.services.routeOf (builtins.head services) == null
         ) httpServiceNamesToMachineServices
       );
 
