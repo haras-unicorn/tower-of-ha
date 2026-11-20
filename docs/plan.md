@@ -334,10 +334,12 @@ holds an etcd lease and the workers run on every machine (see the
       locale (`dbLocale`), because Synapse refuses a database that is not `C`;
       the database contract checks it. The singleton worker roles stay on the
       main process, so they move with the lease, and sharding is left for much
-      later. **Written** on 2026-11-20 and evaluating, but not run yet: the
-      closure of Synapse is not in the store of the sandbox that builds the
-      tests, so the first run of `contracts-chat-synapse` and `services-synapse`
-      is on the human's machine.
+      later. **Done** on 2026-11-20: `contracts-chat-synapse` and
+      `services-synapse` pass. The first run found two bugs outside the Synapse
+      code. The CephFS mounts named their systemd unit wrong for a path with a
+      dash in it, so `toh-filesystem-online.target` never came up, and the
+      default Synapse port, 8008, is the one Patroni's REST API uses. The Ceph
+      mount tests now mount a path with a dash, and Synapse listens on 8090.
    2. **Workers and path routing (L).** Path routes in the proxy meta, the
       HAProxy module and the proxy contract, so that Envoy has to do the same in
       [step 6](#step-6-envoy-instead-of-haproxy). Then the client, federation

@@ -7,6 +7,7 @@
       lib,
       pkgs,
       config,
+      utils,
       ...
     }:
     let
@@ -50,7 +51,10 @@
                 name = baseName;
                 preMount = "ceph-pre-mount-${baseName}";
                 postMount = "ceph-post-mount-${baseName}";
-                mount = baseName;
+                # NOTE: systemd escapes a dash inside a path component, so the
+                # unit of '/var/lib/matrix-synapse' is not named like its path
+                # with the slashes swapped
+                mount = utils.escapeSystemdPath name;
               }
               // value
             )

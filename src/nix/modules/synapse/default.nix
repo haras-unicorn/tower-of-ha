@@ -28,7 +28,8 @@
 
           port = lib.mkOption {
             type = lib.types.port;
-            default = 8008;
+            # NOTE: not the 8008 Synapse uses by default, Patroni has it
+            default = 8090;
             description = "Port of the HTTP listener of the main process.";
           };
         };

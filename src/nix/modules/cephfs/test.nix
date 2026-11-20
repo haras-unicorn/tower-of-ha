@@ -1,6 +1,10 @@
 { selfLib, inputs, ... }:
 
 let
+  # NOTE: the dash is on purpose, systemd names the mount unit of a path
+  # with a dash differently from one without
+  mountPath = "/mnt/ceph-mount";
+
   healthCommands = allowedChecks: [
     ''command_node.wait_until_succeeds("systemctl is-active toh-filesystem-online.target", timeout=300)''
     ''
@@ -31,7 +35,7 @@ let
           name = node.toh.meta.machine.name;
         in
         ''
-          command_node.succeed("echo 'Hello from ${name}!' > /mnt/hello-world-${name}")
+          command_node.succeed("echo 'Hello from ${name}!' > ${mountPath}/hello-world-${name}")
         ''
       )
       (
@@ -47,7 +51,7 @@ let
             let
               name = other.toh.meta.machine.name;
             in
-            ''command_node.succeed("cat /mnt/hello-world-${name} | grep -q 'Hello from ${name}!'")''
+            ''command_node.succeed("cat ${mountPath}/hello-world-${name} | grep -q 'Hello from ${name}!'")''
           ) others
         )
       )
@@ -85,7 +89,7 @@ in
       amount = 3;
       module = {
         toh.services.cephfs.enable = true;
-        toh.meta.filesystem.mounts."/mnt" = { };
+        toh.meta.filesystem.mounts.${mountPath} = { };
       };
     };
 
@@ -141,7 +145,7 @@ in
           toh.services.cephfs.enable = true;
           toh.services.cephfs.mountDriver = "kernel";
           toh.services.cephfs.keyType = "aes";
-          toh.meta.filesystem.mounts."/mnt" = { };
+          toh.meta.filesystem.mounts.${mountPath} = { };
         };
       };
 
