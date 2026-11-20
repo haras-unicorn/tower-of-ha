@@ -129,6 +129,20 @@ Service work that fits no step so far.
   which relays, what else besides time they serve, and what ToH itself reaches
   on the outside today (the public time servers in `chronyd`, and the public
   STUN servers EasyTier uses when `stunServers` is unset).
+- **Public ingress (needs more thinking).** The other side of intranets: letting
+  the internet in. Today every service is reachable only from the VPN. To
+  federate the chat with the outside, or to open git or email to people outside,
+  some machines take connections from the internet, under a public domain, with
+  certificates from a public CA. It touches the proxy, DNS and the certificates
+  of the whole stack.
+- **Tuwunel instead of Synapse (spike).** Tuwunel is a Matrix server in Rust
+  that needs far less memory than Synapse and has no workers, but it keeps its
+  data in an embedded RocksDB and cannot use Postgres. It would run like Samba:
+  one process behind an etcd lease, with its database on CephFS. Try it as a
+  second implementation of the chat contract, and measure RocksDB on the CephFS
+  kernel client of real machines (the containers use `ceph-fuse`, which says
+  little about speed). Kept Synapse on 2026-11-20, because RocksDB on CephFS may
+  be slow and hard to get right.
 - `src/nix/meta/filesystem.nix:1`: more than one file system instance.
 - `src/nix/modules/cephfs/default.nix:1`: real disks for the OSDs.
 - `src/nix/modules/cephfs/default.nix:2`: more than one file system instance.

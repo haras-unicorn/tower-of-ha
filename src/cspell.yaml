@@ -244,6 +244,8 @@ ignoreWords:
   - journalctl
   - pipefail
   - unban
+  - homeserver
+  - jitsi
   - fsid
   - losetup
   - radosgw
