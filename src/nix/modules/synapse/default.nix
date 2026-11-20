@@ -44,6 +44,31 @@
               the workers call through the proxy.
             '';
           };
+
+          federation = {
+            allowedIpRanges = lib.mkOption {
+              type = lib.types.listOf lib.types.str;
+              default = [ ];
+              example = [ "192.168.1.0/24" ];
+              description = ''
+                Address ranges that Synapse may federate with although they
+                are private. Synapse refuses private addresses by default, so
+                that other servers cannot make it reach into its own network.
+              '';
+            };
+
+            trustedKeyServers = lib.mkOption {
+              type = lib.types.listOf (lib.types.attrsOf lib.types.anything);
+              default = [ ];
+              example = [ { server_name = "matrix.org"; } ];
+              description = ''
+                Servers asked for the signing keys of other servers, as
+                `trusted_key_servers` of Synapse. Empty by default, so that
+                Synapse asks every server for its own keys and trusts no third
+                server, where Synapse would ask matrix.org.
+              '';
+            };
+          };
         };
       };
 
@@ -62,8 +87,13 @@
             extraConfigFiles = [ cfg.config.path ];
 
             settings = {
-              server_name = proxyAttrs.host;
-              public_baseurl = "https://${proxyAttrs.host}";
+              server_name = config.toh.meta.chat.serverName;
+              public_baseurl = config.toh.meta.chat.url;
+              # NOTE: other servers find the proxy through this file, because
+              # without it they would look for the server on port 8448
+              serve_server_wellknown = true;
+              trusted_key_servers = cfg.federation.trustedKeyServers;
+              ip_range_whitelist = cfg.federation.allowedIpRanges;
 
               enable_registration = false;
               report_stats = false;

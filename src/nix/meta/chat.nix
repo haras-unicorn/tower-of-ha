@@ -20,6 +20,18 @@
             description = "Chat server port (via proxy)";
           };
 
+          serverName = lib.mkOption {
+            type = lib.types.str;
+            default = config.toh.meta.chat.host;
+            defaultText = lib.literalExpression "config.toh.meta.chat.host";
+            description = ''
+              Name of the chat server, the part after the colon in the names
+              of users and rooms. It is part of every name, so it cannot change
+              once the server has users. A name other than the host needs its
+              server well-known file served on that name.
+            '';
+          };
+
           url = lib.mkOption {
             type = lib.types.str;
             readOnly = true;

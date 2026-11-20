@@ -78,20 +78,38 @@
                 enable = true;
                 config =
                   let
+                    makeRecord =
+                      name: ip:
+                      let
+                        type = if lib.hasInfix ":" ip then "AAAA" else "A";
+                      in
+                      "${name}. 60 IN ${type} ${ip}";
+
+                    # NOTE: zone files and not the hosts plugin, because hosts
+                    # has no SOA record, so it answers a name it does not
+                    # have with a server failure, and clients that look up
+                    # optional records, like Matrix servers looking for SRV
+                    # records, take that as an error
+                    makeZoneFile =
+                      zone: records:
+                      pkgs.writeText "${zone}.zone" ''
+                        $ORIGIN ${zone}.
+                        @ 60 IN SOA dns.${zone}. hostmaster.${zone}. 1 60 60 60 60
+                        @ 60 IN NS dns.${zone}.
+                        ${lib.concatStringsSep "\n" (
+                          lib.mapAttrsToList (
+                            name: ips:
+                            let
+                              ipList = if builtins.isList ips then ips else [ ips ];
+                            in
+                            lib.concatMapStringsSep "\n" (makeRecord name) ipList
+                          ) records
+                        )}
+                      '';
+
                     zoneBlocks = lib.mapAttrsToList (zone: records: ''
                       ${zone} {
-                        hosts {
-                          ${lib.concatStringsSep "\n" (
-                            lib.mapAttrsToList (
-                              name: ips:
-                              let
-                                ipList = if builtins.isList ips then ips else [ ips ];
-                              in
-                              lib.concatMapStrings (ip: "${ip} ${name}") ipList
-                            ) records
-                          )}
-                          fallthrough
-                        }
+                        file ${makeZoneFile zone records}
                       }
                     '') testConfig.toh.test.dns.zones;
                   in

@@ -14,8 +14,6 @@
 
       anyMachines = selfLib.cluster.anyServiceMachines config "synapse";
 
-      proxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.synapse.endpoint;
-
       owner = "matrix-synapse";
       group = "matrix-synapse";
 
@@ -87,7 +85,7 @@
             ${name} = {
               name = chatName name;
               password = config.toh.meta.sops.secrets."synapse-user-${name}-pass".path;
-              room = "#${chatName name}:${proxyAttrs.host}";
+              room = "#${chatName name}:${config.toh.meta.chat.serverName}";
             };
           }
         );

@@ -392,7 +392,27 @@ holds an etcd lease and the workers run on every machine (see the
          logs in once and retries only the steps after it.
       3. **Federation paths** on the same worker. Done with piece 2.
 3. **Clients and federation (M).** Well-known files, federation through the
-   proxy, a web client if we want one.
+   proxy, a web client if we want one. **Done** on 2026-11-20, in two pieces:
+   1. **Element.** `services-element` serves Element from every machine behind
+      its own proxy address and checks that its config names the chat.
+      Federation with the internet was split off on the way, because nothing
+      outside the VPN can reach the cluster; that is public ingress, in
+      [todo.md](./todo.md), with a Tuwunel spike next to it.
+   2. **Ready to federate.** `toh.meta.chat.serverName`, the server well-known
+      file, no trusted key servers and allowed private ranges, as in the
+      [design](./design.md#decisions). `services-synapse-federation` runs a
+      plain Synapse outside the cluster from a new test helper
+      (`toh.test.matrix`) and checks that a user of each server reads what the
+      other wrote in one room. The run found three bugs outside Synapse. HAProxy
+      matched the whole host header, and Matrix servers send the port in it, so
+      they got 503; the proxy contract now sends a host with a port. The DNS
+      test helper answered a name it does not have with a server failure, which
+      Synapse takes as an error when it looks for SRV records; it serves zone
+      files now. And it put several addresses of one name on one line.
+
+**Closed** on 2026-11-20. `contracts-chat-synapse`, `services-synapse`,
+`services-synapse-federation`, `services-element`, `contracts-proxy-haproxy` and
+`services-ddns-updater-duckdns` pass; the full `dev test` has not run on it.
 
 ## Step 4: Observability
 

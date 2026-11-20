@@ -166,6 +166,23 @@ Made on 2026-11-20, while writing Synapse.
   Synapse, because every machine must sign the same way, and the media store is
   a CephFS mount. The database is made with the `C` locale, which Synapse needs;
   `toh.meta.database.apps.<name>.dbLocale` asks for it.
+- **Element is static files on every machine.** Element is a web app with no
+  server of its own, so every machine serves it with `static-web-server`, behind
+  its own proxy address and apart from the chat, as Element advises. Its config
+  points at the chat and turns off what its sample config points at matrix.org
+  and the services of Element.
+- **The chat is ready to federate, but nothing outside can reach it yet.** The
+  server name is `toh.meta.chat.serverName`, the part after the colon in every
+  name, which cannot change once the server has users; it defaults to the proxy
+  host. Synapse serves the server well-known file, so other servers find it at
+  the proxy on 443 and not on 8448. It asks every server for its own keys and no
+  third server, where Synapse would ask matrix.org. It refuses private addresses
+  unless they are allowed, so it cannot be made to reach into its own network.
+  Outgoing federation goes from the machine of the process straight to the other
+  server, not through the proxy. Federating with the internet needs public
+  ingress (see [todo.md](./todo.md)); until then it works with servers that can
+  reach the proxies, which the federation test shows with a plain Synapse
+  outside the cluster.
 
 ## Architecture today
 

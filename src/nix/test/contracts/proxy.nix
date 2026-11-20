@@ -57,8 +57,16 @@
         };
 
       reaches =
-        { path, port }:
-        ''client.wait_until_succeeds("contract-proxy ${path} | grep -qx ${builtins.toString port}", timeout=60)'';
+        {
+          path,
+          port,
+          curlArgs ? "",
+        }:
+        ''client.wait_until_succeeds("contract-proxy ${path} ${curlArgs} | grep -qx ${builtins.toString port}", timeout=60)'';
+
+      # NOTE: clients like Matrix servers name the port in the host header
+      # even when it is the default one, and curl leaves it out
+      hostWithPort = "--header 'Host: ${proxyAttrs.host}:${builtins.toString proxyAttrs.port}'";
     in
     {
       options.toh.test.contracts.proxy = selfLib.test.contract.options "proxy" cfg;
@@ -82,7 +90,7 @@
                   ];
                   text = ''
                     exec setpriv --reuid=${app} --regid=${app} --init-groups \
-                      curl --fail --silent --show-error \
+                      curl --fail --silent --show-error "''${@:2}" \
                         "https://${proxy.host}:${builtins.toString proxy.port}''${1:-}"
                   '';
                 };
@@ -146,6 +154,16 @@
               ${reaches {
                 path = "${rankedPath}/anything";
                 port = routePorts.ranked;
+              }}
+              ${reaches {
+                path = "/";
+                port = defaultPort;
+                curlArgs = hostWithPort;
+              }}
+              ${reaches {
+                path = "${routedPath}/anything";
+                port = routePorts.prefix;
+                curlArgs = hostWithPort;
               }}
             '';
           }

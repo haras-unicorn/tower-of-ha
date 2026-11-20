@@ -148,6 +148,14 @@ Service work that fits no step so far.
 - `src/nix/modules/cephfs/default.nix:2`: more than one file system instance.
 - `src/nix/modules/chronyd/default.nix:3`: turn on NTS after the first sync.
 - `src/nix/modules/coredns/default.nix:1`: DNSSEC and DNS over TLS.
+- `src/nix/modules/coredns/default.nix`: the node domain is served by the hosts
+  plugin with `fallthrough` and nothing after it, so a name it does not have
+  gets a server failure and not an answer that the name does not exist. The DNS
+  test helper had the same problem and serves zone files now. Synapse looking
+  for SRV records failed on it.
+- `src/nix/modules/synapse/default.nix`: outgoing federation goes from the
+  machine straight to the other server and not through the proxy, unlike the
+  plan where only proxies talk across machines.
 - `src/nix/modules/coredns/default.nix:2`: sort the hosts of a service by
   locality (machine, rack, datacenter, region, other regions) and set a low TTL,
   so caches do not keep a stale order when something goes down.

@@ -246,6 +246,7 @@ ignoreWords:
   - unban
   - homeserver
   - jitsi
+  - hostmaster
   - fsid
   - losetup
   - radosgw

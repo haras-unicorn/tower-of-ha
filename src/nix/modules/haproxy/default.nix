@@ -185,6 +185,10 @@
         path:
         if path ? prefix then "path_beg ${escape path.prefix}" else "path_reg ^(${escape path.regex})$";
 
+      # NOTE: the host header may name the port, even the default one, so
+      # the rules match only what comes before the colon
+      requestHost = "req.hdr(host),field(1,:)";
+
       makeRouteRule =
         route:
         let
@@ -192,7 +196,7 @@
           pathAcl = "route_${route.name}_path";
         in
         ''
-          acl ${hostAcl} req.hdr(host) -m str ${(proxyAttrs route.service).host}
+          acl ${hostAcl} ${requestHost} -m str ${(proxyAttrs route.service).host}
           ${lib.concatMapStringsSep "\n" (path: "acl ${pathAcl} ${makePathCondition path}") route.paths}
           use_backend ${route.name} if ${hostAcl} ${pathAcl}
         '';
@@ -207,7 +211,7 @@
           bind ${config.toh.meta.network.ip}:${builtins.toString httpPort} ssl crt ${certFile}
           bind 127.0.0.1:${builtins.toString httpPort} ssl crt ${certFile}
           ${selfLib.strings.indentTail "  " routeRules}
-          use_backend %[req.hdr(host),map_str(${httpHostMap})]
+          use_backend %[${requestHost},map_str(${httpHostMap})]
           http-request set-header X-Forwarded-Proto https
       '';
 

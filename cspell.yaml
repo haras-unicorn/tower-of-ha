@@ -32,4 +32,5 @@ ignoreWords:
   - envrc
   - cooldown
   - tuwunel
+  - duckdns
   - passthru
