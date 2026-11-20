@@ -7,6 +7,7 @@ let
     toh.services.haproxy.enable = true;
     toh.services.patroni.enable = true;
     toh.services.cephfs.enable = true;
+    toh.services.valkey.enable = true;
     toh.services.synapse.enable = true;
   };
 in
@@ -27,6 +28,10 @@ in
   self.nixosTests.services-synapse = selfLib.test.makeNixosTest (
     { machineList, ... }:
     let
+      replication =
+        selfLib.services.endpoint.toAttrs
+          (builtins.head machineList).toh.meta.proxies."synapse-replication".endpoint;
+
       nodes = builtins.concatStringsSep ", " (
         builtins.map (
           machine:
@@ -62,11 +67,35 @@ in
           retry(moved, timeout_seconds=300)
           return holders()[0][0]
 
+        # NOTE: the grep calls do not use -q, because it quits at the first
+        # match and the test driver runs pipes with pipefail, so the writer
+        # would fail on the closed pipe
+        def uses_redis(machine):
+          machine.wait_until_succeeds(
+            "journalctl -u matrix-synapse.service | grep 'Connected to redis' > /dev/null",
+            timeout=120,
+          )
+
+        # NOTE: the answer has to come from Synapse and not from the proxy,
+        # and only Synapse sets a server header like this
+        def replication_through_proxy(machine):
+          machine.wait_until_succeeds(
+            "curl -s -D - -o /dev/null"
+            " --resolve ${replication.host}:${builtins.toString replication.port}:127.0.0.1"
+            " https://${replication.host}:${builtins.toString replication.port}/_synapse/replication/none"
+            " | grep -i '^server: synapse' > /dev/null",
+            timeout=120,
+          )
+
         first = wait_for_holder(None)
+        uses_redis(first)
+        replication_through_proxy(first)
 
         first.succeed("systemctl stop toh-lease-synapse.service")
         second = wait_for_holder(first)
         assert second is not first, "the main process did not move"
+        uses_redis(second)
+        replication_through_proxy(second)
       '';
     }
   );

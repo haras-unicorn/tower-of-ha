@@ -240,6 +240,9 @@ ignoreWords:
   - msgtype
   - datcollate
   - datctype
+  - dbid
+  - journalctl
+  - pipefail
   - fsid
   - losetup
   - radosgw

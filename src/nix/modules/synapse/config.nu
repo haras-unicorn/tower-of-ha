@@ -9,6 +9,7 @@ def main [] {
     }
     registration_shared_secret: (read-secret $settings.registrationSecretPath)
     macaroon_secret_key: (read-secret $settings.macaroonSecretPath)
+    worker_replication_secret: (read-secret $settings.replicationSecretPath)
   } | to yaml | save --force $settings.path
 
   # NOTE: the signing key has to be the same on every machine, because the

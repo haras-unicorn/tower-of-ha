@@ -15,9 +15,12 @@
 
       proxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.synapse.endpoint;
 
+      kvInstance = config.toh.meta.kv.instances.synapse;
+
       serviceTargets = [
         "toh-database-online.target"
         "toh-filesystem-online.target"
+        "toh-kv-online.target"
       ];
       serviceDependencies = [ "synapse-config.service" ] ++ serviceTargets;
     in
@@ -31,6 +34,15 @@
             # NOTE: not the 8008 Synapse uses by default, Patroni has it
             default = 8090;
             description = "Port of the HTTP listener of the main process.";
+          };
+
+          replicationPort = lib.mkOption {
+            type = lib.types.port;
+            default = 8091;
+            description = ''
+              Port of the HTTP replication listener of the main process, which
+              the workers call through the proxy.
+            '';
           };
         };
       };
@@ -59,6 +71,19 @@
               signing_key_path = cfg.config.signingKeyPath;
               media_store_path = cfg.media.path;
 
+              redis = {
+                enabled = true;
+                host = config.toh.meta.kv.host;
+                port = config.toh.meta.kv.port;
+                dbid = kvInstance.database;
+                use_tls = true;
+                ca_file = kvInstance.ssl.ca;
+                certificate_file = kvInstance.ssl.crt;
+                private_key_file = kvInstance.ssl.key;
+                username = kvInstance.user;
+                password_path = kvInstance.password;
+              };
+
               listeners = [
                 {
                   port = cfg.port;
@@ -72,6 +97,18 @@
                         "client"
                         "federation"
                       ];
+                      compress = false;
+                    }
+                  ];
+                }
+                {
+                  port = cfg.replicationPort;
+                  bind_addresses = [ config.toh.meta.network.ip ];
+                  type = "http";
+                  tls = false;
+                  resources = [
+                    {
+                      names = [ "replication" ];
                       compress = false;
                     }
                   ];
@@ -96,7 +133,10 @@
             requires = [ "toh-lease-synapse.service" ];
           };
 
-          networking.firewall.allowedTCPPorts = [ cfg.port ];
+          networking.firewall.allowedTCPPorts = [
+            cfg.port
+            cfg.replicationPort
+          ];
 
           toh.meta.services.synapse = {
             endpoint.http = {
@@ -106,6 +146,15 @@
               port = cfg.port;
               path = "/health";
             };
+          };
+
+          # NOTE: the replication listener has no health path, so the proxy
+          # only checks that it accepts connections, which only the lease
+          # holder does; it is plain HTTP behind the proxy, like every other
+          # backend until the proxy enforces TLS (invariant 4)
+          toh.meta.services.synapse-replication = {
+            endpoint.http.port = cfg.replicationPort;
+            health.endpoint.tcp.port = cfg.replicationPort;
           };
 
           toh.services.synapse.createUserGroup = true;

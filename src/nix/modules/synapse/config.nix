@@ -54,6 +54,7 @@
               passwordPath = dbInstance.password;
               registrationSecretPath = secrets."synapse-registration-shared-secret".path;
               macaroonSecretPath = secrets."synapse-macaroon-secret-key".path;
+              replicationSecretPath = secrets."synapse-worker-replication-secret".path;
               signingSeedPath = secrets."synapse-signing-key-seed".path;
             };
           };
@@ -111,6 +112,15 @@
           dbLocale = databaseLocale;
         };
 
+        # NOTE: the port is unique in the cluster, so it is also a database
+        # of the key-value store that no other app uses, like Forgejo does
+        toh.meta.kv.apps.synapse = {
+          user = owner;
+          group = group;
+          database = cfg.port;
+          prefix = "all";
+        };
+
         toh.meta.filesystem.mounts.${cfg.media.path} = {
           user = owner;
           group = group;
@@ -123,6 +133,10 @@
             mode = "0400";
           };
           "synapse-macaroon-secret-key" = {
+            inherit owner group;
+            mode = "0400";
+          };
+          "synapse-worker-replication-secret" = {
             inherit owner group;
             mode = "0400";
           };
@@ -153,6 +167,13 @@
                 {
                   generator = "copy";
                   arguments = {
+                    from = "cluster/synapse-worker-replication-secret";
+                    to = "synapse-worker-replication-secret";
+                  };
+                }
+                {
+                  generator = "copy";
+                  arguments = {
                     from = "cluster/synapse-signing-key-seed";
                     to = "synapse-signing-key-seed";
                   };
@@ -177,6 +198,13 @@
                   generator = "key";
                   arguments = {
                     name = "synapse-macaroon-secret-key";
+                    length = 64;
+                  };
+                }
+                {
+                  generator = "key";
+                  arguments = {
+                    name = "synapse-worker-replication-secret";
                     length = 64;
                   };
                 }

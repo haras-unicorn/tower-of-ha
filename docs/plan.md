@@ -349,14 +349,31 @@ holds an etcd lease and the workers run on every machine (see the
       [step 6](#step-6-envoy-instead-of-haproxy). **Written** on 2026-11-20:
       `contracts-proxy-haproxy` passes, with a prefix route, a regular
       expression route that must match the whole path, and two routes of one
-      path that only the priority tells apart. The human's `nix flake check`
-      passed on it. After review the `route` moved from the service onto its
-      HTTP and HTTPS endpoints, and the unit tests were changed to match.
-   3. **Workers (L).** The client and federation workers run on every machine,
-      reach the main process through a proxied replication endpoint and Valkey,
-      and get their traffic through routes. A media worker only if it can run on
-      every machine, without a background job that needs one instance. Whatever
-      the workers need to share is decided here.
+      path that only the priority tells apart. The human's `nix flake check` and
+      proxy and HAProxy tests passed on it. After review the `route` moved from
+      the service onto its HTTP and HTTPS endpoints, and the unit tests were
+      changed to match.
+   3. **Workers (L).** **Decided** on 2026-11-20: one generic worker process per
+      machine, for the sync and read paths of the client API and for inbound
+      federation, reached through a `route`. No media worker, because several
+      media workers must share one server and one of them runs the background
+      jobs, so the main process keeps the media. Workers reach the main process
+      through the proxy and through Valkey. Our nixpkgs has a `workers` option,
+      but its units require a local main process and it only accepts a local
+      replication listener, so the worker unit is our own. In three pieces:
+      1. **Plumbing, no workers yet.** **Done** on 2026-11-20. The main process
+         uses Valkey as a `kv` app over TLS, has a replication listener
+         registered as the proxied service `synapse-replication`, and reads a
+         new cluster secret for `worker_replication_secret`. `services-synapse`
+         now has Valkey in its cluster and checks, before and after a failover,
+         that the main process connects to Redis and that the replication
+         listener answers through the proxy. `contracts-chat-synapse` passes
+         too.
+      2. **The worker on every machine,** with its own unit that does not need
+         the local main process, a route and a health check. The test checks
+         that a request through the proxy is handled by a worker, also after the
+         main process moved.
+      3. **Federation paths** on the same worker, if piece 2 leaves them out.
 3. **Clients and federation (M).** Well-known files, federation through the
    proxy, a web client if we want one.
 

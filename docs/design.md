@@ -140,6 +140,21 @@ Made on 2026-11-20, while writing Synapse.
   configuration in that order and does not pass priorities on, because every
   proxy tries rules in the order they are written. Envoy passes the same
   contract in step 6.
+- **One worker per machine, and workers call the main process through the
+  proxy.** Synapse is not active-active: the main process persists events, keeps
+  the media and runs the background tasks, so only one runs at a time, behind
+  the lease. What scales out are the workers, which answer sync and read
+  requests and inbound federation, and they run on every machine. One generic
+  worker process per machine is enough, because every worker is a full Python
+  process and the target is a Raspberry Pi. There is no media worker: several
+  media workers have to share one server and one of them runs the background
+  jobs, so the main process keeps the media. Workers need Redis, which is Valkey
+  through the `kv` capability. The replication listener of the main process
+  speaks only plain HTTP, so it is its own proxied service,
+  `synapse-replication`, and the workers reach it at the proxy address. That
+  also means they never need to know which machine holds the lease. The hop from
+  the proxy to the main process is plain until the proxy enforces TLS (see
+  [todo.md](./todo.md)).
 - **The `chat` contract.** An app that registers in `toh.meta.chat.apps` gets a
   chat user and a room, and its machine gets the password and the alias of the
   room in `toh.meta.chat.users`. The client logs in through the proxy, writes a

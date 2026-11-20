@@ -89,7 +89,12 @@ These go away with the Nebula module.
   rate limits of Synapse. Raise them if more contracts or apps log in often.
 - `src/nix/modules/synapse/default.nix`: the proxy takes plain HTTP to the
   backend, like the other services, which breaks invariant 4 until the Envoy
-  step.
+  step. The replication listener of the main process is the same: Synapse only
+  speaks plain HTTP there, so the workers reach it through the proxy. The plan
+  for the whole stack is that every service thinks it talks plain HTTP, TCP or
+  UDP, and only the proxies talk to each other across machines, so that only
+  proxy ports have to be open and each machine is a bubble. The proxy has to
+  enforce it before invariant 4 holds.
 
 ## Port clashes
 
