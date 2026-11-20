@@ -154,6 +154,19 @@
         "toh-time-synchronized.target"
       ];
     };
+
+    systemd.targets.toh-chat-online = {
+      requires = [
+        "toh-network-online.target"
+        "toh-name-service-online.target"
+        "toh-time-synchronized.target"
+      ];
+      after = [
+        "toh-network-online.target"
+        "toh-name-service-online.target"
+        "toh-time-synchronized.target"
+      ];
+    };
   };
 
   self.lib.test.nixosModules.target-dependants = {
@@ -218,6 +231,11 @@
     };
 
     systemd.targets.toh-git-online = {
+      wantedBy = [ "multi-user.target" ];
+      before = [ "multi-user.target" ];
+    };
+
+    systemd.targets.toh-chat-online = {
       wantedBy = [ "multi-user.target" ];
       before = [ "multi-user.target" ];
     };

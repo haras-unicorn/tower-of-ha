@@ -81,6 +81,16 @@ These go away with the Nebula module.
 - `dev test` runs one test at a time in CI. A CI matrix with one job per test
   name would be faster, if the runners can take it.
 
+## Step 3 leftovers
+
+- `src/nix/modules/synapse`: URL previews are off, because Synapse would fetch
+  pages from the internet. Decide if they are wanted, and if so how.
+- The chat contract logs in twice from one address, which fits the default login
+  rate limits of Synapse. Raise them if more contracts or apps log in often.
+- `src/nix/modules/synapse/default.nix`: the proxy takes plain HTTP to the
+  backend, like the other services, which breaks invariant 4 until the Envoy
+  step.
+
 ## Parked: OpenBao fixes
 
 - `src/nix/modules/openbao/default.nix:1`: TLS for the HA cluster.

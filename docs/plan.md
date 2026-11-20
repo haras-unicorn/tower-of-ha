@@ -321,7 +321,29 @@ holds an etcd lease and the workers run on every machine (see the
    for each, whether it takes the lease with the main process or is sharded
    across machines. That goes in the Synapse chunk.
 2. **Synapse (L).** Bring the module over from the `matrix` branch, onto the new
-   base, with the failover from chunk 1. It must pass a new chat contract.
+   base, with the failover from chunk 1. It must pass a new chat contract. On
+   2026-11-20 it split in two, because the proxy routes HTTP by host only and a
+   Synapse worker serves only some URL paths, so workers cannot get traffic
+   until the proxy can route by path:
+   1. **Main process on the lease (M).** The `chat` meta, the `chat` contract,
+      the module ported to the new base, and a test that the main process moves
+      to another machine when the holder of the lease stops. The signing key is
+      made from a cluster secret, so it is the same on every machine, and the
+      media store is a CephFS mount, so both survive a failover. Apps get a chat
+      user and a room that the lease holder makes. Databases can ask for a
+      locale (`dbLocale`), because Synapse refuses a database that is not `C`;
+      the database contract checks it. The singleton worker roles stay on the
+      main process, so they move with the lease, and sharding is left for much
+      later. **Written** on 2026-11-20 and evaluating, but not run yet: the
+      closure of Synapse is not in the store of the sandbox that builds the
+      tests, so the first run of `contracts-chat-synapse` and `services-synapse`
+      is on the human's machine.
+   2. **Workers and path routing (L).** Path routes in the proxy meta, the
+      HAProxy module and the proxy contract, so that Envoy has to do the same in
+      [step 6](#step-6-envoy-instead-of-haproxy). Then the client, federation
+      and media workers run on every machine, reach the main process through a
+      proxied replication port and Valkey, and get their traffic through the
+      proxy.
 3. **Clients and federation (M).** Well-known files, federation through the
    proxy, a web client if we want one.
 
@@ -340,8 +362,8 @@ holds an etcd lease and the workers run on every machine (see the
 ## Step 6: Envoy instead of HAProxy
 
 1. **Envoy module (L).** Passes the proxy contract from step 2: HTTP routing by
-   host, TCP passthrough, the mail submission port, health checks, TLS to every
-   backend.
+   host (and by path, once step 3 adds it), TCP passthrough, the mail submission
+   port, health checks, TLS to every backend.
 2. **Remove HAProxy (S).**
 
 ## Step 7: Behavior and invariant tests

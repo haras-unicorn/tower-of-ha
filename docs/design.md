@@ -119,6 +119,26 @@ Made on 2026-11-19, while writing the contracts.
   each of them whether it takes the lease with the main process or is sharded
   across machines.
 
+Made on 2026-11-20, while writing Synapse.
+
+- **Singleton worker roles stay on the main process.** Background tasks, the
+  federation sender and the pushers run in the main process, so they move with
+  the lease. Sharding them across machines is for much later.
+- **Synapse comes in two parts.** First the main process on the lease, behind
+  the proxy. Then the workers on every machine, which need path routing in the
+  proxy (a worker serves only some URL paths). Path routing goes into the proxy
+  meta, HAProxy and the proxy contract in one go, so Envoy has the same
+  requirement and ToH does not depend on HAProxy.
+- **The `chat` contract.** An app that registers in `toh.meta.chat.apps` gets a
+  chat user and a room, and its machine gets the password and the alias of the
+  room in `toh.meta.chat.users`. The client logs in through the proxy, writes a
+  message to the room, and a second client logs in on its own and reads it.
+- **What survives a failover.** Synapse keeps its state in Patroni and on
+  CephFS. The signing key of the server is made from a cluster secret and not by
+  Synapse, because every machine must sign the same way, and the media store is
+  a CephFS mount. The database is made with the `C` locale, which Synapse needs;
+  `toh.meta.database.apps.<name>.dbLocale` asks for it.
+
 ## Architecture today
 
 This is how the code on `main` works, as read on 2026-11-16.
@@ -174,10 +194,10 @@ A service module turns on the NixOS service and declares what it offers:
   that set `toh.meta.proxy.enable` become `toh.meta.relays`. A proxy module only
   turns that flag on and serves what meta says.
 - Capability options such as `toh.meta.database`, `toh.meta.kv`, `toh.meta.s3`,
-  `toh.meta.ldap`, `toh.meta.oidc`, `toh.meta.email`, `toh.meta.git` and
-  `toh.meta.filesystem`. A service that needs a database registers itself in
-  `toh.meta.database.apps` and gets a user, a database and certificates, without
-  knowing it is Patroni.
+  `toh.meta.ldap`, `toh.meta.oidc`, `toh.meta.email`, `toh.meta.git`,
+  `toh.meta.chat` and `toh.meta.filesystem`. A service that needs a database
+  registers itself in `toh.meta.database.apps` and gets a user, a database and
+  certificates, without knowing it is Patroni.
 
 DNS (CoreDNS) answers every service name with the addresses of all proxy
 machines.

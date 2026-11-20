@@ -230,6 +230,16 @@ ignoreWords:
   - CAINFO
   - iburst
   - passthru
+  - ctype
+  - errcode
+  - psycopg
+  - nopad
+  - jemalloc
+  - rawfile
+  - rtrimstr
+  - msgtype
+  - datcollate
+  - datctype
   - fsid
   - losetup
   - radosgw
