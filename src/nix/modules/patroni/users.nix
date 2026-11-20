@@ -123,6 +123,11 @@
                       default = name;
                       description = "Database user name";
                     };
+                    dbLocale = lib.mkOption {
+                      type = lib.types.nullOr lib.types.str;
+                      default = null;
+                      description = "Locale of the database, or null for the server default";
+                    };
                   };
 
                   config = {
@@ -231,6 +236,7 @@
             key,
             dbName,
             dbUser,
+            dbLocale,
             ...
           }:
           lib.mkIf generateSecrets [
@@ -334,7 +340,11 @@
                         select 'create user ${dbUser} with password '''{{PATRONI_USER_PASS}}''''
                         where not exists (select from pg_catalog.pg_roles where rolname = '${dbUser}')\gexec
 
-                        select 'create database ${dbName}'
+                        select 'create database ${dbName}${
+                          lib.optionalString (
+                            dbLocale != null
+                          ) " template template0 lc_collate ''${dbLocale}'' lc_ctype ''${dbLocale}''"
+                        }'
                         where not exists (select from pg_database where datname = '${dbName}')\gexec
 
                         \c ${dbName}

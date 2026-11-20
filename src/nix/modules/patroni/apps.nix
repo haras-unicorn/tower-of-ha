@@ -47,6 +47,7 @@
           group,
           dbName,
           dbUser,
+          dbLocale,
           ...
         }:
         {
@@ -56,6 +57,7 @@
               group
               dbName
               dbUser
+              dbLocale
               ;
             ${secretsFlag} = true;
           };

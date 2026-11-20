@@ -58,6 +58,16 @@
                       description = "Database user name";
                     };
 
+                    dbLocale = lib.mkOption {
+                      type = lib.types.nullOr lib.types.str;
+                      default = null;
+                      description = ''
+                        Locale, for both collation and character type, that the
+                        database is created with, or null for the default of the
+                        server. Some apps refuse a database with another locale.
+                      '';
+                    };
+
                     init = {
                       sql = {
                         script = lib.mkOption {

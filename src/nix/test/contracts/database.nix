@@ -14,6 +14,8 @@
       app = selfLib.test.contract.app;
       table = "contract";
       row = "works";
+      # NOTE: not the C locale, which the server may use anyway
+      locale = "C.UTF-8";
 
       clientMeta = machines.client.toh.meta;
       host = clientMeta.database.host;
@@ -61,9 +63,12 @@
                 };
               in
               {
-                toh.meta.database.apps.${app}.init.sql.script = ''
-                  create table ${table} (value text);
-                '';
+                toh.meta.database.apps.${app} = {
+                  dbLocale = locale;
+                  init.sql.script = ''
+                    create table ${table} (value text);
+                  '';
+                };
 
                 environment.systemPackages = [ clients.${database.protocol} ];
               };
@@ -74,6 +79,8 @@
               client.succeed("contract-database \"insert into ${table} values ('${row}')\"")
               read = client.succeed("contract-database 'select value from ${table}'").strip()
               assert read == "${row}", f"read back {read!r} instead of '${row}'"
+              locales = client.succeed("contract-database 'select datcollate, datctype from pg_database where datname = current_database()'").strip()
+              assert locales == "${locale}|${locale}", f"the database has the locales {locales!r} instead of '${locale}'"
             '';
           }
         ]
