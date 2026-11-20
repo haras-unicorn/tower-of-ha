@@ -91,6 +91,13 @@ These go away with the Nebula module.
   backend, like the other services, which breaks invariant 4 until the Envoy
   step.
 
+## Port clashes
+
+- Nothing checks that two services on one machine want different ports. Synapse
+  and Patroni both wanted 8008, and Ceph's dashboard and others want 8080, and
+  each clash only showed up as a crashed service in a test. There should be a
+  mechanism that finds these before anything runs.
+
 ## Parked: OpenBao fixes
 
 - `src/nix/modules/openbao/default.nix:1`: TLS for the HA cluster.
