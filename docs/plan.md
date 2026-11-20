@@ -340,12 +340,21 @@ holds an etcd lease and the workers run on every machine (see the
       dash in it, so `toh-filesystem-online.target` never came up, and the
       default Synapse port, 8008, is the one Patroni's REST API uses. The Ceph
       mount tests now mount a path with a dash, and Synapse listens on 8090.
-   2. **Workers and path routing (L).** Path routes in the proxy meta, the
-      HAProxy module and the proxy contract, so that Envoy has to do the same in
-      [step 6](#step-6-envoy-instead-of-haproxy). Then the client, federation
-      and media workers run on every machine, reach the main process through a
-      proxied replication port and Valkey, and get their traffic through the
-      proxy.
+   2. **Path routing (M).** A service can have a `route`: paths of the proxy
+      address of another service, as prefixes or regular expressions, with a
+      `priority` that sorts the routes of an address (the lowest number first,
+      the service name only breaks a tie). It is in the proxy meta, the HAProxy
+      module and the proxy contract, so Envoy has to pass the same contract in
+      [step 6](#step-6-envoy-instead-of-haproxy). **Written** on 2026-11-20:
+      `contracts-proxy-haproxy` passes, with a prefix route, a regular
+      expression route that must match the whole path, and two routes of one
+      path that only the priority tells apart. The unit tests of the sorting
+      have not run, because the sandbox that built it cannot build `nix-unit`.
+   3. **Workers (L).** The client and federation workers run on every machine,
+      reach the main process through a proxied replication endpoint and Valkey,
+      and get their traffic through routes. A media worker only if it can run on
+      every machine, without a background job that needs one instance. Whatever
+      the workers need to share is decided here.
 3. **Clients and federation (M).** Well-known files, federation through the
    proxy, a web client if we want one.
 
@@ -364,8 +373,10 @@ holds an etcd lease and the workers run on every machine (see the
 ## Step 6: Envoy instead of HAProxy
 
 1. **Envoy module (L).** Passes the proxy contract from step 2: HTTP routing by
-   host (and by path, once step 3 adds it), TCP passthrough, the mail submission
-   port, health checks, TLS to every backend.
+   host and by path (step 3 adds the routes of a service: prefixes and regular
+   expressions that match the whole path, tried by priority), TCP passthrough,
+   the mail submission port, health checks, TLS to every backend. Envoy's
+   regular expressions are RE2, which is why the meta asks for that subset.
 2. **Remove HAProxy (S).**
 
 ## Step 7: Behavior and invariant tests

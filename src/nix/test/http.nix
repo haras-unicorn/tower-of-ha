@@ -23,6 +23,16 @@ let
         description = "HTTPS port for this server (only works with ssl = true)";
       };
 
+      extraHttpsPorts = lib.mkOption {
+        type = lib.types.listOf lib.types.port;
+        default = [ ];
+        description = ''
+          More HTTPS ports for the same handler, so a test can tell which
+          backend a proxy picked: the handler finds the port a request came
+          in on in `self.server.server_address[1]`.
+        '';
+      };
+
       openFirewall = lib.mkOption {
         type = lib.types.bool;
         default = true;
@@ -133,7 +143,7 @@ in
       cfg = config.toh.test.http;
 
       httpPort = cfg.httpPort;
-      httpsPort = cfg.httpsPort;
+      httpsPorts = [ cfg.httpsPort ] ++ cfg.extraHttpsPorts;
 
       stateDir = "http";
 
@@ -141,7 +151,7 @@ in
         HTTP_PORT = ${builtins.toString httpPort}
 
         ${lib.optionalString cfg.ssl ''
-          HTTPS_PORT = ${builtins.toString httpsPort}
+          HTTPS_PORTS = [ ${lib.concatMapStringsSep ", " builtins.toString httpsPorts} ]
           SSL_CERT = "${config.toh.meta.sops.secrets."http-public".path}"
           SSL_KEY = "${config.toh.meta.sops.secrets."http-private".path}"
         ''}
@@ -167,15 +177,19 @@ in
         ThreadingTCPServer.allow_reuse_address = True
 
         store = {}
+        https_servers = []
 
         def signal_handler(signum, frame):
           print("Shutting down gracefully...")
 
           http_server.shutdown()
 
-          ${lib.optionalString cfg.ssl ''
-            https_server.shutdown()
-          ''}
+          ${lib.optionalString cfg.ssl (
+            selfLib.strings.indentTail "  " ''
+              for https_server in https_servers:
+                https_server.shutdown()
+            ''
+          )}
 
           sys.exit(0)
 
@@ -277,16 +291,16 @@ in
             selfLib.strings.indentTail "  " ''
               print(f"[HTTP] SSL cert: {SSL_CERT}")
               print(f"[HTTP] SSL key: {SSL_KEY}")
-              print(f"[HTTP] HTTPS port: {HTTPS_PORT}")
-
-              https_server = ThreadingTCPServer(("0.0.0.0", HTTPS_PORT), HTTPHandler)
+              print(f"[HTTP] HTTPS ports: {HTTPS_PORTS}")
 
               context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
               context.load_cert_chain(certfile=SSL_CERT, keyfile=SSL_KEY)
-              https_server.socket = context.wrap_socket(https_server.socket, server_side=True)
 
-              https_thread = threading.Thread(target=https_server.serve_forever, daemon=True)
-              https_thread.start()
+              for port in HTTPS_PORTS:
+                https_server = ThreadingTCPServer(("0.0.0.0", port), HTTPHandler)
+                https_server.socket = context.wrap_socket(https_server.socket, server_side=True)
+                https_servers.append(https_server)
+                threading.Thread(target=https_server.serve_forever, daemon=True).start()
             ''
           )}
 
@@ -332,7 +346,7 @@ in
           [
             httpPort
           ]
-          ++ lib.optional cfg.ssl httpsPort
+          ++ lib.optionals cfg.ssl httpsPorts
         );
 
         users.users.http = {

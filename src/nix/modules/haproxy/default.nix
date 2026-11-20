@@ -165,10 +165,40 @@
         else
           "";
 
+      proxiedHttpServiceNames = builtins.attrNames (
+        lib.filterAttrs (
+          _: services: (builtins.head services).route == null
+        ) httpServiceNamesToMachineServices
+      );
+
       httpHostMap = builtins.toFile "toh-service-http-host-map.map" (
-        lib.concatMapStringsSep "\n" (serviceName: "${(proxyAttrs serviceName).host} ${serviceName}") (
-          builtins.attrNames httpServiceNamesToMachineServices
-        )
+        lib.concatMapStringsSep "\n" (
+          serviceName: "${(proxyAttrs serviceName).host} ${serviceName}"
+        ) proxiedHttpServiceNames
+      );
+
+      # NOTE: haproxy tries the use_backend rules in the order they are
+      # written, which is the order routes are sorted in; its regular
+      # expressions find a match anywhere in the path, so they are wrapped
+      # to match the whole path like the routes of every other proxy do
+      makePathCondition =
+        path:
+        if path ? prefix then "path_beg ${escape path.prefix}" else "path_reg ^(${escape path.regex})$";
+
+      makeRouteRule =
+        route:
+        let
+          hostAcl = "route_${route.name}_host";
+          pathAcl = "route_${route.name}_path";
+        in
+        ''
+          acl ${hostAcl} req.hdr(host) -m str ${(proxyAttrs route.service).host}
+          ${lib.concatMapStringsSep "\n" (path: "acl ${pathAcl} ${makePathCondition path}") route.paths}
+          use_backend ${route.name} if ${hostAcl} ${pathAcl}
+        '';
+
+      routeRules = lib.concatMapStringsSep "\n" makeRouteRule (
+        selfLib.services.routes httpServiceNamesToMachineServices
       );
 
       httpFrontend = ''
@@ -176,6 +206,7 @@
           mode http
           bind ${config.toh.meta.network.ip}:${builtins.toString httpPort} ssl crt ${certFile}
           bind 127.0.0.1:${builtins.toString httpPort} ssl crt ${certFile}
+          ${selfLib.strings.indentTail "  " routeRules}
           use_backend %[req.hdr(host),map_str(${httpHostMap})]
           http-request set-header X-Forwarded-Proto https
       '';

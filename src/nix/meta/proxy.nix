@@ -19,6 +19,12 @@
         builtins.map (machine: machine.meta.services) config.toh.meta.cluster.machineList
       );
 
+      # NOTE: a service with a route has no address of its own, it answers
+      # on the address of the service it routes to
+      proxiedServices = lib.filterAttrs (
+        _: services: (builtins.head services).route == null
+      ) serviceNamesToMachineServices;
+
       makeProxy =
         serviceName: services:
         let
@@ -88,7 +94,12 @@
 
       config = lib.mkIf (proxyMachines != [ ]) {
         toh.meta.relays = builtins.map (machine: machine.meta.network.ip) proxyMachines;
-        toh.meta.proxies = builtins.mapAttrs makeProxy serviceNamesToMachineServices;
+        toh.meta.proxies = builtins.mapAttrs makeProxy proxiedServices;
+
+        assertions = builtins.map (route: {
+          assertion = builtins.hasAttr route.service proxiedServices;
+          message = "The service '${route.name}' routes to '${route.service}', which has no proxy address.";
+        }) (selfLib.services.routes serviceNamesToMachineServices);
       };
     };
 }

@@ -129,6 +129,15 @@ Made on 2026-11-20, while writing Synapse.
   proxy (a worker serves only some URL paths). Path routing goes into the proxy
   meta, HAProxy and the proxy contract in one go, so Envoy has the same
   requirement and ToH does not depend on HAProxy.
+- **Path routing is a `route` on the service that serves the paths.** A service
+  with a `route` has no proxy address of its own and answers some paths of the
+  address of the service it names. A path is a `prefix` or a `regex`, and a
+  regex has to match the whole path, in the subset that RE2 accepts, so that
+  HAProxy and Envoy mean the same thing. The routes of an address are tried from
+  the lowest `priority` to the highest, the first match wins, and the service
+  name only breaks a tie. The proxy module writes its configuration in that
+  order and does not pass priorities on, because every proxy tries rules in the
+  order they are written. Envoy passes the same contract in step 6.
 - **The `chat` contract.** An app that registers in `toh.meta.chat.apps` gets a
   chat user and a room, and its machine gets the password and the alias of the
   room in `toh.meta.chat.users`. The client logs in through the proxy, writes a

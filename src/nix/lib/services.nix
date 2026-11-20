@@ -32,6 +32,26 @@ in
       "passthrough"
     ];
 
+    # NOTE: the order a proxy has to try the routes in, so that every proxy
+    # implementation sorts the same way; priority comes first and the name
+    # only breaks a tie, so the result does not depend on the machines
+    routes =
+      serviceNamesToMachineServices:
+      lib.sort (a: b: a.priority < b.priority || (a.priority == b.priority && a.name < b.name)) (
+        lib.concatLists (
+          lib.mapAttrsToList (
+            name: services:
+            let
+              route = (builtins.head services).route;
+            in
+            lib.optional (route != null) {
+              inherit name;
+              inherit (route) service priority paths;
+            }
+          ) serviceNamesToMachineServices
+        )
+      );
+
     endpoint = {
       toAttrs =
         endpoint:
@@ -125,4 +145,50 @@ in
           base { };
     };
   };
+
+  self.unitTests.services =
+    let
+      route = priority: {
+        route = {
+          service = "web";
+          inherit priority;
+          paths = [ { prefix = "/"; } ];
+        };
+      };
+
+      names = services: builtins.map (route: route.name) (selfLib.services.routes services);
+    in
+    {
+      test-routes-skip-services-without-a-route = {
+        expr = names {
+          web = [ { route = null; } ];
+          worker = [ (route 0) ];
+        };
+        expected = [ "worker" ];
+      };
+
+      test-routes-lower-priority-first = {
+        expr = names {
+          a = [ (route 0) ];
+          b = [ (route (-1)) ];
+          c = [ (route 1) ];
+        };
+        expected = [
+          "b"
+          "a"
+          "c"
+        ];
+      };
+
+      test-routes-name-breaks-a-tie = {
+        expr = names {
+          b = [ (route 0) ];
+          a = [ (route 0) ];
+        };
+        expected = [
+          "a"
+          "b"
+        ];
+      };
+    };
 }
