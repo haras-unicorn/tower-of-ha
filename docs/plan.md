@@ -424,7 +424,13 @@ holds an etcd lease and the workers run on every machine (see the
 ## Step 5: Remove Nebula
 
 1. **Remove (S).** Module, tests, cryl generators, docs. EasyTier stays the only
-   VPN and keeps passing the VPN contract.
+   VPN and keeps passing the VPN contract. **Done** on 2026-11-21. The module
+   folder held the module, its cryl generations and its three VPN contract
+   tests, so it went as a whole. Outside it, only the test defaults named it
+   (for `/dev/net/tun`), and its two TODOs left [todo.md](./todo.md). The
+   generators themselves are part of cryl and stay there.
+   `toh.meta.domains.machineSecret` stays, because EasyTier and ddns-updater use
+   it too.
 
 ## Step 6: Envoy instead of HAProxy
 

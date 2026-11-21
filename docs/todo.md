@@ -27,14 +27,6 @@ Found while fixing the tests, not `TODO` comments.
   passwords and the OAuth client secret only as arguments, so they show up in
   the process list of the Forgejo machine while the init runs.
 
-## Step 5: Remove Nebula
-
-These go away with the Nebula module.
-
-- `src/nix/modules/nebula/default.nix:1`: turn firewall rules into Nebula
-  firewall rules.
-- `src/nix/modules/nebula/default.nix:2`: block all traffic from outside Nebula.
-
 ## Step 6: Envoy instead of HAProxy
 
 - `src/nix/modules/haproxy/default.nix:1`: proxy to the other proxies over TLS

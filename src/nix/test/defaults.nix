@@ -64,7 +64,7 @@
             (lib.mkIf (config.toh.services.cephfs.enable || config.toh.meta.filesystem.mounts != { }) [
               "--bind=/dev/fuse"
             ])
-            (lib.mkIf (config.toh.services.easytier.enable || config.toh.services.nebula.enable) [
+            (lib.mkIf config.toh.services.easytier.enable [
               "--bind=/dev/net/tun"
             ])
           ];
