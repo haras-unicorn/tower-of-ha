@@ -456,6 +456,16 @@
           };
         };
 
+        maxRegexSize = lib.mkOption {
+          type = lib.types.ints.positive;
+          default = 1000;
+          description = ''
+            Largest compiled size of a route regular expression. Envoy refuses
+            to start on a bigger one, and its own limit of 100 is too small
+            for the routes of services like the Synapse workers.
+          '';
+        };
+
         persistence.ttl = lib.mkOption {
           type = lib.types.str;
           default = "1800s";
@@ -478,6 +488,12 @@
           requireValidConfig = false;
           settings = {
             admin.address = socketAddress "127.0.0.1" cfg.adminPort;
+            layered_runtime.layers = [
+              {
+                name = "static";
+                static_layer."re2.max_program_size.error_level" = cfg.maxRegexSize;
+              }
+            ];
             static_resources = {
               listeners = [ httpsListener ] ++ tcpListeners ++ submitListeners;
               inherit clusters;

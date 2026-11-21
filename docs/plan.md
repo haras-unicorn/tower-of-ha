@@ -459,6 +459,17 @@ holds an etcd lease and the workers run on every machine (see the
    - Persistence hashes the source address or a cookie, where HAProxy kept a
      table, so a client may move when a backend leaves.
    - Every service test runs with Envoy.
+
+   **Run** on 2026-11-21 by the human: every proxy contract test with Envoy
+   passes, and so does the full suite apart from the three Synapse tests. Two
+   things came up:
+   - The nixpkgs `envoy` package builds from source and downloads its whole
+     Bazel toolchain, JDKs included, so the module uses `envoy-bin` for now.
+   - Envoy refuses to start on a regular expression whose compiled size is over
+     100, and some Synapse worker routes are. The limit is now the tunable
+     `toh.services.envoy.maxRegexSize`, 1000 by default. The three Synapse tests
+     pass with it.
+
 2. **Remove HAProxy (S).** After every test passes with Envoy, so HAProxy stays
    the reference while Envoy is debugged.
 
