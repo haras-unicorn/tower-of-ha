@@ -196,6 +196,31 @@ Made on 2026-11-21, while picking the observability stack.
     or SQLite, which cannot live on CephFS. It stays until a Matrix server is
     written to be highly available.
   - **EasyTier:** free software, but not run by a non-profit.
+- **The observability stack** answers [open question 1](#open-questions). It
+  serves three goals: security (notice suspicious access), performance (latency
+  and throughput of every hop, for rewriting the load balancing later) and
+  alerts for both, which reach a phone through the chat.
+  - **Prometheus** runs on any number of machines, and each copy collects
+    everything, so any copy that is up keeps the alerts going. A new copy starts
+    without history, which is fine, because ToH does not need a long record.
+  - **Thanos Query** runs next to every copy and merges them into one view, so a
+    gap in one copy is filled from another. It is the query address of the
+    `metrics` capability.
+  - **Alertmanager** runs on any number of machines, which talk to each other so
+    that an alert is sent once. Every Prometheus sends to every Alertmanager,
+    not through the proxy, because that is how Alertmanager deduplicates.
+  - **matrix-alertmanager-receiver** posts the alerts into a room of the chat
+    app `alerts`. It is the only part here that is not from a non-profit, a
+    small GPL bridge with nothing else to pick from.
+  - **Logs stay in journald** on each machine. Shipping them adds no alert by
+    itself; suspicious access shows in the metrics instead, for example the
+    answers Envoy counts by status code.
+  - **Falco** watches system calls for things like a shell in a service or a
+    read of a secret it should not touch. nixpkgs has no package for it, so it
+    waits until we package it.
+  - **No dashboards for now.** Perses keeps its dashboards in a local store by
+    default, so a dashboard made on one machine is missing on the others, and
+    the query UI of Thanos is enough for a look at a graph.
 
 ## Architecture today
 
@@ -512,6 +537,5 @@ The [plan](./plan.md#container-readiness) sorts every test by this.
 
 None of these block step 1.
 
-1. **Which observability stack?** It has to be light enough for Raspberry Pis
-   (invariant 9). The README lists Fluentd and OpenSearch, and OpenSearch is a
-   heavy Java service. To be decided in step 4.
+1. **Which observability stack?** Answered on 2026-11-21, see
+   [the decision](#decisions).

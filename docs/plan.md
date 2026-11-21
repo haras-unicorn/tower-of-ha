@@ -419,9 +419,19 @@ holds an etcd lease and the workers run on every machine (see the
 ## Step 4: Observability
 
 1. **Pick the stack (S).** Logs and metrics that fit on Pis
-   ([open question 1](./design.md#open-questions)).
-2. **Build it (L).** Collection on every machine, storage in HA, a contract
-   test.
+   ([open question 1](./design.md#open-questions)). **Done** on 2026-11-21:
+   Prometheus, Thanos Query, Alertmanager and a Matrix bridge, logs stay in
+   journald, Falco later, no dashboards. See the design decision.
+2. **Metrics (M).** The `metrics` capability: machines declare what can be
+   collected from them, Prometheus on any number of machines collects all of it,
+   and Thanos Query answers at the proxy address. Machine metrics from the node
+   exporter and the stats of Envoy. A contract test.
+3. **Alerts (M).** Services declare alerts in the meta, Alertmanager on any
+   number of machines sends each once, and the bridge posts it into the room of
+   the chat app `alerts`. A contract test for the alerts, and a service test
+   that sees an alert arrive in the room.
+4. **Falco (L).** Package it, then run it on every machine with its findings as
+   metrics, so they become alerts like the rest.
 
 ## Step 5: Remove Nebula
 

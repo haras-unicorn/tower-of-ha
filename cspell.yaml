@@ -34,3 +34,6 @@ ignoreWords:
   - tuwunel
   - duckdns
   - passthru
+  - alertmanager
+  - falco
+  - perses

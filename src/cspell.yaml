@@ -347,3 +347,7 @@ ignoreWords:
   - direnv
   - dotenv
   - freebind
+  - alertmanager
+  - Alertmanager
+  - Falco
+  - Perses
