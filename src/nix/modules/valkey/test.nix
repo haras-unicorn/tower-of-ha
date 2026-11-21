@@ -6,7 +6,7 @@
     implementation = "valkey";
     server = {
       toh.services.coredns.enable = true;
-      toh.services.haproxy.enable = true;
+      toh.services.envoy.enable = true;
       toh.services.valkey.enable = true;
     };
   };
@@ -23,7 +23,7 @@
       amount = 3;
       module = {
         toh.programs.cli.enable = true;
-        toh.services.haproxy.enable = true;
+        toh.services.envoy.enable = true;
         toh.services.coredns.enable = true;
         toh.services.valkey.enable = true;
       };

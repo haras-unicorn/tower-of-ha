@@ -7,7 +7,7 @@
       module = {
         toh.services.etcd.enable = true;
         toh.services.coredns.enable = true;
-        toh.services.haproxy.enable = true;
+        toh.services.envoy.enable = true;
         toh.services.element.enable = true;
 
         # NOTE: Element only needs the address of the chat, so the test gives

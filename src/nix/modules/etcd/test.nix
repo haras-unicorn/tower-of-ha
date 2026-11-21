@@ -5,7 +5,7 @@
     toh.test.clusters.node.amount = 3;
     toh.test.clusters.node.module = {
       toh.services.etcd.enable = true;
-      toh.services.haproxy.enable = true;
+      toh.services.envoy.enable = true;
     };
 
     toh.test.commands.enable = true;

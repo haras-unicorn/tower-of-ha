@@ -20,7 +20,9 @@ How to read it:
 **Decided** on 2026-11-16. Changed on 2026-11-17: the move to containers went
 from step 1 to step 2, because step 1 leaves the tests alone. Changed on
 2026-11-18: the deployable suite went from step 1 to the end, because it adds
-friction while the services and cryl still change.
+friction while the services and cryl still change. Changed on 2026-11-21: step 6
+(Envoy) comes right after step 5 and before step 4, so that observability
+collects the stats of Envoy and not of HAProxy, which goes away.
 
 1. Modernize: haraspkgs, fix the nasty patterns.
 2. Containers, and tests independent of the services (originally step 6).
@@ -439,7 +441,26 @@ holds an etcd lease and the workers run on every machine (see the
    expressions that match the whole path, tried by priority), TCP passthrough,
    the mail submission port, health checks, TLS to every backend. Envoy's
    regular expressions are RE2, which is why the meta asks for that subset.
-2. **Remove HAProxy (S).**
+   **Written** on 2026-11-21, in one go with the human's go-ahead, and not run
+   yet, because building Envoy needs downloads the agent's sandbox cannot make.
+   On the way:
+   - The ten `services-haproxy-*` tests became the `balancing` variants of the
+     proxy contract (`selfLib.test.proxyTests` makes the whole set for an
+     implementation), so Envoy passes exactly what HAProxy passed. With HAProxy,
+     `contracts-proxy-haproxy`, `-http-http-http` and `-tcp-passthrough-http`
+     pass; the client now reaches the servers through the proxy from outside,
+     where the old tests asked from the servers.
+   - Health checks expect plain text, no regular expressions: Envoy's TCP check
+     sends once and then looks for each expected text in order. No service used
+     a regular expression, so `selfLib.regex` and `selfLib.types.regexOrString`
+     are gone. Valkey's three commands now go in one send.
+   - Envoy never sends to every backend when most are unhealthy (its "panic"
+     default), because Valkey has one healthy backend out of many.
+   - Persistence hashes the source address or a cookie, where HAProxy kept a
+     table, so a client may move when a backend leaves.
+   - Every service test runs with Envoy.
+2. **Remove HAProxy (S).** After every test passes with Envoy, so HAProxy stays
+   the reference while Envoy is debugged.
 
 ## Step 7: Behavior and invariant tests
 

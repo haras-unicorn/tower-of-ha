@@ -86,7 +86,12 @@
         {
           options = {
             packets = lib.mkOption {
-              description = "Packets to send and expect as part of the health check";
+              description = ''
+                Packets to send and expect as part of the health check. A
+                proxy may send every packet at once and then look for the
+                expected ones in order, so a check must not wait for an
+                answer before it sends the next packet.
+              '';
               default = [ ];
               type = lib.types.listOf (
                 lib.types.submodule {
@@ -97,9 +102,9 @@
                       description = "Packet to send";
                     };
                     expect = lib.mkOption {
-                      type = lib.types.nullOr selfLib.types.regexOrString;
+                      type = lib.types.nullOr lib.types.str;
                       default = null;
-                      description = "Packet to expect";
+                      description = "Text to find in the answer";
                     };
                   };
                 }

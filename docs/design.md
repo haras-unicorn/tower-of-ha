@@ -422,7 +422,7 @@ self.lib.test.testModules.contracts-database-patroni =
     server = {
       toh.services.etcd.enable = true;
       toh.services.coredns.enable = true;
-      toh.services.haproxy.enable = true;
+      toh.services.envoy.enable = true;
       toh.services.patroni.enable = true;
     };
   };

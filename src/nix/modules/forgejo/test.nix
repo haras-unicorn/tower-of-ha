@@ -7,7 +7,7 @@
     server = {
       toh.services.etcd.enable = true;
       toh.services.coredns.enable = true;
-      toh.services.haproxy.enable = true;
+      toh.services.envoy.enable = true;
       toh.services.patroni.enable = true;
       toh.services.cephfs.enable = true;
       toh.services.garage.enable = true;
@@ -32,7 +32,7 @@
       module = {
         toh.services.etcd.enable = true;
         toh.services.coredns.enable = true;
-        toh.services.haproxy.enable = true;
+        toh.services.envoy.enable = true;
         toh.services.patroni.enable = true;
         toh.services.cephfs.enable = true;
         toh.services.garage.enable = true;

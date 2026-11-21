@@ -350,3 +350,4 @@ ignoreWords:
   - treefmt
   - direnv
   - dotenv
+  - freebind

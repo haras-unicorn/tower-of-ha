@@ -6,7 +6,7 @@
     implementation = "openbao";
     server = {
       toh.services.coredns.enable = true;
-      toh.services.haproxy.enable = true;
+      toh.services.envoy.enable = true;
       toh.services.etcd.enable = true;
       toh.services.openbao.enable = true;
       toh.services.patroni.enable = true;
@@ -24,7 +24,7 @@
     toh.test.clusters.node.amount = 3;
     toh.test.clusters.node.module = {
       toh.services.coredns.enable = true;
-      toh.services.haproxy.enable = true;
+      toh.services.envoy.enable = true;
       toh.services.etcd.enable = true;
       toh.services.openbao.enable = true;
       toh.services.patroni.enable = true;

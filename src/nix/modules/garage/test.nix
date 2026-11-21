@@ -6,7 +6,7 @@
     implementation = "garage";
     server = {
       toh.services.coredns.enable = true;
-      toh.services.haproxy.enable = true;
+      toh.services.envoy.enable = true;
       toh.services.garage.enable = true;
     };
   };
@@ -24,7 +24,7 @@
       module = {
         toh.programs.cli.enable = true;
         toh.services.coredns.enable = true;
-        toh.services.haproxy.enable = true;
+        toh.services.envoy.enable = true;
         toh.services.garage.enable = true;
       };
     };

@@ -7,7 +7,7 @@
     server = {
       toh.services.etcd.enable = true;
       toh.services.coredns.enable = true;
-      toh.services.haproxy.enable = true;
+      toh.services.envoy.enable = true;
       toh.services.cephfs.enable = true;
       toh.services.samba.enable = true;
     };
@@ -53,7 +53,7 @@
           toh.services.cephfs.enable = true;
           toh.services.etcd.enable = true;
           toh.services.coredns.enable = true;
-          toh.services.haproxy.enable = true;
+          toh.services.envoy.enable = true;
           toh.services.samba.enable = true;
           toh.meta.filesystem.mounts.${mntShareLocation} = {
             user = user;

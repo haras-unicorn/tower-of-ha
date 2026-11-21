@@ -132,14 +132,8 @@
               builtins.concatStringsSep "" (
                 builtins.map (
                   { send, expect }:
-                  let
-                    hasSend = send != null;
-                    hasExpect = expect != null;
-
-                    expectType = if selfLib.regex.isRegex expect then "rstring" else "string";
-                  in
-                  lib.optionalString hasSend "\ntcp-check send ${escape send}"
-                  + lib.optionalString hasExpect "\ntcp-check expect ${expectType} ${escape expect}"
+                  lib.optionalString (send != null) "\ntcp-check send ${escape send}"
+                  + lib.optionalString (expect != null) "\ntcp-check expect string ${escape expect}"
                 ) healthAttrs.packets
               )
             )
