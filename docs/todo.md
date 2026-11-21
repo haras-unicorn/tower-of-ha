@@ -27,21 +27,6 @@ Found while fixing the tests, not `TODO` comments.
   passwords and the OAuth client secret only as arguments, so they show up in
   the process list of the Forgejo machine while the init runs.
 
-## Step 6: Envoy instead of HAProxy
-
-- `src/nix/modules/haproxy/default.nix:1`: proxy to the other proxies over TLS
-  when the service is not on this machine, and to localhost when it is. Weight
-  the backends by locality: this machine first, then the rack, the datacenter,
-  the region and other regions. Envoy has locality-weighted load balancing built
-  in.
-- `src/nix/modules/haproxy/default.nix`: right after start, HAProxy sends
-  connections to backends whose first health check has not run yet. The kv
-  contract saw writes land on a Valkey replica. Envoy should hold back until a
-  backend passed its first check.
-- `src/nix/meta/time.nix`: free HAProxy does not play well with UDP proxying,
-  which Envoy does, so once Envoy carries UDP, check whether time can use
-  `toh.meta.services` and the proxy and drop its own meta.
-
 ## Step 7: Behavior and invariant tests
 
 - `src/nix/modules/maddy/test.nix:27`: actually send and read a mail, once
@@ -148,6 +133,13 @@ Service work that fits no step so far.
 - `src/nix/modules/synapse/default.nix`: outgoing federation goes from the
   machine straight to the other server and not through the proxy, unlike the
   plan where only proxies talk across machines.
+- `src/nix/modules/envoy/default.nix`: proxy to the other proxies over TLS when
+  the service is not on this machine, and to localhost when it is. Weight the
+  backends by locality: this machine first, then the rack, the datacenter, the
+  region and other regions. Envoy has locality-weighted load balancing built in.
+- `src/nix/meta/time.nix`: Envoy can proxy UDP, which HAProxy could not, so once
+  Envoy carries UDP, check whether time can use `toh.meta.services` and the
+  proxy and drop its own meta.
 - `src/nix/modules/coredns/default.nix:2`: sort the hosts of a service by
   locality (machine, rack, datacenter, region, other regions) and set a low TTL,
   so caches do not keep a stale order when something goes down.

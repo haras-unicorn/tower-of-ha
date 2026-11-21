@@ -471,7 +471,13 @@ holds an etcd lease and the workers run on every machine (see the
      pass with it.
 
 2. **Remove HAProxy (S).** After every test passes with Envoy, so HAProxy stays
-   the reference while Envoy is debugged.
+   the reference while Envoy is debugged. **Done** on 2026-11-21: the module and
+   its contract tests went as a whole, and nothing else used it. Of its entries
+   in [todo.md](./todo.md), the locality weighting (now on the Envoy module) and
+   UDP for time moved under "Not placed yet". The one about traffic reaching
+   backends before their first health check went away: Envoy holds a backend
+   back until its first check passes, and the kv contract, which saw that happen
+   with HAProxy, passes with Envoy.
 
 ## Step 7: Behavior and invariant tests
 
