@@ -425,11 +425,31 @@ holds an etcd lease and the workers run on every machine (see the
 2. **Metrics (M).** The `metrics` capability: machines declare what can be
    collected from them, Prometheus on any number of machines collects all of it,
    and Thanos Query answers at the proxy address. Machine metrics from the node
-   exporter and the stats of Envoy. A contract test.
+   exporter and the stats of Envoy. A contract test. **Written** on 2026-11-21,
+   together with chunk 3 and not run yet, because the agent's sandbox cannot
+   download the packages. Every new test evaluates. On the way:
+   - Each copy of Prometheus has a Thanos sidecar, which is how Thanos Query
+     reads it, and Thanos Query runs next to every copy behind the proxy as
+     `thanos-query`.
+   - Envoy serves only the stats of its admin interface on a port of their own,
+     because the admin interface can also change and stop the proxy.
+   - Envoy adds two alerts, a service without a healthy backend and many
+     requests turned away (401 or 403), and the node exporter adds a disk or
+     memory almost full and a failed unit.
+   - `services-prometheus` checks that every machine is counted once, also after
+     one copy stops.
 3. **Alerts (M).** Services declare alerts in the meta, Alertmanager on any
    number of machines sends each once, and the bridge posts it into the room of
    the chat app `alerts`. A contract test for the alerts, and a service test
-   that sees an alert arrive in the room.
+   that sees an alert arrive in the room. **Written** on 2026-11-21 with chunk
+   2, not run yet. On the way:
+   - Prometheus gets its whole configuration as text, because the nixpkgs module
+     cannot drop the label of the copy from the alerts, and without that
+     Alertmanager would send each alert once per copy.
+   - Chat apps can `invite` users into their room, so the person who should get
+     the alerts is asked in with `toh.services.alertmanager.matrix.invite`. No
+     test covers the invite yet.
+   - The alerts contract runs without the bridge, so it needs no Synapse.
 4. **Falco (L).** Package it, then run it on every machine with its findings as
    metrics, so they become alerts like the rest.
 

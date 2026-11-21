@@ -59,6 +59,13 @@
                       default = name;
                       description = "Application chat secrets owner linux group";
                     };
+
+                    invite = lib.mkOption {
+                      type = lib.types.listOf lib.types.str;
+                      default = [ ];
+                      example = [ "@me:matrix.example.com" ];
+                      description = "Chat users invited into the room of the app";
+                    };
                   };
                 }
               )

@@ -84,6 +84,20 @@ Found while fixing the tests, not `TODO` comments.
   `prefix = "all"`, so it can read every key and channel of its database. Narrow
   it in the hardening pass.
 
+## Step 4 leftovers
+
+- `src/nix/modules/prometheus/default.nix` and
+  `src/nix/modules/alertmanager/default.nix`: these hops are plain and go
+  straight from machine to machine, not through the proxies: Prometheus
+  collecting every target, Thanos Query reading the sidecars, Prometheus sending
+  to Alertmanager, and the copies of Alertmanager talking to each other. They
+  break invariant 4 like the hops behind the proxy, and the same plan fixes
+  them: only proxies talk across machines.
+- `src/nix/modules/alertmanager/matrix.nix`: the bridge logs in at every start,
+  which leaves a new device on its chat user each time, and all bridges share
+  that user, so many starts at once can hit the login rate limit of Synapse.
+- `src/nix/modules/synapse/apps.nu`: the `invite` of chat apps has no test.
+
 ## Port clashes
 
 - Nothing checks that two services on one machine want different ports. Synapse

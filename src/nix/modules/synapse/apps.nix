@@ -55,11 +55,13 @@
             TOH_SYNAPSE_APPS = builtins.toJSON {
               url = "http://${config.toh.meta.network.ip}:${builtins.toString cfg.port}";
               config = cfg.config.path;
+              inherit (config.toh.meta.chat) serverName;
               users = builtins.map (
-                { name, ... }:
+                { name, invite, ... }:
                 {
                   name = chatName name;
                   alias = chatName name;
+                  inherit invite;
                   password = config.toh.meta.sops.secrets."synapse-app-${name}-pass".path;
                 }
               ) clusterApps;

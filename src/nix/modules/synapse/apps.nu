@@ -38,6 +38,41 @@ def ensure-room [settings: record, user: record] {
   if $response.status != 200 and $response.body.errcode? != "M_ROOM_IN_USE" {
     error make { msg: $"cannot create the room ($user.alias): ($response.body | to json --raw)" }
   }
+
+  if ($user.invite | is-not-empty) {
+    let room_id = find-room $settings $user $token
+    for invitee in $user.invite {
+      invite $settings $room_id $token $invitee
+    }
+  }
+}
+
+def find-room [settings: record, user: record, token: string] {
+  let alias = $"#($user.alias):($settings.serverName)" | url encode --all
+  let response = (
+    http get --full --allow-errors
+      --headers { Authorization: $"Bearer ($token)" }
+      $"($settings.url)/_matrix/client/v3/directory/room/($alias)"
+  )
+
+  if $response.status != 200 {
+    error make { msg: $"cannot find the room ($user.alias): ($response.body | to json --raw)" }
+  }
+
+  $response.body.room_id
+}
+
+def invite [settings: record, room_id: string, token: string, invitee: string] {
+  let room = $room_id | url encode --all
+  let response = request $"($settings.url)/_matrix/client/v3/rooms/($room)/invite" $token {
+    user_id: $invitee
+  }
+
+  # NOTE: a user who is in the room or invited already is refused, which is
+  # what a later run sees
+  if $response.status != 200 and $response.body.errcode? != "M_FORBIDDEN" {
+    error make { msg: $"cannot invite ($invitee) to ($room_id): ($response.body | to json --raw)" }
+  }
 }
 
 def login [settings: record, user: record] {

@@ -349,5 +349,10 @@ ignoreWords:
   - freebind
   - alertmanager
   - Alertmanager
-  - Falco
-  - Perses
+  - alertname
+  - alertmanagers
+  - tmpfs
+  - ramfs
+  - fstype
+  - labeldrop
+  - dedup

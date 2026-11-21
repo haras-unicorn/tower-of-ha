@@ -392,10 +392,73 @@
         tls = isTerminated submitServices;
       });
 
+      adminClusterName = "envoy-admin";
+
+      adminCluster = {
+        name = adminClusterName;
+        type = "STATIC";
+        connect_timeout = cfg.timeouts.connect;
+        load_assignment = {
+          cluster_name = adminClusterName;
+          endpoints = [
+            {
+              lb_endpoints = [ { endpoint.address = socketAddress "127.0.0.1" cfg.adminPort; } ];
+            }
+          ];
+        };
+      };
+
+      # NOTE: the admin interface can also change and stop the proxy, so the
+      # collectors on other machines reach only its metrics, through a
+      # listener of its own
+      statsPath = "/stats/prometheus";
+
+      statsListener = {
+        name = "stats";
+        address = socketAddress config.toh.meta.network.ip cfg.statsPort;
+        freebind = true;
+        filter_chains = [
+          {
+            filters = [
+              {
+                name = "envoy.filters.network.http_connection_manager";
+                typed_config = {
+                  "@type" =
+                    "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager";
+                  stat_prefix = "stats";
+                  route_config = {
+                    name = "stats";
+                    virtual_hosts = [
+                      {
+                        name = "stats";
+                        domains = [ "*" ];
+                        routes = [
+                          {
+                            match.path = statsPath;
+                            route.cluster = adminClusterName;
+                          }
+                        ];
+                      }
+                    ];
+                  };
+                  http_filters = [
+                    {
+                      name = "envoy.filters.http.router";
+                      typed_config."@type" = "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router";
+                    }
+                  ];
+                };
+              }
+            ];
+          }
+        ];
+      };
+
       clusters =
         lib.mapAttrsToList (makeCluster "ROUND_ROBIN") httpServices
         ++ lib.mapAttrsToList (makeCluster "LEAST_REQUEST") tcpServices
-        ++ lib.optional (submitServices != [ ]) (makeCluster "LEAST_REQUEST" "submit" submitServices);
+        ++ lib.optional (submitServices != [ ]) (makeCluster "LEAST_REQUEST" "submit" submitServices)
+        ++ [ adminCluster ];
     in
     {
       options.toh.services.envoy = {
@@ -408,6 +471,32 @@
             Port of the admin interface, on localhost only. It serves the
             stats, and it can also change and stop the proxy.
           '';
+        };
+
+        statsPort = lib.mkOption {
+          type = lib.types.port;
+          default = 9902;
+          description = ''
+            Port that serves only the stats of the admin interface, in the
+            format of Prometheus, at the address of the machine.
+          '';
+        };
+
+        alerts = {
+          deniedPerSecond = lib.mkOption {
+            type = lib.types.float;
+            default = 1.0;
+            description = ''
+              Requests a service may turn away per second (status 401 or 403)
+              before it is an alert, which can be someone guessing passwords.
+            '';
+          };
+
+          for = lib.mkOption {
+            type = lib.types.str;
+            default = "1m";
+            description = "How long a service may be down or turn requests away before it is an alert.";
+          };
         };
 
         restartDelay = lib.mkOption {
@@ -495,7 +584,12 @@
               }
             ];
             static_resources = {
-              listeners = [ httpsListener ] ++ tcpListeners ++ submitListeners;
+              listeners = [
+                httpsListener
+                statsListener
+              ]
+              ++ tcpListeners
+              ++ submitListeners;
               inherit clusters;
             };
           };
@@ -516,6 +610,7 @@
         networking.firewall.allowedTCPPorts = [
           httpsPort
           submitPort
+          cfg.statsPort
         ]
         ++ (builtins.map (serviceName: (proxyAttrs serviceName).port) (builtins.attrNames tcpServices));
 
@@ -561,6 +656,30 @@
         ];
 
         toh.pki.installCa = true;
+
+        toh.meta.metrics.targets.envoy = {
+          port = cfg.statsPort;
+          path = statsPath;
+        };
+
+        toh.meta.metrics.alerts = {
+          ServiceDown = {
+            expression = ''envoy_cluster_membership_healthy{envoy_cluster_name!="${adminClusterName}"} == 0'';
+            inherit (cfg.alerts) for;
+            severity = "critical";
+            summary = "{{ $labels.envoy_cluster_name }} has no healthy backend as seen from {{ $labels.machine }}";
+          };
+
+          RequestsDenied = {
+            expression = ''
+              sum by (envoy_cluster_name) (
+                rate(envoy_cluster_upstream_rq{envoy_response_code=~"401|403"}[5m])
+              ) > ${builtins.toString cfg.alerts.deniedPerSecond}
+            '';
+            inherit (cfg.alerts) for;
+            summary = "{{ $labels.envoy_cluster_name }} turns many requests away, someone may be guessing passwords";
+          };
+        };
       };
     };
 }
