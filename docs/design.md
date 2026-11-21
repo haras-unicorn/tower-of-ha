@@ -184,6 +184,19 @@ Made on 2026-11-20, while writing Synapse.
   reach the proxies, which the federation test shows with a plain Synapse
   outside the cluster.
 
+Made on 2026-11-21, while picking the observability stack.
+
+- **Free software, and where possible free software of a non-profit.** Invariant
+  1 is the floor: everything is free software. On top of that, ToH strives for
+  software that is built by a non-profit and has no paid edition, like the
+  projects of the CNCF. That is why Envoy replaced HAProxy. A component that
+  meets only the floor is a known exception, with its reason here:
+  - **Synapse:** Element sells Synapse Pro. Synapse is the only Matrix server
+    that can run highly available, because the others keep their data in RocksDB
+    or SQLite, which cannot live on CephFS. It stays until a Matrix server is
+    written to be highly available.
+  - **EasyTier:** free software, but not run by a non-profit.
+
 ## Architecture today
 
 This is how the code on `main` works, as read on 2026-11-16.

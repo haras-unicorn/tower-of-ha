@@ -112,6 +112,13 @@ Service work that fits no step so far.
   some machines take connections from the internet, under a public domain, with
   certificates from a public CA. It touches the proxy, DNS and the certificates
   of the whole stack.
+- **Alerts that leave the cluster (needs more thinking).** Alerts reach the
+  phone through a Matrix room on the cluster's own Synapse. When Synapse or the
+  whole cluster is down, the alert about it cannot get out, and silence looks
+  like all is well. Something outside the cluster has to notice the silence, for
+  example a heartbeat alert that always fires and a watcher outside that
+  complains when it stops. It is the same question as intranets and public
+  ingress: what goes out of the network and what comes in.
 - **Tuwunel instead of Synapse (spike).** Tuwunel is a Matrix server in Rust
   that needs far less memory than Synapse and has no workers, but it keeps its
   data in an embedded RocksDB and cannot use Postgres. It would run like Samba:
