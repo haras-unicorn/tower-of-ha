@@ -91,5 +91,7 @@ happened to the work, so it also says when something changed on the way.
 While `fix/modernize` is in its big-changes phase, the human skims the log and
 the diffs instead of reviewing every line. A skim checks only two things: that
 the tests really run, and that nothing reaches the internet when it should not.
+So the agent commits every change it makes as soon as it is done, without
+waiting for the human to read it first.
 Once the shape of most things is settled, careful review starts, in rounds of
 review and fix until the human is satisfied. Remove this section then.
