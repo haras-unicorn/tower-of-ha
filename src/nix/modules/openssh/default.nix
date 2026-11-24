@@ -57,20 +57,20 @@
           path = "${config.toh.meta.user.home}/.ssh/toh_authorized_keys";
           owner = user;
           group = user;
-          mode = "0644";
+          public = true;
         };
         # NOTE: a bit hacky but the "official" options are too static
         toh.meta.sops.secrets."ssh-known-hosts" = {
           path = "${config.toh.meta.user.home}/.ssh/toh_known_hosts";
           owner = user;
           group = user;
-          mode = "0644";
+          public = true;
         };
         toh.meta.sops.secrets."ssh-public" = {
           path = "${config.toh.meta.user.home}/.ssh/toh.pub";
           owner = user;
           group = user;
-          mode = "0644";
+          public = true;
         };
         toh.meta.sops.secrets."ssh-private" = {
           path = "${config.toh.meta.user.home}/.ssh/toh";
@@ -82,7 +82,7 @@
           path = "/etc/ssh/ssh_host_toh.pub";
           owner = "root";
           group = "root";
-          mode = "0644";
+          public = true;
         };
         toh.meta.sops.secrets."ssh-server-private" = {
           path = "/etc/ssh/ssh_host_toh";

@@ -198,7 +198,9 @@
             cryl.sops.secrets.flat = null;
 
             sops.useSystemdActivation = true;
-            sops.secrets = config.toh.meta.sops.secrets;
+            sops.secrets = builtins.mapAttrs (
+              _: secret: builtins.removeAttrs secret [ "public" ]
+            ) config.toh.meta.sops.secrets;
 
             toh.meta.sops.secrets.${config.toh.meta.secrets.keys.age} = {
               owner = "root";

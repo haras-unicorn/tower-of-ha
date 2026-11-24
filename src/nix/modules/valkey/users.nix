@@ -174,12 +174,12 @@
                 inherit owner group;
                 key = "openssl-ca-public";
                 path = ca;
-                mode = "0644";
+                public = true;
               };
               "valkey-${user}-public" = {
                 inherit owner group;
                 path = crt;
-                mode = "0644";
+                public = true;
               };
               "valkey-${user}-private" = {
                 inherit owner group;

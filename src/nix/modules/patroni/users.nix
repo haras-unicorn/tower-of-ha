@@ -188,12 +188,12 @@
                 inherit owner group;
                 key = "openssl-ca-public";
                 path = ca;
-                mode = "0644";
+                public = true;
               };
               "patroni-${user}-public" = {
                 inherit owner group;
                 path = crt;
-                mode = "0644";
+                public = true;
               };
               "patroni-${user}-private" = {
                 inherit owner group;

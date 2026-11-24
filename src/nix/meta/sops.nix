@@ -25,9 +25,19 @@
                       default = "/run/secrets/${name}";
                     };
 
+                    public = lib.mkOption {
+                      type = lib.types.bool;
+                      default = false;
+                      description = ''
+                        Whether the value may be read by everyone, like a
+                        certificate; sops carries it because cryl makes it
+                        together with its private key.
+                      '';
+                    };
+
                     mode = lib.mkOption {
                       type = lib.types.str;
-                      default = "0400";
+                      default = if config.public then "0644" else "0400";
                     };
 
                     owner = lib.mkOption {

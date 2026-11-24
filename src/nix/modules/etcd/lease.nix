@@ -120,9 +120,9 @@
 
         toh.meta.sops.secrets.${caSecret} = {
           key = "openssl-ca-public";
-          mode = "0644";
+          public = true;
         };
-        toh.meta.sops.secrets.${publicSecret}.mode = "0644";
+        toh.meta.sops.secrets.${publicSecret}.public = true;
         toh.meta.sops.secrets.${privateSecret}.mode = "0400";
 
         toh.meta.cryl.machine = [

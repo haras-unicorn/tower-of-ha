@@ -207,11 +207,11 @@
           toh.meta.sops.secrets."patroni-etcd-ca" = {
             inherit owner group;
             key = "openssl-ca-public";
-            mode = "0644";
+            public = true;
           };
           toh.meta.sops.secrets."patroni-etcd-public" = {
             inherit owner group;
-            mode = "0644";
+            public = true;
           };
           toh.meta.sops.secrets."patroni-etcd-private" = {
             inherit owner group;
@@ -219,7 +219,7 @@
           };
           toh.meta.sops.secrets."patroni-restapi-public" = {
             inherit owner group;
-            mode = "0644";
+            public = true;
           };
           toh.meta.sops.secrets."patroni-restapi-private" = {
             inherit owner group;
@@ -228,11 +228,11 @@
           toh.meta.sops.secrets."patroni-ssl-ca" = {
             key = "openssl-ca-public";
             inherit owner group;
-            mode = "0644";
+            public = true;
           };
           toh.meta.sops.secrets."patroni-ssl-public" = {
             inherit owner group;
-            mode = "0644";
+            public = true;
           };
           toh.meta.sops.secrets."patroni-ssl-private" = {
             inherit owner group;

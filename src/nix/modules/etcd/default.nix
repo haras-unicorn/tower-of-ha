@@ -116,12 +116,12 @@
           key = "openssl-ca-public";
           owner = config.systemd.services.etcd.serviceConfig.User;
           group = config.systemd.services.etcd.serviceConfig.User;
-          mode = "0644";
+          public = true;
         };
         toh.meta.sops.secrets."etcd-public" = {
           owner = config.systemd.services.etcd.serviceConfig.User;
           group = config.systemd.services.etcd.serviceConfig.User;
-          mode = "0644";
+          public = true;
         };
         toh.meta.sops.secrets."etcd-private" = {
           owner = config.systemd.services.etcd.serviceConfig.User;

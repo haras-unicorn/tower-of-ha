@@ -33,7 +33,7 @@
           toh.meta.sops.secrets."openssl-ca-public" = {
             owner = "root";
             group = "root";
-            mode = "0644";
+            public = true;
           };
         })
         (lib.mkIf cfg.generateCa {
