@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
 
     haraspkgs.url = "github:haras-unicorn/haraspkgs/v1.5.2";
     haraspkgs.inputs.nixpkgs.follows = "nixpkgs";
