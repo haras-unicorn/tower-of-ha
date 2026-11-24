@@ -534,6 +534,9 @@ holds an etcd lease and the workers run on every machine (see the
 1. **Faults (L).** Kill a machine, split the network, skew the clock, fill a
    disk, restart in the wrong order. Each finding either hardens a module or
    goes into the docs as a known pitfall.
+2. **Test hardening (L)** Ensure each and every test has builtin retries and
+   such so that it is not flaky. This is important because we want to be
+   absolutely sure that what is being tested is the failure and not the test.
 
 ## Step 9: CLI
 
