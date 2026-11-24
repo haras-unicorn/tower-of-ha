@@ -163,7 +163,11 @@
                 no-cli = true;
                 no-tls = true;
                 no-dtls = true;
-                extraConfig = "stun-only";
+                # NOTE: easytier asks for stun over udp only
+                extraConfig = ''
+                  stun-only
+                  no-tcp
+                '';
               };
               networking.firewall.allowedUDPPorts = lib.mkIf useStun [
                 stun.listening-port

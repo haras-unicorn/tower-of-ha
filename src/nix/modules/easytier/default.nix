@@ -49,6 +49,15 @@
               list of public servers.
             '';
           };
+
+          rpcPort = lib.mkOption {
+            type = lib.types.port;
+            default = 15888;
+            description = ''
+              Port of the RPC portal of EasyTier on localhost, which
+              `easytier-cli` uses to read and change the node.
+            '';
+          };
         };
       };
 
@@ -72,6 +81,11 @@
           extraArgs = [
             (lib.mkIf hasDomain "--need-p2p")
             (lib.mkIf (!hasDomain) "--lazy-p2p")
+            # NOTE: the portal can change the node, and easytier binds it to
+            # every address unless told otherwise; the key of the config file
+            # does not change that
+            "--rpc-portal"
+            "127.0.0.1:${builtins.toString cfg.rpcPort}"
           ];
           extraSettings = {
             network_identity = {
@@ -132,6 +146,11 @@
         networking.firewall.allowedUDPPorts = lib.mkIf hasDomain [
           port
         ];
+
+        # NOTE: only the machines with a domain open the port; the others
+        # and the extra ports of hole punching are reached through the
+        # connections easytier starts
+        toh.meta.network.holePunchers = [ "easytier-core" ];
 
         programs.rust-motd.settings = {
           service_status = {

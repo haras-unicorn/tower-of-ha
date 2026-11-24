@@ -18,6 +18,16 @@
             '';
           };
 
+          holePunchers = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [ ];
+            description = ''
+              Names of processes that punch holes through NAT. Others reach
+              their UDP ports through the connections they start themselves,
+              not through the firewall, so these ports stay closed in it.
+            '';
+          };
+
           subnet = {
             prefix = lib.mkOption {
               type = lib.types.str;

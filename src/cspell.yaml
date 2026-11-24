@@ -361,3 +361,4 @@ ignoreWords:
   - rpartition
   - getattr
   - splitlines
+  - findall

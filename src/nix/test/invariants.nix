@@ -32,6 +32,7 @@
           udp = builtins.concatMap (rule: rule.allowedUDPPorts) rules;
           tcpRanges = rangesOf "allowedTCPPortRanges";
           udpRanges = rangesOf "allowedUDPPortRanges";
+          inherit (machine.toh.meta.network) holePunchers;
         };
 
       privateOf =
@@ -110,8 +111,11 @@
 
         toh.test.commands.checks = [
           ''
-            import ipaddress
-            import json
+            # NOTE: under names of their own, because the test commands may
+            # import the same modules, and the linter refuses that twice
+            import ipaddress as invariant_ipaddress
+            import json as invariant_json
+            import re as invariant_re
 
             invariant_findings = []
 
@@ -134,7 +138,7 @@
 
             ${perMachine (
               name: machine:
-              "check_secrets(${name}, '${name}', json.loads('${builtins.toJSON (secretPathsOf machine)}'))"
+              "check_secrets(${name}, '${name}', invariant_json.loads('${builtins.toJSON (secretPathsOf machine)}'))"
             )}
           '')
 
@@ -147,7 +151,7 @@
             def is_loopback(address):
               if address == "*":
                 return False
-              ip = ipaddress.ip_address(address)
+              ip = invariant_ipaddress.ip_address(address)
               mapped = getattr(ip, "ipv4_mapped", None)
               return (mapped or ip).is_loopback
 
@@ -169,11 +173,16 @@
                 # their answers, and these show up like listeners
                 if protocol == "udp" and low <= port <= high:
                   continue
+                process = " ".join(fields[6:])
+                processes = invariant_re.findall(r'"([^"]+)"', process)
+                if protocol == "udp" and any(
+                  punching in firewall["holePunchers"] for punching in processes
+                ):
+                  continue
                 ports = firewall[protocol]
                 ranges = firewall[f"{protocol}Ranges"]
                 if port in ports or any(start <= port <= end for start, end in ranges):
                   continue
-                process = " ".join(fields[6:])
                 invariant_found(
                   name,
                   f"{protocol} {address}:{port} listens but is not open in the firewall {process}",
@@ -181,7 +190,7 @@
 
             ${perMachine (
               name: machine:
-              "check_ports(${name}, '${name}', json.loads('${builtins.toJSON (firewallOf machine)}'))"
+              "check_ports(${name}, '${name}', invariant_json.loads('${builtins.toJSON (firewallOf machine)}'))"
             )}
           '')
 
