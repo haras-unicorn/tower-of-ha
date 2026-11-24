@@ -44,6 +44,10 @@
       secretPathsOf =
         machine: builtins.map (secret: secret.path) (builtins.attrValues (privateOf machine));
 
+      # NOTE: the test driver names the python variable of a machine like
+      # the machine, with dashes and dots turned into underscores
+      pythonName = builtins.replaceStrings [ "-" "." ] [ "_" "_" ];
+
       perMachine = check: builtins.concatStringsSep "\n" (lib.mapAttrsToList check machines);
     in
     {
@@ -138,7 +142,7 @@
 
             ${perMachine (
               name: machine:
-              "check_secrets(${name}, '${name}', invariant_json.loads('${builtins.toJSON (secretPathsOf machine)}'))"
+              "check_secrets(${pythonName name}, '${name}', invariant_json.loads('${builtins.toJSON (secretPathsOf machine)}'))"
             )}
           '')
 
@@ -190,7 +194,7 @@
 
             ${perMachine (
               name: machine:
-              "check_ports(${name}, '${name}', invariant_json.loads('${builtins.toJSON (firewallOf machine)}'))"
+              "check_ports(${pythonName name}, '${name}', invariant_json.loads('${builtins.toJSON (firewallOf machine)}'))"
             )}
           '')
 
