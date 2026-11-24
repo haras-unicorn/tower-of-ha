@@ -362,3 +362,7 @@ ignoreWords:
   - getattr
   - splitlines
   - findall
+  - toplevel
+  - returncode
+  - lstrip
+  - starttls

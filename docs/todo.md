@@ -34,9 +34,20 @@ Found while fixing the tests, not `TODO` comments.
 - `src/nix/test/defaults.nix`: the global test timeout of 300 seconds, and the
   `timeout=` of the waits in the test scripts, are magic numbers. Put them in
   `self.lib.test` and use them from there.
-- `src/nix/modules/forgejo/runner.nix`: the job cache is off, because it
-  listens on random ports on every address and its `host` setting does not
-  move them. Turn it back on for speed once it can listen on localhost only.
+- `src/nix/modules/forgejo/runner.nix`: the job cache is off, because it listens
+  on random ports on every address and its `host` setting does not move them.
+  Turn it back on for speed once it can listen on localhost only.
+- `src/nix/test/invariants.nix`: the sops file of a machine also holds what the
+  machine made on the way to its own secrets (cert requests and configs, the
+  `*-input.json` files, `age-public`, the listing of cryl). The `map` listing of
+  cryl could name exactly the keys a machine uses, but its Nix type only takes
+  absolute paths while the generator reads them relative to its working
+  directory. Fix that in cryl first, then list the keys and turn on
+  `toh.test.invariants.leastPrivilege.strict`.
+- `src/nix/test/invariants.nix`: the TLS check only shows plain ports in the
+  log. Turn on `toh.test.invariants.tls.strict` once every hop is TLS. It only
+  tries TLS from the first byte and the STARTTLS of Postgres, so SSH and DNS
+  show up too, and UDP is not checked.
 
 ## Step 10: ACL
 

@@ -29,5 +29,6 @@ words:
   - specialisation
   - sshpass
   - uids
+  - starttls
   - virtualisation
   - wscript
