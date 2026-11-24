@@ -72,6 +72,12 @@
             default = "";
             description = "Test script suffix";
           };
+
+          checks = lib.mkOption {
+            type = lib.types.listOf textType;
+            default = [ ];
+            description = "Test script commands that run after the suffix, like the checks of the invariants";
+          };
         };
       };
 
@@ -131,6 +137,10 @@
             perNode = evaluateCluster machines cfg.perNode;
 
             suffix = evaluateText machines (makeArgs machines) cfg.suffix;
+
+            checks = builtins.concatStringsSep "\n" (
+              builtins.map (evaluateText machines (makeArgs machines)) cfg.checks
+            );
           in
           ''
             start_all()
@@ -153,6 +163,12 @@
             print("Running test commands suffix...")
 
             ${suffix}
+
+
+            #### Test commands checks
+            print("Running test commands checks...")
+
+            ${checks}
           '';
       };
     };

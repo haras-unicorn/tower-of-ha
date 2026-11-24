@@ -358,3 +358,6 @@ ignoreWords:
   - dedup
   - falcosecurity
   - nodriver
+  - rpartition
+  - getattr
+  - splitlines
