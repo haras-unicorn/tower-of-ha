@@ -194,7 +194,9 @@
 
           services.thanos.query = {
             enable = true;
-            grpc-address = address cfg.thanos.queryGrpcPort;
+            # NOTE: thanos query always serves grpc, but only its http
+            # answers queries for others, so the grpc stays on the machine
+            grpc-address = "127.0.0.1:${builtins.toString cfg.thanos.queryGrpcPort}";
             http-address = address cfg.thanos.queryHttpPort;
             endpoints = builtins.map (
               machine:
