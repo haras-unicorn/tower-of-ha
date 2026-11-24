@@ -525,7 +525,28 @@ holds an etcd lease and the workers run on every machine (see the
 
 1. **Invariant checks (M).** Tests for each invariant in the design: no unfree
    packages, TLS on every hop, secret file permissions, sops-only secrets, open
-   ports.
+   ports. **Done** on 2026-11-24: `src/nix/test/invariants.nix` checks every
+   machine of every test. Every non-VM test passed with the checks of
+   permissions, ports and unfree packages; the sops, least privilege and TLS
+   checks came later and ran on five of them. On the way:
+   - Only invariants 1 to 4 are checks. High availability is for step 8, and the
+     others are about how the code is written.
+   - Invariant 2 is checked as far as a test sees it: no secret a machine
+     decrypts turns up in the store closure of the machines. Invariant 3 fails
+     only on a secret of another machine; the leftovers a machine makes on the
+     way to its own secrets only show up in the log, until cryl can list exact
+     keys. Invariant 4 only shows plain ports in the log, until every hop is
+     TLS. Both have a `strict` switch for then.
+   - Values everyone may read, like the CA certificate, are `public` in
+     `toh.meta.sops.secrets`, so the permission checks leave them alone.
+   - The checks found and fixed: the RPC portal of EasyTier and the gRPC of
+     Thanos Query on network addresses, the STUN server of the VPN test on TCP,
+     and the job cache of the Forgejo runner on random ports, which is off for
+     now.
+   - UDP ports that EasyTier opens by hole punching stay closed in the firewall,
+     so processes in `toh.meta.network.holePunchers` are left out of the port
+     check.
+   - The skipped VM tests have not run with the checks yet.
 2. **Behavior tests (M).** Per service, write down what its tests show it does
    (send and read a mail, push to git, log in through SSO), beyond "the unit is
    running". The holes this finds are filled in step 8.
