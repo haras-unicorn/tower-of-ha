@@ -549,7 +549,17 @@ holds an etcd lease and the workers run on every machine (see the
    - The skipped VM tests have not run with the checks yet.
 2. **Behavior tests (M).** Per service, write down what its tests show it does
    (send and read a mail, push to git, log in through SSO), beyond "the unit is
-   running". The holes this finds are filled in step 8.
+   running". The holes this finds are filled in step 8. **Done** on 2026-11-24,
+   in [what the tests show](./behavior.md), from reading every test and without
+   changing one. What it found:
+   - Only Samba, Synapse and Prometheus have a failover test. Patroni, Valkey,
+     etcd, CephFS and Garage, which hold the data of everything else, do not.
+     These go to the faults of chunk 8.1, the other holes to chunk 8.2.
+   - The tests of geoclue, NetworkManager, the Forgejo runner and OpenBao
+     (beyond its contract) only show that units start, and backup has no test.
+   - `services-patroni-init` runs the same script as `services-patroni`.
+   - Most holes are a second step after a contract: a login through Authelia,
+     git over SSH, an app that may not read the data of another.
 
 ## Step 8: Chaos engineering
 
@@ -559,7 +569,8 @@ holds an etcd lease and the workers run on every machine (see the
 2. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be
    absolutely sure that what is being tested is the failure and not the test.
-   Fill the behavior holes found in step 7 too.
+   Fill the behavior holes found in step 7 too, listed in
+   [what the tests show](./behavior.md).
 
 ## Step 9: CLI
 

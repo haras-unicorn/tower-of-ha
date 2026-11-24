@@ -1,0 +1,338 @@
+# What the tests show
+
+This page lists, per service, what its tests show that it does, beyond its units
+running. It was written on 2026-11-24 in step 7 of the [plan](./plan.md), from
+reading every test.
+
+Each service has three parts:
+
+- **Shows:** what the tests check that the service does.
+- **Holes:** behavior that no test checks yet. Step 8.2 fills these.
+- **Failover:** whether a test stops a copy of the service and checks that the
+  others take over. Where none does, the faults of step 8.1 cover it.
+
+Every test also runs the invariant checks (`src/nix/test/invariants.nix`), so
+they are not repeated here. A contract test is listed under the service that
+implements the contract.
+
+## In short
+
+- Only three services have a failover test: Samba, Synapse and Prometheus. The
+  ones that hold the data of everything else (Patroni, Valkey, etcd, CephFS,
+  Garage) do not.
+- The weakest tests only show that units start: geoclue, NetworkManager, the
+  Forgejo runner, and OpenBao beyond its contract. Backup has no test at all.
+- `services-patroni-init` runs the same script as `services-patroni`, so it
+  checks nothing about the init of its own.
+- Most holes are a second step of a contract: a login after the OIDC discovery,
+  git over SSH next to HTTPS, an app that may not read what another app wrote.
+
+## Alertmanager
+
+Tests: `contracts-alerts-alertmanager`, `services-alertmanager-matrix`.
+
+- **Shows:** an alert that every copy of Prometheus fires is held once by the
+  alerts API. An alert arrives as a message in the room of the `alerts` chat
+  app.
+- **Holes:** the invite of `toh.services.alertmanager.matrix.invite`, which the
+  plan already names.
+- **Failover:** none. Nothing checks that an alert is still sent once after one
+  copy stops.
+
+## Authelia
+
+Tests: `contracts-oidc-authelia`, `services-authelia`.
+
+- **Shows:** the discovery document names its issuer, and a registered client
+  with its secret can push an authorization request. The health endpoint
+  answers through the proxy on every machine.
+- **Holes:** a login. Authelia's own API takes a user name and password without
+  a browser, so a test can log in a user from LLDAP. Also: a client with a wrong
+  secret is turned away.
+- **Failover:** none.
+
+## Backup
+
+No test. The module says it is incomplete.
+
+- **Holes:** all of it. Step 9 writes the backup and restore commands, and step
+  11 tests a restore.
+
+## CephFS
+
+Tests: `contracts-filesystem-cephfs`, `services-cephfs`,
+`services-cephfs-mount`, and the skipped VM test `services-cephfs-kernel-mount`.
+
+- **Shows:** the cluster is healthy apart from clock skew. A file written on one
+  machine is read on every other, through the FUSE mount, and through the
+  kernel mount in the VM test. In the contract, a second client reads what the
+  first wrote.
+- **Holes:** none beyond failover.
+- **Failover:** none. Nothing checks that a mount keeps working when a machine
+  of the cluster goes away.
+
+## chronyd
+
+Tests: `contracts-time-chronyd`, `services-chronyd`, and the skipped VM test
+`services-chronyd-clock`.
+
+- **Shows:** every serving machine answers over NTP. `toh-time-synchronized`
+  and a service that depends on it go down and come back when chronyd is
+  stopped, gets SIGTERM, or gets SIGKILL. In the VM, a clock that is off by an
+  hour is set right.
+- **Holes:** none.
+- **Failover:** none across machines, only the restarts above.
+
+## CLI
+
+Test: `services-cli`.
+
+- **Shows:** `toh` runs. Other tests use its commands: `toh ldap`, `toh s3`,
+  `toh psql`, `toh valkey`, `toh ssh` and `toh email`.
+- **Holes:** left to step 9, which rewrites the CLI.
+
+## CoreDNS
+
+Tests: `contracts-dns-coredns`, `services-coredns`.
+
+- **Shows:** it answers the node name of a machine with its address, without
+  `/etc/hosts`. It forwards a zone it does not own to the server above it.
+  Every other test resolves service names like `*.service.toh` through it.
+- **Holes:** none.
+- **Failover:** none.
+
+## ddns-updater
+
+Tests: `services-ddns-updater-duckdns`, `services-ddns-updater-cloudflare`.
+
+- **Shows:** it gets the public address from a fake IP service and sends it,
+  with the domain, to a fake DuckDNS or Cloudflare API.
+- **Holes:** a changed address is sent again.
+
+## EasyTier
+
+Tests: `contracts-vpn-easytier-mesh`, `contracts-vpn-easytier-relay-proxy`,
+`contracts-vpn-easytier-relay-punch`.
+
+- **Shows:** five machines on one network reach each other over the VPN. Two
+  homes behind NAT reach each other through a relay. With hole punching, the
+  traffic goes straight between the homes and keeps going after the relay is
+  cut off.
+- **Holes:** none.
+
+## Element
+
+Test: `services-element`.
+
+- **Shows:** every machine serves the page through the proxy, and its config
+  names the chat and turns off integrations.
+- **Holes:** none. It is static files.
+
+## Envoy
+
+Tests: `contracts-proxy-envoy` and its ten `balancing` variants.
+
+- **Shows:** it routes by host, also with a port in the host header, by path
+  prefix, by a regular expression that must match the whole path, and by
+  priority. It spreads requests over every backend, leaves out a stopped one
+  and takes it back, for HTTP, HTTPS and TCP with TLS ended, ended and started
+  again, or passed through, and with every kind of health check.
+  `services-prometheus` reads its stats on every machine.
+- **Holes:** the stats port serves only stats. The admin interface behind it
+  can change and stop the proxy, so a test should see that its other paths are
+  closed.
+- **Failover:** the balancing variants stop backends, not Envoy itself.
+
+## etcd
+
+Test: `services-etcd`.
+
+- **Shows:** the health endpoint answers over TLS with a client certificate,
+  and all three members are started. The Samba and Synapse tests use its leases
+  (`toh.leases`) and move the holder.
+- **Holes:** a key written on one machine is read on another. A client without
+  a certificate is turned away.
+- **Failover:** none.
+
+## Falco
+
+Tests: `services-falco`, and the skipped VM test `services-falco-alerts`.
+
+- **Shows:** its metrics can be read over the network. In the VM, reading
+  `/etc/shadow` becomes an alert in Alertmanager.
+- **Holes:** none that a container can show.
+
+## Forgejo
+
+Tests: `contracts-git-forgejo`, `services-forgejo`.
+
+- **Shows:** an app makes a repository by pushing to it over HTTPS with its
+  password, and clones it back. `services-forgejo` only waits for
+  `toh-git-online` on every machine, with the runner on.
+- **Holes:**
+  - git over SSH, which Forgejo serves behind the proxy too,
+  - a login through Authelia,
+  - the runner registering and running a job.
+- **Failover:** none.
+
+## Garage
+
+Tests: `contracts-s3-garage`, `services-garage`.
+
+- **Shows:** an app puts and gets an object with its own key. Each machine puts
+  an object, and every machine gets all of them.
+- **Holes:** the key of one app cannot read the bucket of another.
+- **Failover:** none.
+
+## geoclue
+
+Test: `services-geoclue`.
+
+- **Shows:** only that its units start.
+- **Holes:** it answers with the static location from its secret.
+
+## journald
+
+Test: `services-journald`.
+
+- **Shows:** the size and age limits are in its config.
+- **Holes:** none. The limits are all the module sets.
+
+## LLDAP
+
+Tests: `contracts-ldap-lldap`, `services-lldap`.
+
+- **Shows:** an app binds with its own name and password and finds itself. The
+  health endpoint answers, the admin finds itself, and a user added on any
+  machine is found from every machine.
+- **Holes:** an app with read-only permission cannot change anything.
+- **Failover:** none.
+
+## Maddy
+
+Tests: `contracts-email-maddy`, `services-maddy`.
+
+- **Shows:** an app sends a mail to itself over submission with TLS and finds
+  it over IMAP. `services-maddy` lists the envelopes with the CLI.
+- **Holes:** a mail from one app to another. The `TODO` in `services-maddy`
+  asks for a send and a read; the contract does both now, so only the CLI path
+  is left.
+- **Failover:** none.
+
+## NetworkManager
+
+Test: `services-networkmanager`.
+
+- **Shows:** only that NetworkManager and nftables are enabled.
+- **Holes:** anything it does. A container may not be able to show more.
+
+## node exporter
+
+No test of its own. `services-prometheus` counts every machine in its `node`
+job.
+
+- **Holes:** its alerts (a disk or memory almost full, a failed unit) never fire
+  in a test.
+
+## OpenBao
+
+Tests: `contracts-secrets-openbao`, `services-openbao`.
+
+- **Shows:** with the token its machine fetched, the `bao` CLI writes and reads
+  the secret of that machine through the proxy. `services-openbao` checks that
+  the units run and that the first token fetch did not fail.
+- **Holes:**
+  - the token refresh, which would catch the timer bug in the plan,
+  - a machine cannot read the secret of another,
+  - OpenBao comes back after a restart.
+
+  These go with the [parked](./plan.md#parked) OpenBao fixes.
+
+- **Failover:** none.
+
+## OpenSSH
+
+Tests: `services-openssh`, `services-openssh-cli-command`,
+`services-openssh-cli-copy`.
+
+- **Shows:** sshd is enabled without keyboard-interactive login. `toh ssh
+command` and `toh ssh copy` work between two machines.
+- **Holes:** the test defaults turn on root login and password login, so no test
+  runs with the settings of the module. A test should see a password login
+  turned away with them.
+
+## Patroni
+
+Tests: `contracts-database-patroni`, `services-patroni`,
+`services-patroni-init`, `services-patroni-cli`.
+
+- **Shows:** an app connects over TLS with full verification and its own
+  certificate, finds the table its init script made, writes a row and reads it
+  back, and gets the locale it asked for. The health endpoint answers through
+  the proxy, `patronictl list` works, and `toh psql` reads the table of inits.
+- **Holes:** `services-patroni-init` checks the same as `services-patroni`. A
+  write reaches the replicas.
+- **Failover:** none. Nothing stops the primary to see a replica take over and
+  the app reconnect through the proxy.
+
+## PKI
+
+Test: `pki`.
+
+- **Shows:** the certificate folder is not empty.
+- **Holes:** none in practice. Every TLS client of every other test needs the
+  ToH CA in the bundle.
+
+## Prometheus
+
+Tests: `contracts-metrics-prometheus`, `services-prometheus`.
+
+- **Shows:** a metric of a machine that runs no collector comes back at the
+  query address. Every machine is counted once in every job (`node`, `envoy`,
+  `prometheus`, `thanos-query`).
+- **Holes:** none.
+- **Failover:** yes. The count stays right after one copy stops.
+
+## Samba
+
+Tests: `contracts-share-samba`, `services-samba`.
+
+- **Shows:** what an app writes, a second client reads. A file put through the
+  proxy turns up in the CephFS mount of every machine. A user share can be
+  added. Only one smbd runs at a time.
+- **Holes:** none.
+- **Failover:** yes. When the holder of the lease stops, another machine starts
+  smbd and serves the share.
+
+## SSSD
+
+Test: `services-sssd`.
+
+- **Shows:** a user added to LLDAP on any machine is a system user on every
+  machine (`getent` and `id`).
+- **Holes:** logging in as that user with the LLDAP password.
+
+## Synapse
+
+Tests: `contracts-chat-synapse`, `services-synapse`,
+`services-synapse-federation`.
+
+- **Shows:** an app writes a message and a second client reads it. The main
+  process uses Redis, and its replication listener answers through the proxy.
+  Workers answer client and federation requests, and the main process does
+  not. A user of the cluster and a user of an outside server read each other in
+  one room, and the server well-known file names the cluster.
+- **Holes:** uploaded media is still there after a failover, which is why the
+  media store is on CephFS. Federation after a failover, which needs the same
+  signing key on every machine.
+- **Failover:** yes. When the holder of the lease stops, the main process moves,
+  and Redis, replication and the workers work again.
+
+## Valkey
+
+Tests: `contracts-kv-valkey`, `services-valkey`.
+
+- **Shows:** an app sets and gets a key under its prefix, over TLS with its own
+  certificate and user. The CLI pings it on every machine.
+- **Holes:** the ACL keeps an app to its prefix. A write reaches the replicas.
+- **Failover:** none. Nothing stops the primary to see Sentinel pick a new one.

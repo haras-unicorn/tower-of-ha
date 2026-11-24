@@ -12,6 +12,7 @@ words:
   - DNSSEC
   - easytier
   - geoclue
+  - getent
   - guestfish
   - haraspkgs
   - homeserver
@@ -23,6 +24,7 @@ words:
   - nspawn
   - openbao
   - opencode
+  - psql
   - PYTHONPATH
   - sandboxing
   - setuid
