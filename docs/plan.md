@@ -526,17 +526,19 @@ holds an etcd lease and the workers run on every machine (see the
 1. **Invariant checks (M).** Tests for each invariant in the design: no unfree
    packages, TLS on every hop, secret file permissions, sops-only secrets, open
    ports.
-2. **Behavior tests (L).** Per service: it does what it says (send and read a
-   mail, push to git, log in through SSO), not only "the unit is running".
+2. **Behavior tests (M).** Per service, write down what its tests show it does
+   (send and read a mail, push to git, log in through SSO), beyond "the unit is
+   running". The holes this finds are filled in step 8.
 
 ## Step 8: Chaos engineering
 
 1. **Faults (L).** Kill a machine, split the network, skew the clock, fill a
    disk, restart in the wrong order. Each finding either hardens a module or
    goes into the docs as a known pitfall.
-2. **Test hardening (L)** Ensure each and every test has builtin retries and
+2. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be
    absolutely sure that what is being tested is the failure and not the test.
+   Fill the behavior holes found in step 7 too.
 
 ## Step 9: CLI
 
