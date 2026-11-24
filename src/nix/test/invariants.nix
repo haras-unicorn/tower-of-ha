@@ -64,6 +64,16 @@
           )
         );
 
+      publicKeysOf =
+        machine:
+        builtins.map (secret: secret.key) (
+          builtins.attrValues (
+            lib.filterAttrs (
+              name: _: machine.toh.meta.sops.secrets.${name}.public or false
+            ) machine.sops.secrets
+          )
+        );
+
       closure = config.hostPkgs.closureInfo {
         rootPaths = lib.mapAttrsToList (_: machine: machine.system.build.toplevel) machines;
       };
@@ -330,7 +340,8 @@
               name: machine:
               let
                 keys = sopsKeysOf machine;
-                others = lib.subtractLists keys (
+                public = builtins.concatMap publicKeysOf (builtins.attrValues machines);
+                others = lib.subtractLists (keys ++ public) (
                   builtins.concatMap sopsKeysOf (builtins.attrValues (builtins.removeAttrs machines [ name ]))
                 );
               in
