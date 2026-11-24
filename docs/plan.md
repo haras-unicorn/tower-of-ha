@@ -451,7 +451,17 @@ holds an etcd lease and the workers run on every machine (see the
      test covers the invite yet.
    - The alerts contract runs without the bridge, so it needs no Synapse.
 4. **Falco (L).** Package it, then run it on every machine with its findings as
-   metrics, so they become alerts like the rest.
+   metrics, so they become alerts like the rest. **Written** on 2026-11-24, not
+   run yet. On the way:
+   - No packaging: nixos-unstable has both the package and a NixOS module, so
+     ToH takes both from there until NixOS 26.11 has them. The container plugin
+     it loads is built from source too.
+   - A match of a rule of priority error or higher is a critical alert, any
+     other match a warning. Falco counts a rule only from its first match on, so
+     the alert also takes a counter that is new since a window ago.
+   - Containers cannot load the eBPF probe, so `services-falco` runs Falco
+     without a driver and only checks its metrics. `services-falco-alerts` is a
+     skipped VM test where reading `/etc/shadow` has to become an alert.
 
 ## Step 5: Remove Nebula
 

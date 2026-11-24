@@ -97,6 +97,11 @@ Found while fixing the tests, not `TODO` comments.
   which leaves a new device on its chat user each time, and all bridges share
   that user, so many starts at once can hit the login rate limit of Synapse.
 - `src/nix/modules/synapse/apps.nu`: the `invite` of chat apps has no test.
+- `src/nix/modules/falco/default.nix`: take Falco from nixpkgs and drop the
+  `nixpkgs-unstable` input once NixOS 26.11 is out.
+- `src/nix/modules/falco/default.nix`: nobody knows yet how noisy the stock
+  rules are on NixOS. Look at the alerts of a real deployment and turn off or
+  narrow the rules that fire for normal work.
 
 ## Port clashes
 

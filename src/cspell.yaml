@@ -356,3 +356,5 @@ ignoreWords:
   - fstype
   - labeldrop
   - dedup
+  - falcosecurity
+  - nodriver

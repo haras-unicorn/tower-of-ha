@@ -203,6 +203,10 @@ Made on 2026-11-21, while picking the observability stack.
   - **Prometheus** runs on any number of machines, and each copy collects
     everything, so any copy that is up keeps the alerts going. A new copy starts
     without history, which is fine, because ToH does not need a long record.
+    Every copy asks every target on its own, so that traffic grows with the
+    number of copies. So a deployment runs Prometheus, Alertmanager and Synapse
+    on a few sturdy machines, at least two so that the alerts survive losing
+    one, and the other machines are only collected.
   - **Thanos Query** runs next to every copy and merges them into one view, so a
     gap in one copy is filled from another. It is the query address of the
     `metrics` capability.
@@ -216,8 +220,9 @@ Made on 2026-11-21, while picking the observability stack.
     itself; suspicious access shows in the metrics instead, for example the
     answers Envoy counts by status code.
   - **Falco** watches system calls for things like a shell in a service or a
-    read of a secret it should not touch. nixpkgs has no package for it, so it
-    waits until we package it.
+    read of a secret it should not touch. It runs on every machine, and each
+    match of one of its rules counts in its metrics and so becomes an alert. Its
+    package and module come from nixos-unstable until NixOS 26.11 has them.
   - **No dashboards for now.** Perses keeps its dashboards in a local store by
     default, so a dashboard made on one machine is missing on the others, and
     the query UI of Thanos is enough for a look at a graph.
