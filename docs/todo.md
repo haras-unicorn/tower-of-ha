@@ -34,6 +34,9 @@ Found while fixing the tests, not `TODO` comments.
 - `src/nix/test/defaults.nix`: the global test timeout of 300 seconds, and the
   `timeout=` of the waits in the test scripts, are magic numbers. Put them in
   `self.lib.test` and use them from there.
+- `src/nix/modules/forgejo/runner.nix`: the job cache is off, because it
+  listens on random ports on every address and its `host` setting does not
+  move them. Turn it back on for speed once it can listen on localhost only.
 
 ## Step 10: ACL
 

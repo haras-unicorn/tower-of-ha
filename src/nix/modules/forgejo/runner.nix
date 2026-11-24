@@ -44,7 +44,10 @@
           insecure = false;
           labels = [ "self-hosted:host" ];
         };
-        cache.enabled = true;
+        # NOTE: the cache listens on random ports on every address, which
+        # the firewall keeps closed, and jobs run on the host so they work
+        # without it; turned off until it can be kept on localhost
+        cache.enabled = false;
         host.workdir_parent = null;
         server.connections.forgejo = {
           url = forgejoUrl;
