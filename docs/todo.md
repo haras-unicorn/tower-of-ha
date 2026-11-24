@@ -29,8 +29,6 @@ Found while fixing the tests, not `TODO` comments.
 
 ## Step 7: Behavior and invariant tests
 
-- `src/nix/modules/maddy/test.nix:27`: actually send and read a mail, once
-  himalaya v2 is out.
 - `src/nix/test/defaults.nix`: the global test timeout of 300 seconds, and the
   `timeout=` of the waits in the test scripts, are magic numbers. Put them in
   `self.lib.test` and use them from there.

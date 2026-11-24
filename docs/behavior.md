@@ -9,7 +9,9 @@ Each service has three parts:
 - **Shows:** what the tests check that the service does.
 - **Holes:** behavior that no test checks yet. Step 8.2 fills these.
 - **Failover:** whether a test stops a copy of the service and checks that the
-  others take over. Where none does, the faults of step 8.1 cover it.
+  others take over. Where none does, the faults of step 8.1 cover it. High
+  availability means both failover and distribution: when one machine goes
+  down, the service still answers and still has the same data.
 
 Every test also runs the invariant checks (`src/nix/test/invariants.nix`), so
 they are not repeated here. A contract test is listed under the service that
@@ -214,9 +216,7 @@ Tests: `contracts-email-maddy`, `services-maddy`.
 
 - **Shows:** an app sends a mail to itself over submission with TLS and finds
   it over IMAP. `services-maddy` lists the envelopes with the CLI.
-- **Holes:** a mail from one app to another. The `TODO` in `services-maddy`
-  asks for a send and a read; the contract does both now, so only the CLI path
-  is left.
+- **Holes:** a mail from one app to another.
 - **Failover:** none.
 
 ## NetworkManager
