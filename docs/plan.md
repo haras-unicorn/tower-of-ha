@@ -425,9 +425,10 @@ holds an etcd lease and the workers run on every machine (see the
 2. **Metrics (M).** The `metrics` capability: machines declare what can be
    collected from them, Prometheus on any number of machines collects all of it,
    and Thanos Query answers at the proxy address. Machine metrics from the node
-   exporter and the stats of Envoy. A contract test. **Written** on 2026-11-21,
-   together with chunk 3 and not run yet, because the agent's sandbox cannot
-   download the packages. Every new test evaluates. On the way:
+   exporter and the stats of Envoy. A contract test. **Done** on 2026-11-24:
+   written on 2026-11-21 together with chunk 3, because the agent's sandbox
+   cannot download the packages, and every test passed on the human's first run.
+   On the way:
    - Each copy of Prometheus has a Thanos sidecar, which is how Thanos Query
      reads it, and Thanos Query runs next to every copy behind the proxy as
      `thanos-query`.
@@ -441,8 +442,9 @@ holds an etcd lease and the workers run on every machine (see the
 3. **Alerts (M).** Services declare alerts in the meta, Alertmanager on any
    number of machines sends each once, and the bridge posts it into the room of
    the chat app `alerts`. A contract test for the alerts, and a service test
-   that sees an alert arrive in the room. **Written** on 2026-11-21 with chunk
-   2, not run yet. On the way:
+   that sees an alert arrive in the room. **Done** on 2026-11-24, with chunk 2.
+   `services-alertmanager-matrix` failed once under `--jobs 6` and passed on its
+   own. On the way:
    - Prometheus gets its whole configuration as text, because the nixpkgs module
      cannot drop the label of the copy from the alerts, and without that
      Alertmanager would send each alert once per copy.
@@ -451,8 +453,8 @@ holds an etcd lease and the workers run on every machine (see the
      test covers the invite yet.
    - The alerts contract runs without the bridge, so it needs no Synapse.
 4. **Falco (L).** Package it, then run it on every machine with its findings as
-   metrics, so they become alerts like the rest. **Written** on 2026-11-24, not
-   run yet. On the way:
+   metrics, so they become alerts like the rest. **Done** on 2026-11-24, and
+   both tests passed on their first run. On the way:
    - No packaging: nixos-unstable has both the package and a NixOS module, so
      ToH takes both from there until NixOS 26.11 has them. The container plugin
      it loads is built from source too.
