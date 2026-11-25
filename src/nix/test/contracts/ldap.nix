@@ -16,6 +16,16 @@
       clientMeta = machines.client.toh.meta;
       host = clientMeta.ldap.host;
       user = clientMeta.ldap.users.${app};
+
+      search = "contract-ldap '(${clientMeta.ldap.usernameAttribute}=${app})' dn | grep -qx 'dn: ${user.dn}'";
+
+      # NOTE: the app may only read, so what has to survive is its own entry
+      failover = selfLib.test.contract.failover {
+        inherit cfg machines;
+        capability = "ldap";
+        write = "None";
+        holds = ''lambda _: """${search}"""'';
+      };
     in
     {
       options.toh.test.contracts.ldap = selfLib.test.contract.options "ldap" cfg;
@@ -64,10 +74,9 @@
           })
           {
             toh.test.commands.suffix = ''
-              client.wait_until_succeeds(
-                "contract-ldap '(${clientMeta.ldap.usernameAttribute}=${app})' dn | grep -qx 'dn: ${user.dn}'",
-                timeout=300,
-              )
+              client.wait_until_succeeds("""${search}""", timeout=300)
+
+              ${failover}
             '';
           }
         ]

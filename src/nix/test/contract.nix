@@ -37,7 +37,7 @@ in
         fault_kill_each(
           client,
           [${builtins.concatStringsSep ", " servers}],
-          "toh-${capability}-online.target",
+          "${cfg.online}",
           """${cfg.redundant}""",
           ${write},
           ${holds},
@@ -85,6 +85,15 @@ in
         type = lib.types.ints.positive;
         default = 3;
         description = "Number of servers";
+      };
+
+      online = lib.mkOption {
+        type = lib.types.str;
+        default = "toh-${capability}-online.target";
+        description = ''
+          Unit that is active on a server once the ${capability} runs there,
+          which the failover waits for after it revives a server
+        '';
       };
 
       redundant = lib.mkOption {
