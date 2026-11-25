@@ -11,6 +11,11 @@
       toh.services.openbao.enable = true;
       toh.services.patroni.enable = true;
     };
+    test.toh.test.contracts.secrets = {
+      # NOTE: OpenBao has no target of its own
+      online = "openbao.service";
+      redundant = selfLib.test.redundant.patroni;
+    };
   };
 
   self.nixosTests.contracts-secrets-openbao = selfLib.test.makeNixosTest {

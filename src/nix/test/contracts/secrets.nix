@@ -22,6 +22,15 @@
 
       clientMeta = machines.client.toh.meta;
       proxy = clientMeta.proxies.secrets.endpoint;
+
+      # NOTE: the machine may only write its own secret, so every value is a
+      # field of it
+      failover = selfLib.test.contract.failover {
+        inherit cfg machines;
+        capability = "secrets";
+        write = ''lambda value: f"contract-secrets write-value {value}"'';
+        holds = ''lambda value: f"contract-secrets read-value {value} | grep -x {value}"'';
+      };
     in
     {
       options.toh.test.contracts.secrets = selfLib.test.contract.options "secrets" cfg;
@@ -55,6 +64,13 @@
                       read)
                         bao kv get -mount=${secrets.keys.mount} -field=value ${secretPath}
                         ;;
+                      write-value)
+                        printf %s "$2" \
+                          | bao kv patch -method=rw -mount=${secrets.keys.mount} ${secretPath} "$2=-"
+                        ;;
+                      read-value)
+                        bao kv get -mount=${secrets.keys.mount} -field="$2" ${secretPath}
+                        ;;
                     esac
                   '';
                 };
@@ -69,6 +85,8 @@
             toh.test.commands.suffix = ''
               client.wait_until_succeeds("contract-secrets write", timeout=300)
               client.wait_until_succeeds("contract-secrets read | grep -qx ${value}", timeout=30)
+
+              ${failover}
             '';
           }
         ]
