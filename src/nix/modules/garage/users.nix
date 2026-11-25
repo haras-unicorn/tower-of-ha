@@ -137,44 +137,49 @@
         toh.meta.cryl.machine = mergeByUser (
           {
             user,
+            installSecrets,
             generateSecrets,
             ...
           }:
-          lib.mkIf generateSecrets ([
+          let
+            initsUser = generateSecrets && runsGarage;
+          in
+          lib.mkIf (installSecrets || initsUser) ([
             {
               "garage-key-${user}" = {
-                generations = [
-                  {
-                    generator = "copy";
-                    arguments = {
-                      from = "cluster/garage-key-${user}-id";
-                      to = "garage-key-${user}-id";
-                    };
-                  }
-                  {
-                    generator = "copy";
-                    arguments = {
-                      from = "cluster/garage-key-${user}-secret";
-                      to = "garage-key-${user}-secret";
-                    };
-                  }
-                ]
-                ++ lib.optionals runsGarage [
-                  {
-                    generator = "copy";
-                    arguments = {
-                      from = "cluster/garage-key-${user}-id";
-                      to = "garage-init-key-${user}-id";
-                    };
-                  }
-                  {
-                    generator = "copy";
-                    arguments = {
-                      from = "cluster/garage-key-${user}-secret";
-                      to = "garage-init-key-${user}-secret";
-                    };
-                  }
-                ];
+                generations =
+                  lib.optionals installSecrets [
+                    {
+                      generator = "copy";
+                      arguments = {
+                        from = "cluster/garage-key-${user}-id";
+                        to = "garage-key-${user}-id";
+                      };
+                    }
+                    {
+                      generator = "copy";
+                      arguments = {
+                        from = "cluster/garage-key-${user}-secret";
+                        to = "garage-key-${user}-secret";
+                      };
+                    }
+                  ]
+                  ++ lib.optionals initsUser [
+                    {
+                      generator = "copy";
+                      arguments = {
+                        from = "cluster/garage-key-${user}-id";
+                        to = "garage-init-key-${user}-id";
+                      };
+                    }
+                    {
+                      generator = "copy";
+                      arguments = {
+                        from = "cluster/garage-key-${user}-secret";
+                        to = "garage-init-key-${user}-secret";
+                      };
+                    }
+                  ];
               };
             }
           ])

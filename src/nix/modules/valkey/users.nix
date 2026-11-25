@@ -218,7 +218,7 @@
                               { user, generateSecrets, ... }:
                               lib.optional generateSecrets {
                                 name = "VALKEY_${lib.toUpper user}_PASS";
-                                value = "valkey-${user}-pass";
+                                value = "cluster/valkey-${user}-pass";
                               }
                             ) usersList
                           );
@@ -290,13 +290,13 @@
           (mergeByUser (
             {
               user,
-              generateSecrets,
+              installSecrets,
               ca,
               crt,
               key,
               ...
             }:
-            lib.mkIf generateSecrets [
+            lib.mkIf installSecrets [
               {
                 "valkey-${user}" = {
                   generations = [

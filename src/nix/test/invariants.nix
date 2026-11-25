@@ -44,17 +44,45 @@
       secretPathsOf =
         machine: builtins.map (secret: secret.path) (builtins.attrValues (privateOf machine));
 
-      # NOTE: templates are left out, because the rest of a template is
-      # config that the store holds too
-      privateSecretPathsOf =
+      # NOTE: cryl renders some secrets from mustache templates, and the
+      # lines of a template are config that the store holds too
+      templateLinesOf =
         machine:
-        builtins.map (secret: secret.path) (
-          builtins.attrValues (
-            lib.filterAttrs (
-              name: _: !(machine.toh.meta.sops.secrets.${name}.public or false)
-            ) machine.sops.secrets
-          )
+        builtins.listToAttrs (
+          builtins.concatMap
+            (
+              generation:
+              lib.optional (generation.generator == "mustache") {
+                name = generation.arguments.name;
+                value = builtins.map lib.trim (lib.splitString "\n" generation.arguments.template);
+              }
+            )
+            (
+              builtins.concatMap (specification: specification.generations) (
+                builtins.concatMap builtins.attrValues machine.toh.meta.cryl.machine
+              )
+            )
         );
+
+      # NOTE: sops templates are left out, because the rest of a template is
+      # config that the store holds too
+      privateSecretsOf =
+        machine:
+        let
+          templateLines = templateLinesOf machine;
+        in
+        builtins.map
+          (secret: {
+            inherit (secret) path;
+            template = templateLines.${secret.key} or [ ];
+          })
+          (
+            builtins.attrValues (
+              lib.filterAttrs (
+                name: _: !(machine.toh.meta.sops.secrets.${name}.public or false)
+              ) machine.sops.secrets
+            )
+          );
 
       sopsKeysOf =
         machine:
@@ -283,19 +311,33 @@
             # from sops ends up in the store, outside of the sops files
             invariant_secret_lines = {}
 
-            def collect_secrets(machine, name, paths):
-              for path in paths:
-                status, content = machine.execute(f"cat '{path}'")
-                if status != 0:
-                  continue
-                lines = [line.strip() for line in content.splitlines()]
-                line = max(lines, key=len, default="")
-                if len(line) >= ${builtins.toString cfg.sops.minimumLength}:
-                  invariant_secret_lines[line] = f"{name}: {path}"
+            def collect_secrets(machine, name, secrets_file):
+              with open(secrets_file) as secrets:
+                for secret in invariant_json.load(secrets):
+                  path = secret["path"]
+                  status, content = machine.execute(f"cat '{path}'")
+                  if status != 0:
+                    continue
+                  template = set(secret["template"])
+                  lines = [
+                    line.strip()
+                    for line in content.splitlines()
+                    if line.strip() not in template
+                  ]
+                  line = max(lines, key=len, default="")
+                  if len(line) >= ${builtins.toString cfg.sops.minimumLength}:
+                    invariant_secret_lines[line] = f"{name}: {path}"
 
             ${perMachine (
               name: machine:
-              "collect_secrets(${pythonName name}, '${name}', invariant_json.loads('${builtins.toJSON (privateSecretPathsOf machine)}'))"
+              let
+                # NOTE: a file and not a python string, because templates
+                # hold quotes and backslashes
+                secrets = config.hostPkgs.writeText "invariant-secrets-${name}.json" (
+                  builtins.toJSON (privateSecretsOf machine)
+                );
+              in
+              "collect_secrets(${pythonName name}, '${name}', '${secrets}')"
             )}
 
             if invariant_secret_lines:

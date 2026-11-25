@@ -229,6 +229,7 @@
         toh.meta.cryl.machine = mergeByUser (
           {
             user,
+            installSecrets,
             generateSecrets,
             isSuperuser,
             ca,
@@ -239,93 +240,98 @@
             dbLocale,
             ...
           }:
-          lib.mkIf generateSecrets [
+          let
+            initsUser = generateSecrets && !isSuperuser && runsPatroni;
+          in
+          lib.mkIf (installSecrets || initsUser) [
             {
               "patroni-${user}" = {
-                generations = [
-                  {
-                    generator = "copy";
-                    arguments = {
-                      renew = true;
-                      from = "cluster/patroni-${user}-pass";
-                      to = "patroni-${user}-pass";
-                    };
-                  }
-                  {
-                    generator = "tls-leaf";
-                    arguments = {
-                      common_name = user;
-                      organization = "ToH";
-                      sans = [
-                        proxyAttrs.host
-                        config.toh.meta.network.ip
-                        "localhost"
-                        "127.0.0.1"
-                      ];
-                      config = "patroni-${user}-cert-config";
-                      request_config = "patroni-${user}-cert-request-config";
-                      private = "patroni-${user}-private";
-                      request = "patroni-${user}-cert-request";
-                      ca_private = "cluster/openssl-ca-private";
-                      ca_public = "cluster/openssl-ca-public";
-                      serial = "cluster/openssl-ca-serial";
-                      public = "patroni-${user}-public";
-                      renew = true;
-                    };
-                  }
-                  {
-                    generator = "mustache";
-                    arguments = {
-                      name = "patroni-${user}-env";
-                      renew = true;
-                      listing = {
-                        type = "map";
-                        value = {
-                          PATRONI_USER_PASS = "cluster/patroni-${user}-pass";
+                generations =
+                  lib.optionals installSecrets [
+                    {
+                      generator = "copy";
+                      arguments = {
+                        renew = true;
+                        from = "cluster/patroni-${user}-pass";
+                        to = "patroni-${user}-pass";
+                      };
+                    }
+                    {
+                      generator = "tls-leaf";
+                      arguments = {
+                        common_name = user;
+                        organization = "ToH";
+                        sans = [
+                          proxyAttrs.host
+                          config.toh.meta.network.ip
+                          "localhost"
+                          "127.0.0.1"
+                        ];
+                        config = "patroni-${user}-cert-config";
+                        request_config = "patroni-${user}-cert-request-config";
+                        private = "patroni-${user}-private";
+                        request = "patroni-${user}-cert-request";
+                        ca_private = "cluster/openssl-ca-private";
+                        ca_public = "cluster/openssl-ca-public";
+                        serial = "cluster/openssl-ca-serial";
+                        public = "patroni-${user}-public";
+                        renew = true;
+                      };
+                    }
+                    {
+                      generator = "mustache";
+                      arguments = {
+                        name = "patroni-${user}-env";
+                        renew = true;
+                        listing = {
+                          type = "map";
+                          value = {
+                            PATRONI_USER_PASS = "cluster/patroni-${user}-pass";
+                          };
+                        };
+                        template = ''
+                          PGHOST="${proxyAttrs.host}"
+                          PGPORT="${builtins.toString proxyAttrs.port}"
+                          PGUSER="${dbUser}"
+                          PGPASSWORD="{{{PATRONI_USER_PASS}}}"
+                          PGSSLMODE="verify-full"
+                          PGSSLROOTCERT="${ca}"
+                          PGSSLCERT="${crt}"
+                          PGSSLKEY="${key}"
+                        ''
+                        + (lib.optionalString (!isSuperuser) ''
+                          PGDATABASE="${dbName}"
+                        '');
+                      };
+                    }
+                    {
+                      generator = "mustache";
+                      arguments = {
+                        name = "patroni-${user}-url";
+                        renew = true;
+                        listing = {
+                          type = "map";
+                          value = {
+                            PATRONI_USER_PASS = "cluster/patroni-${user}-pass";
+                          };
+                        };
+                        template = selfLib.url.makeUrl {
+                          protocol = "postgresql";
+                          inherit (proxyAttrs) host port;
+                          user = dbUser;
+                          password = "{{{PATRONI_USER_PASS}}}";
+                          path = if isSuperuser then null else dbName;
+                          parameters = {
+                            sslmode = "verify-full";
+                            sslrootcert = ca;
+                            sslcert = crt;
+                            sslkey = key;
+                          };
                         };
                       };
-                      template = ''
-                        PGHOST="${proxyAttrs.host}"
-                        PGPORT="${builtins.toString proxyAttrs.port}"
-                        PGUSER="${dbUser}"
-                        PGPASSWORD="{{{PATRONI_USER_PASS}}}"
-                        PGSSLMODE="verify-full"
-                        PGSSLROOTCERT="${ca}"
-                        PGSSLCERT="${crt}"
-                        PGSSLKEY="${key}"
-                      ''
-                      + (lib.optionalString (!isSuperuser) ''
-                        PGDATABASE="${dbName}"
-                      '');
-                    };
-                  }
-                  {
-                    generator = "mustache";
-                    arguments = {
-                      name = "patroni-${user}-url";
-                      renew = true;
-                      listing = {
-                        type = "map";
-                        value = {
-                          PATRONI_USER_PASS = "cluster/patroni-${user}-pass";
-                        };
-                      };
-                      template = selfLib.url.makeUrl {
-                        protocol = "postgresql";
-                        inherit (proxyAttrs) host port;
-                        user = dbUser;
-                        password = "{{{PATRONI_USER_PASS}}}";
-                        path = if isSuperuser then null else dbName;
-                        parameters = {
-                          sslmode = "verify-full";
-                          sslrootcert = ca;
-                          sslcert = crt;
-                          sslkey = key;
-                        };
-                      };
-                    };
-                  }
-                  (lib.mkIf (!isSuperuser && runsPatroni) {
+                    }
+                  ]
+                  ++ lib.optional initsUser {
                     generator = "mustache";
                     arguments = {
                       name = "patroni-${user}-init";
@@ -333,7 +339,7 @@
                       listing = {
                         type = "map";
                         value = {
-                          PATRONI_USER_PASS = "patroni-${user}-pass";
+                          PATRONI_USER_PASS = "cluster/patroni-${user}-pass";
                         };
                       };
                       template = ''
@@ -362,8 +368,7 @@
                         grant all on all functions in schema public to ${dbUser};
                       '';
                     };
-                  })
-                ];
+                  };
               };
             }
           ]
