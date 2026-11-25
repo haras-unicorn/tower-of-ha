@@ -151,6 +151,29 @@
               default, longer than a failover may take.
             '';
           };
+
+          monitorDownGrace = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 60;
+            description = ''
+              Seconds the monitors wait, while one of them is down or they
+              just elected a leader, before they replace a metadata server
+              that went silent (`mds_beacon_mon_down_grace`). Killing a
+              machine takes out its monitor too, so a failover of the active
+              metadata server waits this long.
+            '';
+          };
+
+          reconnectTimeout = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 45;
+            description = ''
+              Seconds a metadata server that takes over waits for the clients
+              it knew to come back (`mds_reconnect_timeout`). The mount of a
+              machine that went away never does, so a failover waits this
+              long too.
+            '';
+          };
         };
       };
 
@@ -178,6 +201,11 @@
                 monHost = ips;
                 publicNetwork = network;
                 clusterNetwork = network;
+              };
+
+              extraConfig = {
+                "mds beacon mon down grace" = builtins.toString cfg.monitorDownGrace;
+                "mds reconnect timeout" = builtins.toString cfg.reconnectTimeout;
               };
             }
           ]

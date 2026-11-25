@@ -74,7 +74,9 @@ Tests: `contracts-filesystem-cephfs`, `services-cephfs`,
 - **Holes:** none beyond failover.
 - **Failover:** since step 8, the filesystem contract kills every server once,
   after every placement group is clean and a metadata server stands by. What the
-  clients wrote before and after each kill is still there.
+  clients wrote before and after each kill is still there. When the active
+  metadata server dies, that takes up to about two minutes (see the
+  [design](./design.md#decisions)), and the test waits for it.
 
 ## chronyd
 
@@ -312,9 +314,8 @@ Tests: `contracts-share-samba`, `services-samba`.
   added. Only one smbd runs at a time.
 - **Holes:** none.
 - **Failover:** partly. When the holder of the lease stops cleanly, another
-  machine starts smbd and serves the share. When a server is killed, the share
-  can stay away for longer than the failover time; see
-  [the todo](./todo.md#not-placed-yet).
+  machine starts smbd and serves the share. When the machine of smbd is killed,
+  the share does not come back yet; see [the todo](./todo.md#not-placed-yet).
 
 ## SSSD
 
@@ -350,8 +351,9 @@ Tests: `contracts-kv-valkey`, `services-valkey`.
 - **Holes:** the ACL keeps an app to its prefix.
 - **Failover:** since step 8, the kv contract kills every server once, the
   primary among them. Sentinel picks a new primary, a server that comes back
-  follows it, and every key the app wrote is still there. The app counts a write
-  only once `WAIT` says a replica has it: Valkey replicates after it answers, so
-  a plain write that the primary took just before it died can be lost. Forgejo,
-  Synapse and Authelia write without `WAIT`, so they can lose the last moment of
-  their cache, sessions and worker messages.
+  follows it, and every key the app wrote is still there. The app writes
+  plainly, like the apps do, and the kill comes only after the lag of
+  `toh.services.valkey.replicaMaxLag`: Valkey replicates after it answers, so
+  the writes of the last seconds before the primary died can be lost (see the
+  [design](./design.md#decisions)). Forgejo, Synapse and Authelia can lose that
+  much of their cache, sessions, queue and worker messages.

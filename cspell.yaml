@@ -6,6 +6,7 @@ ignorePaths:
   - flake.nix
 ignoreWords:
   - haras
+  - tunables
   - headscale
   - ddns
   - ctdb

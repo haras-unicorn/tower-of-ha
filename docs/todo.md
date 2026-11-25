@@ -130,25 +130,14 @@ Found while fixing the tests, not `TODO` comments.
 
 Service work that fits no step so far.
 
-- **Valkey loses the last writes with its primary (needs a decision).** Valkey
-  replicates after it answers, so a write the primary took just before it died
-  can be gone, which breaks "every confirmed write survives a failover" in the
-  [design](./design.md#decisions). The kv contract only passes because it waits
-  with `WAIT`. Either the apps that use Valkey (Forgejo, Synapse, Authelia) keep
-  only what they can lose there, which is the case today as far as known, and
-  the design says so, or the writes get stricter (`min-replicas-to-write` only
-  narrows the window).
-- **CephFS can take longer than the failover time (needs a decision).** When the
-  killed server holds the active metadata server, CephFS is gone for about 80 to
-  125 seconds with Ceph's defaults, and the tests wait 120. The monitors first
-  elect a new leader (about 15 seconds). While a monitor is down they wait
-  `mds_beacon_mon_down_grace` (60 seconds) and not `mds_beacon_grace` (15)
-  before they replace the metadata server (`MDSMonitor::check_health`). The new
-  one then waits up to `mds_reconnect_timeout` (45 seconds) for every client it
-  knew, and the mount of the killed server never comes back. Samba and the
-  filesystem contract both fail on this; it does not depend on FUSE or the
-  containers. Either the fault tests of CephFS and what lives on it wait for
-  what these settings add up to, or the settings get shorter.
+- **Samba does not come back when its machine is killed (being looked into).**
+  It is not the failover time of CephFS: with the metadata server untouched,
+  the next smbd waited about 60 seconds for CephFS to evict the dead machine's
+  mount, and then every login timed out on a mutex
+  (`check_sam_security_mutex_contract`) that some smbd on the new machine never
+  let go of. smbd keeps runtime state like its messaging sockets (`msg.sock`)
+  in the state directory on CephFS, which another machine then finds. The share
+  contract kills every server once but is not committed until it passes.
 - **A killed container sometimes never stops.** Its init stays a zombie that
   systemd-nspawn does not collect. The kill now fails after `shutdownTimeout`
   and names the parents, but why nspawn hangs is not known yet. It happened in

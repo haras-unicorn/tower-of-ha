@@ -76,6 +76,32 @@
               cluster survives the loss of the next primary.
             '';
           };
+
+          minReplicasToWrite = lib.mkOption {
+            type = lib.types.ints.unsigned;
+            default = if builtins.length valkeyMachines > 1 then 1 else 0;
+            defaultText = lib.literalMD "1, or 0 when only one machine runs Valkey";
+            description = ''
+              Replicas that have to keep up with the primary for it to take
+              writes (`min-replicas-to-write`). Valkey replicates after it
+              answers, so this does not make a write wait for a replica; it
+              only makes the primary refuse writes once fewer replicas than
+              this acknowledged within `replicaMaxLag`, which bounds how much
+              a failover can lose. 0 never refuses.
+            '';
+          };
+
+          replicaMaxLag = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 2;
+            description = ''
+              Seconds since its last acknowledgement after which a replica no
+              longer counts for `minReplicasToWrite`
+              (`min-replicas-max-lag`). The writes of about this many seconds
+              can be lost with the primary. Replicas acknowledge every second,
+              so 1 would refuse writes on every late acknowledgement.
+            '';
+          };
         };
       };
 
@@ -113,6 +139,8 @@
                   tls-auth-clients = false;
                   tls-replication = true;
                   replica-serve-stale-data = false;
+                  min-replicas-to-write = cfg.minReplicasToWrite;
+                  min-replicas-max-lag = cfg.replicaMaxLag;
                   aclfile = config.toh.meta.sops.secrets."valkey-acl".path;
                 };
               };

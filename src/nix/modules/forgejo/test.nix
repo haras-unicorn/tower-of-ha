@@ -20,11 +20,16 @@
     };
     # NOTE: the repositories are on CephFS and the rest is in Patroni, and
     # Forgejo is only healthy while its cache in Valkey answers
-    test.toh.test.contracts.git.redundant = builtins.concatStringsSep " && " [
-      selfLib.test.redundant.patroni
-      selfLib.test.redundant.cephfs
-      selfLib.test.redundant.valkey
-    ];
+    test =
+      { machines, ... }:
+      {
+        toh.test.contracts.git.redundant = builtins.concatStringsSep " && " [
+          selfLib.test.redundant.patroni
+          selfLib.test.redundant.cephfs
+          selfLib.test.redundant.valkey
+        ];
+        toh.test.faults.failoverDelay = selfLib.test.failoverDelay.cephfs machines;
+      };
   };
 
   self.nixosTests.contracts-git-forgejo = selfLib.test.makeNixosTest {

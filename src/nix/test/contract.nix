@@ -142,11 +142,11 @@ in
         server,
         test ? { },
       }:
-      { config, ... }:
+      { config, machines, ... }:
       let
         cfg = config.toh.test.contracts.${capability};
         picked = cfg.enable && cfg.implementation ? ${implementation};
-        testConfig = if builtins.isFunction test then test config else test;
+        testConfig = if builtins.isFunction test then test { inherit config machines; } else test;
       in
       {
         config = lib.mkMerge [

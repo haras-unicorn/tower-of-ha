@@ -19,18 +19,33 @@
       clientMeta = machines.client.toh.meta;
       host = clientMeta.kv.host;
 
-      # NOTE: the store replicates after it answers, so a write only counts
-      # once WAIT says a replica has it; a plain write can be lost with the
-      # primary, see docs/behavior.md
+      settle =
+        lib.optionalString (cfg.replicationLag > 0)
+          " && sleep ${builtins.toString (cfg.replicationLag + 1)}";
+
+      # NOTE: a plain write, like the apps make; a store that replicates after
+      # it answers can lose the writes of its last replicationLag seconds
+      # with the primary, so the failover waits longer than that before it
+      # kills a server, see docs/behavior.md
       failover = selfLib.test.contract.failover {
         inherit cfg machines;
         capability = "kv";
-        write = ''lambda value: f"printf 'SET ${prefix}{value} {value}\nWAIT 1 5000\n' | contract-kv | tr '\n' ' ' | grep -xE 'OK [1-9][0-9]* '"'';
+        write = ''lambda value: f"contract-kv SET ${prefix}{value} {value} | grep -qx OK${settle}"'';
         holds = ''lambda value: f"contract-kv GET ${prefix}{value} | grep -x {value}"'';
       };
     in
     {
-      options.toh.test.contracts.kv = selfLib.test.contract.options "kv" cfg;
+      options.toh.test.contracts.kv = selfLib.test.contract.options "kv" cfg // {
+        replicationLag = lib.mkOption {
+          type = lib.types.ints.unsigned;
+          default = 0;
+          description = ''
+            Seconds after it said yes to a write within which the store can
+            still lose that write with its primary, 0 for a store that
+            replicates before it answers
+          '';
+        };
+      };
 
       config = lib.mkIf cfg.enable (
         lib.mkMerge [

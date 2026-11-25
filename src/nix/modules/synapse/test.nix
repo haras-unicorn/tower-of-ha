@@ -21,11 +21,16 @@ in
     };
     # NOTE: the state is in Patroni and the media on CephFS, and the main
     # process and the workers talk through Valkey
-    test.toh.test.contracts.chat.redundant = builtins.concatStringsSep " && " [
-      selfLib.test.redundant.patroni
-      selfLib.test.redundant.cephfs
-      selfLib.test.redundant.valkey
-    ];
+    test =
+      { machines, ... }:
+      {
+        toh.test.contracts.chat.redundant = builtins.concatStringsSep " && " [
+          selfLib.test.redundant.patroni
+          selfLib.test.redundant.cephfs
+          selfLib.test.redundant.valkey
+        ];
+        toh.test.faults.failoverDelay = selfLib.test.failoverDelay.cephfs machines;
+      };
   };
 
   self.nixosTests.contracts-chat-synapse = selfLib.test.makeNixosTest {

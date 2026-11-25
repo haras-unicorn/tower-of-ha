@@ -10,7 +10,23 @@
       toh.services.envoy.enable = true;
       toh.services.valkey.enable = true;
     };
-    test.toh.test.contracts.kv.redundant = selfLib.test.redundant.valkey;
+    test =
+      { machines, ... }:
+      let
+        lags = builtins.map (
+          machine:
+          let
+            valkey = machine.toh.services.valkey;
+          in
+          if valkey.enable then valkey.replicaMaxLag else 0
+        ) (builtins.attrValues machines);
+      in
+      {
+        toh.test.contracts.kv = {
+          redundant = selfLib.test.redundant.valkey;
+          replicationLag = builtins.foldl' (longest: lag: if lag > longest then lag else longest) 0 lags;
+        };
+      };
   };
 
   self.nixosTests.contracts-kv-valkey = selfLib.test.makeNixosTest {

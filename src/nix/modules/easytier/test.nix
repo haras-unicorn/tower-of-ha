@@ -19,7 +19,7 @@ in
       toh.services.easytier.enable = true;
     };
     test =
-      config:
+      { config, ... }:
       let
         stunServers = config.toh.test.contracts.vpn.stunServers;
       in

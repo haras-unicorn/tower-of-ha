@@ -258,6 +258,22 @@ Made on 2026-11-25, during the faults of step 8.
   its very first start does it follow the bootstrap primary. There is no static
   primary in the config, because a machine that comes back would otherwise pull
   the cluster back to a stale one.
+- **Valkey can lose its last seconds of writes.** This is the one exception to
+  "every confirmed write survives a failover". Valkey answers before it
+  replicates and has no synchronous mode; `WAIT` would need the apps to ask for
+  it, and they are not ours. So the primary refuses writes once no replica
+  acknowledged within `toh.services.valkey.replicaMaxLag` (2 seconds), which
+  keeps the loss to about those seconds. The apps keep only what they can lose
+  there: caches, sessions and worker messages, and the queue of Forgejo, which
+  can lose a job like a webhook delivery. The kv contract waits longer than the
+  lag after each write before it kills a server.
+- **CephFS keeps Ceph's waits for now.** When the active metadata server dies
+  with its monitor, the monitors wait `mds_beacon_mon_down_grace` (60 seconds)
+  before they replace it, and the new one waits `mds_reconnect_timeout` (45
+  seconds) for the clients it knew. Both are tunables of the CephFS module with
+  Ceph's defaults, and the fault tests of CephFS and of what lives on it wait
+  for them on top of the shared failover time. Shorter waits come with the speed
+  work.
 
 ## Architecture today
 

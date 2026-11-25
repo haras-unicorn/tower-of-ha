@@ -20,10 +20,31 @@
     valkey = "toh valkey valkey info replication | grep -qE '^(master_link_status:up|slave[0-9]+:.*state=online)'";
   };
 
+  # NOTE: seconds a service waits on purpose before it takes over, read from
+  # the machines of a test, for the failoverDelay option of the faults
+  self.lib.test.failoverDelay = {
+    # NOTE: the monitors wait out their grace for a silent metadata server,
+    # then the new one waits for the mount of the machine that went away
+    cephfs =
+      machines:
+      let
+        delays = builtins.map (
+          machine:
+          let
+            cephfs = machine.toh.services.cephfs;
+          in
+          if cephfs.enable then cephfs.monitorDownGrace + cephfs.reconnectTimeout else 0
+        ) (builtins.attrValues machines);
+      in
+      builtins.foldl' (longest: delay: if delay > longest then delay else longest) 0 delays;
+  };
+
   self.lib.test.testModules.faults =
     { lib, config, ... }:
     let
       cfg = config.toh.test.faults;
+
+      failoverTime = builtins.toString (cfg.failoverTimeout + cfg.failoverDelay);
 
       kills.vm = ''
         def fault_kill(machine):
@@ -106,6 +127,15 @@
           '';
         };
 
+        failoverDelay = lib.mkOption {
+          type = lib.types.ints.unsigned;
+          default = 0;
+          description = ''
+            Seconds a service waits on purpose before it takes over, like the
+            graces of CephFS, which a failover gets on top of the timeout
+          '';
+        };
+
         kills = lib.mkOption {
           type = lib.types.ints.unsigned;
           default = 0;
@@ -167,10 +197,10 @@
               fault_kill(server)
               after = f"after-{server.name}"
               if write:
-                writer.wait_until_succeeds(write(after), timeout=${builtins.toString cfg.failoverTimeout})
+                writer.wait_until_succeeds(write(after), timeout=${failoverTime})
                 written.append(after)
               for value in written:
-                checker.wait_until_succeeds(holds(value), timeout=${builtins.toString cfg.failoverTimeout})
+                checker.wait_until_succeeds(holds(value), timeout=${failoverTime})
               fault_revive(server)
               server.wait_until_succeeds(
                 f"systemctl is-active {target}", timeout=${builtins.toString cfg.reviveTimeout}

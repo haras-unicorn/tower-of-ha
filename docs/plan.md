@@ -582,10 +582,10 @@ holds an etcd lease and the workers run on every machine (see the
      that holds data (`fault_kill_each`), and into `services-etcd`. Each
      implementation says with `redundant` when it can lose a server. The S3,
      LDAP, email, secrets, database, kv, OIDC, git and chat contracts and
-     `services-etcd` pass. The filesystem contract passes most runs, and the
-     share contract (Samba) fails most, both because CephFS can take longer than
-     the failover time, see [the todo](./todo.md#not-placed-yet). DNS, time,
-     Prometheus and Alertmanager are left out on purpose. What the kills found:
+     `services-etcd` pass. The filesystem contract passes since the tests wait
+     for the graces of CephFS, and the share contract (Samba) still fails, see
+     [the todo](./todo.md#not-placed-yet). DNS, time, Prometheus and
+     Alertmanager are left out on purpose. What the kills found:
      - Sentinel will not fail over the same primary again for twice its failover
        timeout, 6 minutes by default, so a second kill waited that long. The
        timeout is the tunable `toh.services.valkey.sentinel.failoverTimeout`, 60
@@ -599,9 +599,11 @@ holds an etcd lease and the workers run on every machine (see the
        replica of itself.
      - The tests had no check that Valkey replicates at all, and the first kill
        came while the replicas were still in their first sync. Valkey replicates
-       after it answers, so the kv contract counts a write only once `WAIT` says
-       a replica has it, and the apps that use Valkey can lose the last moment
-       of what they wrote (see [what the tests show](./behavior.md#valkey)).
+       after it answers and has no synchronous mode, so the apps that use it can
+       lose the last seconds of what they wrote. The primary now refuses writes
+       once no replica acknowledged within `toh.services.valkey.replicaMaxLag`,
+       and the kv contract writes plainly and waits longer than that before a
+       kill (see the [design](./design.md#decisions)).
      - CoreDNS named every relay in a fixed order, so clients that try only the
        first address kept reaching a dead machine. It now names only the relays
        whose Envoy is ready, still in a fixed order. `services-coredns-relays`
@@ -620,7 +622,11 @@ holds an etcd lease and the workers run on every machine (see the
        for 80 to 125 seconds: a monitor election, then 60 seconds of
        `mds_beacon_mon_down_grace`, then up to 45 seconds of
        `mds_reconnect_timeout` waiting for the dead machine's mount. A watcher
-       of the cluster log in the filesystem and share contracts showed it.
+       of the cluster log in the filesystem and share contracts showed it. Both
+       waits are now the tunables `toh.services.cephfs.monitorDownGrace` and
+       `reconnectTimeout`, with Ceph's defaults, and the tests of CephFS and of
+       what lives on it wait for them on top of the failover time
+       (`toh.test.faults.failoverDelay`).
 2. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be
    absolutely sure that what is being tested is the failure and not the test.
