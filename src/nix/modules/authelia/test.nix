@@ -5,6 +5,7 @@
     capability = "oidc";
     implementation = "authelia";
     server = {
+      toh.programs.cli.enable = true;
       toh.services.envoy.enable = true;
       toh.services.coredns.enable = true;
       toh.services.etcd.enable = true;
@@ -15,6 +16,9 @@
       toh.services.maddy.enable = true;
       toh.services.authelia.enable = true;
     };
+    # NOTE: the clients are in Patroni and the sessions in Valkey
+    test.toh.test.contracts.oidc.redundant =
+      "${selfLib.test.redundant.patroni} && ${selfLib.test.redundant.valkey}";
   };
 
   self.nixosTests.contracts-oidc-authelia = selfLib.test.makeNixosTest {

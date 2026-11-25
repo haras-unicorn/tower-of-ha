@@ -22,6 +22,15 @@
       clientMeta = machines.client.toh.meta;
       issuer = clientMeta.oidc.clients.${app}.issuerUrl;
       issuerHost = builtins.head (builtins.match "https://([^/:]+).*" issuer);
+
+      # NOTE: what a provider keeps can only be read back through a login,
+      # so the failover checks that it still takes the request of the app
+      failover = selfLib.test.contract.failover {
+        inherit cfg machines;
+        capability = "oidc";
+        write = "None";
+        holds = ''lambda _: "contract-oidc"'';
+      };
     in
     {
       options.toh.test.contracts.oidc = selfLib.test.contract.options "oidc" cfg;
@@ -91,6 +100,8 @@
           {
             toh.test.commands.suffix = ''
               client.wait_until_succeeds("contract-oidc", timeout=300)
+
+              ${failover}
             '';
           }
         ]
