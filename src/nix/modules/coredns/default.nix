@@ -29,11 +29,31 @@
 
       otherCorednsMachines = selfLib.cluster.otherServiceMachines config "coredns";
 
-      relays =
-        if builtins.elem config.toh.meta.network.ip config.toh.meta.relays then
-          [ "127.0.0.1" ] ++ config.toh.meta.relays
-        else
-          config.toh.meta.relays;
+      relayZones = lib.unique [
+        serviceDomain
+        emailDomain
+      ];
+      relaysDirectory = "/run/coredns-relays";
+      relaysUser = "coredns-relays";
+
+      # NOTE: the same zone twice, once for queries from this machine, which
+      # may get its own relay at localhost, and once for the others, see
+      # relays.nu
+      makeRelayZone = zone: ''
+        ${zone} {
+          bind 127.0.0.1
+          file ${relaysDirectory}/${zone}.local.zone {
+            reload ${builtins.toString cfg.relays.interval}s
+          }
+        }
+
+        ${zone} {
+          bind ${config.toh.meta.network.ip}
+          file ${relaysDirectory}/${zone}.zone {
+            reload ${builtins.toString cfg.relays.interval}s
+          }
+        }
+      '';
     in
     {
       options.toh.services = {
@@ -52,6 +72,32 @@
             ];
             description = "Upstream DNS forwarders for external queries";
           };
+
+          relays = {
+            interval = lib.mkOption {
+              type = lib.types.ints.positive;
+              default = 2;
+              description = ''
+                Seconds between two health checks of every relay, after which
+                the answers name only the relays that answered.
+              '';
+            };
+
+            timeout = lib.mkOption {
+              type = lib.types.ints.positive;
+              default = 1;
+              description = "Seconds a relay has to answer its health check.";
+            };
+
+            ttl = lib.mkOption {
+              type = lib.types.ints.positive;
+              default = 5;
+              description = ''
+                Seconds a client may keep an answer that names relays, so it
+                stops using a relay that went down soon after.
+              '';
+            };
+          };
         };
       };
       config = lib.mkMerge [
@@ -65,6 +111,64 @@
 
           networking.firewall.allowedUDPPorts = [ 53 ];
           networking.firewall.allowedTCPPorts = [ 53 ];
+
+          toh.overlays = selfLib.cli.makeOverlays {
+            name = "coredns-relays";
+            runtimeInputs = (
+              pkgs: [
+                pkgs.curl
+                pkgs.coreutils
+                pkgs.systemd
+              ]
+            );
+            textFile = ./relays.nu;
+            textVariables = {
+              TOH_COREDNS_RELAYS_ALL = builtins.toJSON config.toh.meta.relays;
+              TOH_COREDNS_RELAYS_OWN_IP = config.toh.meta.network.ip;
+              TOH_COREDNS_RELAYS_ZONES = builtins.toJSON relayZones;
+              TOH_COREDNS_RELAYS_DIRECTORY = relaysDirectory;
+              TOH_COREDNS_RELAYS_HEALTH_PORT = builtins.toString config.toh.meta.proxy.health.port;
+              TOH_COREDNS_RELAYS_HEALTH_PATH = config.toh.meta.proxy.health.path;
+              TOH_COREDNS_RELAYS_INTERVAL = builtins.toString cfg.relays.interval;
+              TOH_COREDNS_RELAYS_TIMEOUT = builtins.toString cfg.relays.timeout;
+              TOH_COREDNS_RELAYS_TTL = builtins.toString cfg.relays.ttl;
+            };
+          };
+
+          systemd.services.coredns-relays = {
+            description = "Zones of the relays that are up, for CoreDNS";
+            wantedBy = [ "coredns.service" ];
+            before = [ "coredns.service" ];
+            after = [ "toh-network-online.target" ];
+            wants = [ "toh-network-online.target" ];
+            serviceConfig = {
+              Type = "notify";
+              NotifyAccess = "all";
+              ExecStart = "${pkgs.tohPackages.coredns-relays}/bin/coredns-relays";
+              Restart = "always";
+              # NOTE: a user of its own and not a dynamic one, because systemd
+              # hides the kept runtime directory of a dynamic user from other
+              # users, and CoreDNS has to read the zones
+              User = relaysUser;
+              Group = relaysUser;
+              RuntimeDirectory = builtins.baseNameOf relaysDirectory;
+              RuntimeDirectoryMode = "0755";
+              # NOTE: CoreDNS keeps reading the zones while this restarts
+              RuntimeDirectoryPreserve = true;
+              UMask = "0022";
+            };
+          };
+
+          users.users.${relaysUser} = {
+            isSystemUser = true;
+            group = relaysUser;
+          };
+          users.groups.${relaysUser} = { };
+
+          systemd.services.coredns = {
+            requires = [ "coredns-relays.service" ];
+            after = [ "coredns-relays.service" ];
+          };
 
           services.coredns = {
             enable = true;
@@ -80,29 +184,7 @@
                 }
               }
 
-              ${emailDomain} {
-                bind 127.0.0.1
-                bind ${config.toh.meta.network.ip}
-                template IN A {
-                  ${selfLib.strings.indentTail "    " (
-                    builtins.concatStringsSep "\n" (
-                      builtins.map (relay: ''answer "{{ .Name }} 60 IN A ${relay}"'') relays
-                    )
-                  )}
-                }
-              }
-
-              ${serviceDomain} {
-                bind 127.0.0.1
-                bind ${config.toh.meta.network.ip}
-                template IN A {
-                  ${selfLib.strings.indentTail "    " (
-                    builtins.concatStringsSep "\n" (
-                      builtins.map (relay: ''answer "{{ .Name }} 60 IN A ${relay}"'') relays
-                    )
-                  )}
-                }
-              }
+              ${builtins.concatStringsSep "\n" (builtins.map makeRelayZone relayZones)}
 
               . {
                 bind 127.0.0.1

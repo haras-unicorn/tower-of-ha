@@ -57,9 +57,15 @@
                   (lib.mkIf config.toh.services.coredns.enable {
                     toh.services.coredns.forwarders = lib.mkForce [ dnsIp ];
                   })
-                  (lib.mkIf (!config.toh.services.coredns.enable) {
-                    networking.nameservers = lib.mkForce [ dnsIp ];
-                  })
+                  # NOTE: a machine of a cluster with CoreDNS asks that, so the
+                  # tests see the answers the cluster gives, and CoreDNS asks
+                  # the helper only for what it forwards
+                  (lib.mkIf
+                    (!config.toh.services.coredns.enable && !(selfLib.cluster.anyServiceMachines config "coredns"))
+                    {
+                      networking.nameservers = lib.mkForce [ dnsIp ];
+                    }
+                  )
                 ]
               )
             );

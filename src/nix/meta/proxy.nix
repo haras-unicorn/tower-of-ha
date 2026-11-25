@@ -66,6 +66,23 @@
           `toh.meta.proxies`
         '';
 
+        health = {
+          port = lib.mkOption {
+            type = lib.types.port;
+            default = 9902;
+            description = ''
+              Port at the address of a proxy machine that answers over HTTP
+              while the proxy serves, so DNS only names proxies that are up.
+            '';
+          };
+
+          path = lib.mkOption {
+            type = lib.types.str;
+            default = "/ready";
+            description = "Path of the health answer of a proxy.";
+          };
+        };
+
         ports = {
           https = lib.mkOption {
             type = lib.types.port;

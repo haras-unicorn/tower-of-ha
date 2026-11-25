@@ -437,6 +437,13 @@
                             match.path = statsPath;
                             route.cluster = adminClusterName;
                           }
+                          {
+                            match.path = config.toh.meta.proxy.health.path;
+                            route = {
+                              cluster = adminClusterName;
+                              prefix_rewrite = "/ready";
+                            };
+                          }
                         ];
                       }
                     ];
@@ -475,10 +482,12 @@
 
         statsPort = lib.mkOption {
           type = lib.types.port;
-          default = 9902;
+          default = config.toh.meta.proxy.health.port;
+          defaultText = lib.literalExpression "config.toh.meta.proxy.health.port";
           description = ''
             Port that serves only the stats of the admin interface, in the
-            format of Prometheus, at the address of the machine.
+            format of Prometheus, and the health answer of the proxy, at the
+            address of the machine.
           '';
         };
 
