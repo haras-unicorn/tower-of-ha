@@ -10,8 +10,8 @@ Each service has three parts:
 - **Holes:** behavior that no test checks yet. Step 8.2 fills these.
 - **Failover:** whether a test stops a copy of the service and checks that the
   others take over. Where none does, the faults of step 8.1 cover it. High
-  availability means both failover and distribution: when one machine goes
-  down, the service still answers and still has the same data.
+  availability means both failover and distribution: when one machine goes down,
+  the service still answers and still has the same data.
 
 Every test also runs the invariant checks (`src/nix/test/invariants.nix`), so
 they are not repeated here. A contract test is listed under the service that
@@ -46,8 +46,8 @@ Tests: `contracts-alerts-alertmanager`, `services-alertmanager-matrix`.
 Tests: `contracts-oidc-authelia`, `services-authelia`.
 
 - **Shows:** the discovery document names its issuer, and a registered client
-  with its secret can push an authorization request. The health endpoint
-  answers through the proxy on every machine.
+  with its secret can push an authorization request. The health endpoint answers
+  through the proxy on every machine.
 - **Holes:** a login. Authelia's own API takes a user name and password without
   a browser, so a test can log in a user from LLDAP. Also: a client with a wrong
   secret is turned away.
@@ -66,9 +66,9 @@ Tests: `contracts-filesystem-cephfs`, `services-cephfs`,
 `services-cephfs-mount`, and the skipped VM test `services-cephfs-kernel-mount`.
 
 - **Shows:** the cluster is healthy apart from clock skew. A file written on one
-  machine is read on every other, through the FUSE mount, and through the
-  kernel mount in the VM test. In the contract, a second client reads what the
-  first wrote.
+  machine is read on every other, through the FUSE mount, and through the kernel
+  mount in the VM test. In the contract, a second client reads what the first
+  wrote.
 - **Holes:** none beyond failover.
 - **Failover:** none. Nothing checks that a mount keeps working when a machine
   of the cluster goes away.
@@ -78,10 +78,10 @@ Tests: `contracts-filesystem-cephfs`, `services-cephfs`,
 Tests: `contracts-time-chronyd`, `services-chronyd`, and the skipped VM test
 `services-chronyd-clock`.
 
-- **Shows:** every serving machine answers over NTP. `toh-time-synchronized`
-  and a service that depends on it go down and come back when chronyd is
-  stopped, gets SIGTERM, or gets SIGKILL. In the VM, a clock that is off by an
-  hour is set right.
+- **Shows:** every serving machine answers over NTP. `toh-time-synchronized` and
+  a service that depends on it go down and come back when chronyd is stopped,
+  gets SIGTERM, or gets SIGKILL. In the VM, a clock that is off by an hour is
+  set right.
 - **Holes:** none.
 - **Failover:** none across machines, only the restarts above.
 
@@ -98,8 +98,8 @@ Test: `services-cli`.
 Tests: `contracts-dns-coredns`, `services-coredns`.
 
 - **Shows:** it answers the node name of a machine with its address, without
-  `/etc/hosts`. It forwards a zone it does not own to the server above it.
-  Every other test resolves service names like `*.service.toh` through it.
+  `/etc/hosts`. It forwards a zone it does not own to the server above it. Every
+  other test resolves service names like `*.service.toh` through it.
 - **Holes:** none.
 - **Failover:** none.
 
@@ -118,8 +118,8 @@ Tests: `contracts-vpn-easytier-mesh`, `contracts-vpn-easytier-relay-proxy`,
 
 - **Shows:** five machines on one network reach each other over the VPN. Two
   homes behind NAT reach each other through a relay. With hole punching, the
-  traffic goes straight between the homes and keeps going after the relay is
-  cut off.
+  traffic goes straight between the homes and keeps going after the relay is cut
+  off.
 - **Holes:** none.
 
 ## Element
@@ -136,12 +136,12 @@ Tests: `contracts-proxy-envoy` and its ten `balancing` variants.
 
 - **Shows:** it routes by host, also with a port in the host header, by path
   prefix, by a regular expression that must match the whole path, and by
-  priority. It spreads requests over every backend, leaves out a stopped one
-  and takes it back, for HTTP, HTTPS and TCP with TLS ended, ended and started
+  priority. It spreads requests over every backend, leaves out a stopped one and
+  takes it back, for HTTP, HTTPS and TCP with TLS ended, ended and started
   again, or passed through, and with every kind of health check.
   `services-prometheus` reads its stats on every machine.
-- **Holes:** the stats port serves only stats. The admin interface behind it
-  can change and stop the proxy, so a test should see that its other paths are
+- **Holes:** the stats port serves only stats. The admin interface behind it can
+  change and stop the proxy, so a test should see that its other paths are
   closed.
 - **Failover:** the balancing variants stop backends, not Envoy itself.
 
@@ -149,11 +149,11 @@ Tests: `contracts-proxy-envoy` and its ten `balancing` variants.
 
 Test: `services-etcd`.
 
-- **Shows:** the health endpoint answers over TLS with a client certificate,
-  and all three members are started. The Samba and Synapse tests use its leases
+- **Shows:** the health endpoint answers over TLS with a client certificate, and
+  all three members are started. The Samba and Synapse tests use its leases
   (`toh.leases`) and move the holder.
-- **Holes:** a key written on one machine is read on another. A client without
-  a certificate is turned away.
+- **Holes:** a key written on one machine is read on another. A client without a
+  certificate is turned away.
 - **Failover:** none.
 
 ## Falco
@@ -214,8 +214,8 @@ Tests: `contracts-ldap-lldap`, `services-lldap`.
 
 Tests: `contracts-email-maddy`, `services-maddy`.
 
-- **Shows:** an app sends a mail to itself over submission with TLS and finds
-  it over IMAP. `services-maddy` lists the envelopes with the CLI.
+- **Shows:** an app sends a mail to itself over submission with TLS and finds it
+  over IMAP. `services-maddy` lists the envelopes with the CLI.
 - **Holes:** a mail from one app to another.
 - **Failover:** none.
 
@@ -255,8 +255,8 @@ Tests: `contracts-secrets-openbao`, `services-openbao`.
 Tests: `services-openssh`, `services-openssh-cli-command`,
 `services-openssh-cli-copy`.
 
-- **Shows:** sshd is enabled without keyboard-interactive login. `toh ssh
-command` and `toh ssh copy` work between two machines.
+- **Shows:** sshd is enabled without keyboard-interactive login.
+  `toh ssh command` and `toh ssh copy` work between two machines.
 - **Holes:** the test defaults turn on root login and password login, so no test
   runs with the settings of the module. A test should see a password login
   turned away with them.
@@ -319,9 +319,9 @@ Tests: `contracts-chat-synapse`, `services-synapse`,
 
 - **Shows:** an app writes a message and a second client reads it. The main
   process uses Redis, and its replication listener answers through the proxy.
-  Workers answer client and federation requests, and the main process does
-  not. A user of the cluster and a user of an outside server read each other in
-  one room, and the server well-known file names the cluster.
+  Workers answer client and federation requests, and the main process does not.
+  A user of the cluster and a user of an outside server read each other in one
+  room, and the server well-known file names the cluster.
 - **Holes:** uploaded media is still there after a failover, which is why the
   media store is on CephFS. Federation after a failover, which needs the same
   signing key on every machine.
