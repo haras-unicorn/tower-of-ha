@@ -244,6 +244,21 @@ check. First correct, then fast.
   writes. Anything else is either not highly available or a split brain, where
   both sides take writes that cannot be merged.
 
+Made on 2026-11-25, during the faults of step 8.
+
+- **DNS names only the relays that answer, in a fixed order.** Some clients try
+  only the first address of a name, so CoreDNS leaves out a relay whose Envoy is
+  not ready, and a machine gets its own relay as `127.0.0.1`. The order is not
+  shuffled, because the same question should get the same answer. When no relay
+  answers, every relay is named, so a broken probe does not empty the zone. Once
+  clients go through a local proxy this matters less, but it stays as hardening.
+- **A Valkey machine asks the cluster who the primary is before it starts.** Its
+  server follows the primary that the other sentinels agree on last (the highest
+  config epoch). When no sentinel answers, it keeps the role it had, and only on
+  its very first start does it follow the bootstrap primary. There is no static
+  primary in the config, because a machine that comes back would otherwise pull
+  the cluster back to a stale one.
+
 ## Architecture today
 
 This is how the code on `main` works, as read on 2026-11-16.

@@ -12,6 +12,8 @@ ignoreWords:
   - patroni
   - patronictl
   - valkey
+  - slaveof
+  - rediscli
   - vaultwarden
   - forgejo
   - addy

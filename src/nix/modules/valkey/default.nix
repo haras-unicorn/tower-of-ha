@@ -1,6 +1,7 @@
-# TODO: replace static bootstrapPrimary with post-start script that discovers
-# the current primary via sentinel and adjusts replication accordingly.
-# This would eliminate the need for a pre-designated bootstrap node.
+# NOTE: the config of the redis module is the same on every start, so before a
+# server or a sentinel starts, primary.nu points it at the primary the other
+# sentinels agree on; the bootstrap primary only counts on the very first start
+# of a machine, while no sentinel answers
 
 { selfLib, ... }:
 
@@ -25,7 +26,15 @@
       bootstrapPrimary = lib.head valkeyMachines;
       bootstrapPrimaryIp = bootstrapPrimary.meta.network.ip;
       bootstrapPrimaryName = bootstrapPrimary.name;
-      isBootstrapPrimary = config.toh.meta.machine.name == bootstrapPrimaryName;
+
+      otherMachines = builtins.filter (
+        machine: machine.name != config.toh.meta.machine.name
+      ) valkeyMachines;
+
+      # NOTE: the paths the redis module keeps the config of each server in,
+      # which Valkey rewrites when a sentinel reconfigures it
+      serverConf = "/var/lib/redis-valkey/redis.conf";
+      sentinelConf = "/var/lib/redis-valkey-sentinel/redis.conf";
 
       quorum = lib.trivial.min (builtins.ceil ((builtins.length valkeyMachines) / 2.0)) (
         builtins.length valkeyMachines
@@ -47,6 +56,15 @@
       options.toh.services = {
         valkey = {
           enable = lib.mkEnableOption "Valkey";
+
+          sentinel.askTimeout = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 5;
+            description = ''
+              Seconds a machine waits for each of the other sentinels to name
+              the primary before its server or sentinel starts.
+            '';
+          };
 
           sentinel.failoverTimeout = lib.mkOption {
             type = lib.types.ints.positive;
@@ -96,7 +114,6 @@
                   tls-replication = true;
                   replica-serve-stale-data = false;
                   aclfile = config.toh.meta.sops.secrets."valkey-acl".path;
-                  replicaof = lib.mkIf (!isBootstrapPrimary) "${bootstrapPrimaryIp} ${builtins.toString valkeyPort}";
                 };
               };
 
@@ -135,6 +152,38 @@
             sentinelPort
           ];
 
+          toh.overlays = selfLib.cli.makeOverlays {
+            name = "valkey-primary";
+            runtimeInputs = (
+              pkgs: [
+                pkgs.valkey
+                pkgs.coreutils
+              ]
+            );
+            textFile = ./primary.nu;
+            textVariables = {
+              TOH_VALKEY_PRIMARY_NAME = bootstrapPrimaryName;
+              TOH_VALKEY_PRIMARY_OWN_IP = config.toh.meta.network.ip;
+              TOH_VALKEY_PRIMARY_BOOTSTRAP_IP = bootstrapPrimaryIp;
+              TOH_VALKEY_PRIMARY_PORT = builtins.toString valkeyPort;
+              TOH_VALKEY_PRIMARY_SENTINEL_PORT = builtins.toString sentinelPort;
+              TOH_VALKEY_PRIMARY_SENTINELS = builtins.toJSON (
+                builtins.map (machine: machine.meta.network.ip) otherMachines
+              );
+              TOH_VALKEY_PRIMARY_USER = selfLib.valkey.users.sentinel;
+              TOH_VALKEY_PRIMARY_PASSWORD = sentinel.password;
+              TOH_VALKEY_PRIMARY_CA = sentinel.ca;
+              TOH_VALKEY_PRIMARY_SERVER_CONF = serverConf;
+              TOH_VALKEY_PRIMARY_SENTINEL_CONF = sentinelConf;
+              TOH_VALKEY_PRIMARY_BOOTSTRAPPED = "/var/lib/redis-valkey/toh-bootstrapped";
+              TOH_VALKEY_PRIMARY_TIMEOUT = builtins.toString cfg.sentinel.askTimeout;
+            };
+          };
+
+          systemd.services.redis-valkey.serviceConfig.ExecStartPre = lib.mkAfter [
+            "+${pkgs.tohPackages.valkey-primary}/bin/valkey-primary server"
+          ];
+
           systemd.services.redis-valkey = {
             wantedBy = [
               "toh-network-online.target"
@@ -168,6 +217,7 @@
                 ${lib.getExe pkgs.replace-secret} '@SENTINEL_PASS@' ${lib.escapeShellArg sentinel.password} "$conf"
               ''
             )
+            "+${pkgs.tohPackages.valkey-primary}/bin/valkey-primary sentinel"
           ];
 
           systemd.services.redis-valkey-sentinel = {

@@ -14,6 +14,10 @@
     # NOTE: every placement group is clean again, so all its copies are
     # there, and a metadata server waits to take over
     cephfs = "ceph pg stat | grep -qE '^[0-9]+ pgs: [0-9]+ active[+]clean;' && ceph mds stat | grep -q up:standby";
+
+    # NOTE: a replica follows the primary, or the primary has a replica that
+    # finished its first sync; needs the toh CLI on the server
+    valkey = "toh valkey valkey info replication | grep -qE '^(master_link_status:up|slave[0-9]+:.*state=online)'";
   };
 
   self.lib.test.testModules.faults =

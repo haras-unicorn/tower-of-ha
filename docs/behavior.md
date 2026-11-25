@@ -19,9 +19,9 @@ implements the contract.
 
 ## In short
 
-- Only four services have a failover test: Samba, Synapse, Prometheus and, since
-  step 8, Patroni. The others that hold the data of everything else (Valkey,
-  etcd, CephFS, Garage) do not.
+- Since step 8, every service that holds data has a failover test: its tests
+  kill each server once and check that what was written is still there. DNS,
+  time, Prometheus and Alertmanager are left out on purpose.
 - The weakest tests only show that units start: geoclue, NetworkManager, the
   Forgejo runner, and OpenBao beyond its contract. Backup has no test at all.
 - `services-patroni-init` runs the same script as `services-patroni`, so it
@@ -51,7 +51,8 @@ Tests: `contracts-oidc-authelia`, `services-authelia`.
 - **Holes:** a login. Authelia's own API takes a user name and password without
   a browser, so a test can log in a user from LLDAP. Also: a client with a wrong
   secret is turned away.
-- **Failover:** none.
+- **Failover:** since step 8, the OIDC contract kills every server once, and the
+  client still pushes its authorization request each time.
 
 ## Backup
 
@@ -70,8 +71,9 @@ Tests: `contracts-filesystem-cephfs`, `services-cephfs`,
   mount in the VM test. In the contract, a second client reads what the first
   wrote.
 - **Holes:** none beyond failover.
-- **Failover:** none. Nothing checks that a mount keeps working when a machine
-  of the cluster goes away.
+- **Failover:** since step 8, the filesystem contract kills every server once,
+  after every placement group is clean and a metadata server stands by. What the
+  clients wrote before and after each kill is still there.
 
 ## chronyd
 
@@ -95,13 +97,16 @@ Test: `services-cli`.
 
 ## CoreDNS
 
-Tests: `contracts-dns-coredns`, `services-coredns`.
+Tests: `contracts-dns-coredns`, `services-coredns`, `services-coredns-relays`.
 
 - **Shows:** it answers the node name of a machine with its address, without
   `/etc/hosts`. It forwards a zone it does not own to the server above it. Every
-  other test resolves service names like `*.service.toh` through it.
+  other test resolves service names like `*.service.toh` through it. Service
+  names point only at relays whose Envoy is ready, and a machine gets its own
+  relay as `127.0.0.1`, which no other machine gets.
 - **Holes:** none.
-- **Failover:** none.
+- **Failover:** not a goal of step 8. `services-coredns-relays` kills a relay
+  and checks that its address leaves the answers and comes back after a revive.
 
 ## ddns-updater
 
@@ -152,9 +157,9 @@ Test: `services-etcd`.
 - **Shows:** the health endpoint answers over TLS with a client certificate, and
   all three members are started. The Samba and Synapse tests use its leases
   (`toh.leases`) and move the holder.
-- **Holes:** a key written on one machine is read on another. A client without a
-  certificate is turned away.
-- **Failover:** none.
+- **Holes:** a client without a certificate is turned away.
+- **Failover:** since step 8, `services-etcd` kills each member once. A key one
+  member writes is read on another, before and after each kill.
 
 ## Falco
 
@@ -184,7 +189,8 @@ Tests: `contracts-s3-garage`, `services-garage`.
 - **Shows:** an app puts and gets an object with its own key. Each machine puts
   an object, and every machine gets all of them.
 - **Holes:** the key of one app cannot read the bucket of another.
-- **Failover:** none.
+- **Failover:** since step 8, the S3 contract kills every server once. Every
+  object put before and after each kill can still be got.
 
 ## geoclue
 
@@ -208,7 +214,8 @@ Tests: `contracts-ldap-lldap`, `services-lldap`.
   health endpoint answers, the admin finds itself, and a user added on any
   machine is found from every machine.
 - **Holes:** an app with read-only permission cannot change anything.
-- **Failover:** none.
+- **Failover:** since step 8, the LDAP contract kills every server once. The app
+  still binds and finds itself each time.
 
 ## Maddy
 
@@ -217,7 +224,8 @@ Tests: `contracts-email-maddy`, `services-maddy`.
 - **Shows:** an app sends a mail to itself over submission with TLS and finds it
   over IMAP. `services-maddy` lists the envelopes with the CLI.
 - **Holes:** a mail from one app to another.
-- **Failover:** none.
+- **Failover:** since step 8, the email contract kills every server once. Every
+  mail sent before and after each kill is found over IMAP.
 
 ## NetworkManager
 
@@ -248,7 +256,8 @@ Tests: `contracts-secrets-openbao`, `services-openbao`.
 
   These go with the [parked](./plan.md#parked) OpenBao fixes.
 
-- **Failover:** none.
+- **Failover:** since step 8, the secrets contract kills every server once.
+  Every secret written before and after each kill can still be read.
 
 ## OpenSSH
 
@@ -333,6 +342,13 @@ Tests: `contracts-chat-synapse`, `services-synapse`,
 Tests: `contracts-kv-valkey`, `services-valkey`.
 
 - **Shows:** an app sets and gets a key under its prefix, over TLS with its own
-  certificate and user. The CLI pings it on every machine.
-- **Holes:** the ACL keeps an app to its prefix. A write reaches the replicas.
-- **Failover:** none. Nothing stops the primary to see Sentinel pick a new one.
+  certificate and user. The CLI pings it on every machine, and every machine is
+  either the primary with a replica or a replica that follows it.
+- **Holes:** the ACL keeps an app to its prefix.
+- **Failover:** since step 8, the kv contract kills every server once, the
+  primary among them. Sentinel picks a new primary, a server that comes back
+  follows it, and every key the app wrote is still there. The app counts a write
+  only once `WAIT` says a replica has it: Valkey replicates after it answers, so
+  a plain write that the primary took just before it died can be lost. Forgejo,
+  Synapse and Authelia write without `WAIT`, so they can lose the last moment of
+  their cache, sessions and worker messages.

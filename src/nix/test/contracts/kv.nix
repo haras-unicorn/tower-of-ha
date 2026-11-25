@@ -18,6 +18,16 @@
 
       clientMeta = machines.client.toh.meta;
       host = clientMeta.kv.host;
+
+      # NOTE: the store replicates after it answers, so a write only counts
+      # once WAIT says a replica has it; a plain write can be lost with the
+      # primary, see docs/behavior.md
+      failover = selfLib.test.contract.failover {
+        inherit cfg machines;
+        capability = "kv";
+        write = ''lambda value: f"printf 'SET ${prefix}{value} {value}\nWAIT 1 5000\n' | contract-kv | tr '\n' ' ' | grep -xE 'OK [1-9][0-9]* '"'';
+        holds = ''lambda value: f"contract-kv GET ${prefix}{value} | grep -x {value}"'';
+      };
     in
     {
       options.toh.test.contracts.kv = selfLib.test.contract.options "kv" cfg;
@@ -66,6 +76,8 @@
             toh.test.commands.suffix = ''
               client.wait_until_succeeds("contract-kv SET ${key} ${value} | grep -qx OK", timeout=300)
               client.wait_until_succeeds("contract-kv GET ${key} | grep -qx ${value}", timeout=30)
+
+              ${failover}
             '';
           }
         ]
