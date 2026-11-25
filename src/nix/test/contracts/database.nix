@@ -20,9 +20,12 @@
       clientMeta = machines.client.toh.meta;
       host = clientMeta.database.host;
 
-      servers = builtins.filter (lib.hasPrefix "server") (builtins.attrNames machines);
-      failoverTimeout = builtins.toString config.toh.test.faults.failoverTimeout;
-      reviveTimeout = builtins.toString config.toh.test.faults.reviveTimeout;
+      failover = selfLib.test.contract.failover {
+        inherit cfg machines;
+        capability = "database";
+        write = ''lambda value: f"""contract-database "insert into ${table} values ('{value}')" """'';
+        holds = ''lambda value: f"""contract-database "select value from ${table}" | grep -x '{value}'"""'';
+      };
     in
     {
       options.toh.test.contracts.database = selfLib.test.contract.options "database" cfg;
@@ -86,27 +89,8 @@
               locales = client.succeed("contract-database 'select datcollate, datctype from pg_database where datname = current_database()'").strip()
               assert locales == "${locale}|${locale}", f"the database has the locales {locales!r} instead of '${locale}'"
 
-              def insert(value):
-                return f"""contract-database "insert into ${table} values ('{value}')" """
 
-              # NOTE: every server goes away once, so the one that takes the
-              # writes does too, whichever it is
-              confirmed = ["${row}"]
-              for server in [${builtins.concatStringsSep ", " servers}]:
-                before = f"before-{server.name}"
-                client.succeed(insert(before))
-                confirmed.append(before)
-                fault_kill(server)
-                after = f"after-{server.name}"
-                client.wait_until_succeeds(insert(after), timeout=${failoverTimeout})
-                confirmed.append(after)
-                held = client.succeed("contract-database 'select value from ${table}'").split()
-                lost = [value for value in confirmed if value not in held]
-                assert not lost, f"confirmed writes are gone after {server.name} went away: {lost}"
-                fault_revive(server)
-                server.wait_until_succeeds(
-                  "systemctl is-active toh-database-online.target", timeout=${reviveTimeout}
-                )
+              ${failover}
             '';
           }
         ]

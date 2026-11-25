@@ -6,6 +6,8 @@
   self.lib.test.testModules.faults =
     { lib, config, ... }:
     let
+      cfg = config.toh.test.faults;
+
       kills.vm = ''
         def fault_kill(machine):
           with machine.nested("fault: the machine goes away at once"):
@@ -56,6 +58,30 @@
           def fault_revive(machine):
             with machine.nested("fault: the machine comes back"):
               machine.start()
+
+          # NOTE: every server goes away once, so the one that takes the
+          # writes does too, whichever it is; redundant succeeds on a server
+          # once the service can lose any one server, and write and holds
+          # give the commands that write a value and that succeed only while
+          # the value is still there, which the client runs
+          def fault_kill_each(client, servers, target, redundant, write, holds):
+            written = []
+            for server in servers:
+              for living in servers:
+                living.wait_until_succeeds(redundant, timeout=${builtins.toString cfg.reviveTimeout})
+              before = f"before-{server.name}"
+              client.succeed(write(before))
+              written.append(before)
+              fault_kill(server)
+              after = f"after-{server.name}"
+              client.wait_until_succeeds(write(after), timeout=${builtins.toString cfg.failoverTimeout})
+              written.append(after)
+              for value in written:
+                client.wait_until_succeeds(holds(value), timeout=${builtins.toString cfg.failoverTimeout})
+              fault_revive(server)
+              server.wait_until_succeeds(
+                f"systemctl is-active {target}", timeout=${builtins.toString cfg.reviveTimeout}
+              )
         ''
       ];
     };

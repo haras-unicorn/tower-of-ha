@@ -17,6 +17,31 @@ in
   self.lib.test.contract = {
     inherit app clientModule;
 
+    # NOTE: python that kills every server of the contract once, see
+    # fault_kill_each in src/nix/test/faults.nix; write and holds are python
+    # lambdas from a value to a command of the client
+    failover =
+      {
+        cfg,
+        machines,
+        capability,
+        write,
+        holds,
+      }:
+      let
+        servers = builtins.filter (lib.hasPrefix "server") (builtins.attrNames machines);
+      in
+      ''
+        fault_kill_each(
+          client,
+          [${builtins.concatStringsSep ", " servers}],
+          "toh-${capability}-online.target",
+          """${cfg.redundant}""",
+          ${write},
+          ${holds},
+        )
+      '';
+
     options = capability: cfg: {
       enable = lib.mkEnableOption "the ${capability} contract test";
 
@@ -57,6 +82,16 @@ in
         type = lib.types.ints.positive;
         default = 3;
         description = "Number of servers";
+      };
+
+      redundant = lib.mkOption {
+        type = lib.types.str;
+        default = "true";
+        description = ''
+          Command that succeeds on a server once the ${capability} can lose
+          any one server, like a database with a synchronous replica; the
+          failover waits for it before it kills the next server
+        '';
       };
     };
 
