@@ -25,7 +25,20 @@
       app = selfLib.test.contract.app;
       value = "works";
 
+      # NOTE: the first message and two of every failover round, with room
+      readLimit = 50;
+
       clientMeta = machines.client.toh.meta;
+
+      # NOTE: a message counts once the server answered its send, and the
+      # reader finds it with its own login
+      failover = selfLib.test.contract.failover {
+        inherit cfg machines;
+        capability = "chat";
+        write = ''lambda value: f"contract-chat write {value}"'';
+        holds = ''lambda value: f"contract-chat read | grep -x {value}"'';
+        reader = "reader";
+      };
 
       client =
         { config, pkgs, ... }:
@@ -75,7 +88,7 @@
                   ;;
                 write)
                   room_id="$(room)"
-                  jq --null-input --arg body ${value} '{ msgtype: "m.text", body: $body }' \
+                  jq --null-input --arg body "''${2:-${value}}" '{ msgtype: "m.text", body: $body }' \
                     | curl --silent --fail --request PUT --header @${authorization} --json @- \
                       "$api/rooms/$(encode "$room_id")/send/m.room.message/$(date +%s%N)" \
                     > /dev/null
@@ -83,7 +96,7 @@
                 read)
                   room_id="$(room)"
                   curl --silent --fail --header @${authorization} \
-                    "$api/rooms/$(encode "$room_id")/messages?dir=b&limit=10" \
+                    "$api/rooms/$(encode "$room_id")/messages?dir=b&limit=${builtins.toString readLimit}" \
                     | jq --raw-output \
                       '.chunk[] | select(.type == "m.room.message") | .content.body'
                   ;;
@@ -128,6 +141,8 @@
               client.wait_until_succeeds("contract-chat write", timeout=300)
               reader.wait_until_succeeds("contract-chat login", timeout=60)
               reader.wait_until_succeeds("contract-chat read | grep -x ${value} > /dev/null", timeout=30)
+
+              ${failover}
             '';
           }
         ]

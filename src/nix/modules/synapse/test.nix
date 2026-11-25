@@ -15,7 +15,17 @@ in
   self.lib.test.testModules.contracts-chat-synapse = selfLib.test.contract.implementation {
     capability = "chat";
     implementation = "synapse";
-    inherit server;
+    server = {
+      imports = [ server ];
+      toh.programs.cli.enable = true;
+    };
+    # NOTE: the state is in Patroni and the media on CephFS, and the main
+    # process and the workers talk through Valkey
+    test.toh.test.contracts.chat.redundant = builtins.concatStringsSep " && " [
+      selfLib.test.redundant.patroni
+      selfLib.test.redundant.cephfs
+      selfLib.test.redundant.valkey
+    ];
   };
 
   self.nixosTests.contracts-chat-synapse = selfLib.test.makeNixosTest {
