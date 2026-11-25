@@ -20,8 +20,9 @@ implements the contract.
 ## In short
 
 - Since step 8, every service that holds data has a failover test: its tests
-  kill each server once and check that what was written is still there. DNS,
-  time, Prometheus and Alertmanager are left out on purpose.
+  kill each server once and check that what was written is still there. Samba
+  does not pass it yet. DNS, time, Prometheus and Alertmanager are left out on
+  purpose.
 - The weakest tests only show that units start: geoclue, NetworkManager, the
   Forgejo runner, and OpenBao beyond its contract. Backup has no test at all.
 - `services-patroni-init` runs the same script as `services-patroni`, so it
@@ -310,8 +311,10 @@ Tests: `contracts-share-samba`, `services-samba`.
   proxy turns up in the CephFS mount of every machine. A user share can be
   added. Only one smbd runs at a time.
 - **Holes:** none.
-- **Failover:** yes. When the holder of the lease stops, another machine starts
-  smbd and serves the share.
+- **Failover:** partly. When the holder of the lease stops cleanly, another
+  machine starts smbd and serves the share. When a server is killed, the share
+  can stay away for longer than the failover time; see
+  [the todo](./todo.md#not-placed-yet).
 
 ## SSSD
 

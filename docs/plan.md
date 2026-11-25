@@ -578,6 +578,49 @@ holds an etcd lease and the workers run on every machine (see the
      writes goes too, and checks that every confirmed write is still there and
      that writes work again. Patroni passes it with strict synchronous
      replication and `pg_rewind`, both new.
+   - Later on 2026-11-25, the same kill went into every contract of a service
+     that holds data (`fault_kill_each`), and into `services-etcd`. Each
+     implementation says with `redundant` when it can lose a server. The S3,
+     LDAP, email, secrets, database, kv, OIDC, git and chat contracts and
+     `services-etcd` pass. The filesystem contract passes most runs, and the
+     share contract (Samba) fails most, both because CephFS can take longer than
+     the failover time, see [the todo](./todo.md#not-placed-yet). DNS, time,
+     Prometheus and Alertmanager are left out on purpose. What the kills found:
+     - Sentinel will not fail over the same primary again for twice its failover
+       timeout, 6 minutes by default, so a second kill waited that long. The
+       timeout is the tunable `toh.services.valkey.sentinel.failoverTimeout`, 60
+       seconds by default.
+     - The Valkey config named the bootstrap primary on every start, so a
+       machine that came back pulled the cluster back to it. A script now asks
+       the other sentinels for the primary first (see the
+       [design](./design.md#decisions)). Writing it found two more bugs: a
+       Nushell script with only `main` subcommands runs nothing, and a sentinel
+       whose kept replicas named the new primary turned that primary into a
+       replica of itself.
+     - The tests had no check that Valkey replicates at all, and the first kill
+       came while the replicas were still in their first sync. Valkey replicates
+       after it answers, so the kv contract counts a write only once `WAIT` says
+       a replica has it, and the apps that use Valkey can lose the last moment
+       of what they wrote (see [what the tests show](./behavior.md#valkey)).
+     - CoreDNS named every relay in a fixed order, so clients that try only the
+       first address kept reaching a dead machine. It now names only the relays
+       whose Envoy is ready, still in a fixed order. `services-coredns-relays`
+       checks it.
+     - The contract clients used the static test DNS, which never drops a dead
+       relay. They now resolve through CoreDNS when the cluster has it.
+     - Forgejo, Synapse and Authelia also keep state in Valkey, so their
+       contracts wait for Valkey to be redundant as well before a kill.
+     - The metadata servers waited 300 seconds before they freed the files of a
+       dead machine's mount. They now wait 60, the tunable
+       `toh.services.cephfs.silentClientEviction`.
+     - A killed container sometimes never stopped, and the test then waited for
+       its global timeout without a word. The kill now fails after
+       `toh.test.faults.shutdownTimeout` and says what is left.
+     - When the killed server holds the active metadata server, CephFS is gone
+       for 80 to 125 seconds: a monitor election, then 60 seconds of
+       `mds_beacon_mon_down_grace`, then up to 45 seconds of
+       `mds_reconnect_timeout` waiting for the dead machine's mount. A watcher
+       of the cluster log in the filesystem and share contracts showed it.
 2. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be
    absolutely sure that what is being tested is the failure and not the test.

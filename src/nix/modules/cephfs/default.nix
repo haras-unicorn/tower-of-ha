@@ -139,6 +139,18 @@
               and the keys cryl generates do not follow it yet.
             '';
           };
+
+          silentClientEviction = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 60;
+            description = ''
+              Seconds after which the metadata servers evict a client that
+              stopped renewing its session, like the mount of a machine that
+              went away, so the files it held open are free again
+              (`session_autoclose` of the filesystem). Ceph waits 300 by
+              default, longer than a failover may take.
+            '';
+          };
         };
       };
 
@@ -245,6 +257,8 @@
                       ceph osd pool application enable cephfs.ceph.meta cephfs
                       ceph osd pool application enable cephfs.ceph.data cephfs
                     fi
+
+                    ceph fs set ceph session_autoclose ${builtins.toString cfg.silentClientEviction}
                   '';
                   serviceConfig = {
                     Type = "oneshot";
