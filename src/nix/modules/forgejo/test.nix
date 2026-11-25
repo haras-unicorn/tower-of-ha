@@ -5,6 +5,7 @@
     capability = "git";
     implementation = "forgejo";
     server = {
+      toh.programs.cli.enable = true;
       toh.services.etcd.enable = true;
       toh.services.coredns.enable = true;
       toh.services.envoy.enable = true;
@@ -17,6 +18,13 @@
       toh.services.authelia.enable = true;
       toh.services.forgejo.enable = true;
     };
+    # NOTE: the repositories are on CephFS and the rest is in Patroni, and
+    # Forgejo is only healthy while its cache in Valkey answers
+    test.toh.test.contracts.git.redundant = builtins.concatStringsSep " && " [
+      selfLib.test.redundant.patroni
+      selfLib.test.redundant.cephfs
+      selfLib.test.redundant.valkey
+    ];
   };
 
   self.nixosTests.contracts-git-forgejo = selfLib.test.makeNixosTest {

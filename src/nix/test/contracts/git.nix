@@ -19,6 +19,14 @@
       value = "works";
 
       clientMeta = machines.client.toh.meta;
+
+      # NOTE: every value is a branch of its own, pushed from a new repository
+      failover = selfLib.test.contract.failover {
+        inherit cfg machines;
+        capability = "git";
+        write = ''lambda value: f"contract-git push-value {value}"'';
+        holds = ''lambda value: f"contract-git clone-value {value} | grep -x {value}"'';
+      };
     in
     {
       options.toh.test.contracts.git = selfLib.test.contract.options "git" cfg;
@@ -69,6 +77,17 @@
                         git clone --quiet ${repository} cloned
                         cat cloned/value
                         ;;
+                      push-value)
+                        git init --quiet pushed
+                        echo "$2" > pushed/value
+                        git -C pushed add value
+                        git -C pushed commit --quiet --message "$2"
+                        git -C pushed push --quiet ${repository} "main:$2"
+                        ;;
+                      clone-value)
+                        git clone --quiet --branch "$2" ${repository} cloned
+                        cat cloned/value
+                        ;;
                     esac
                   '';
                 };
@@ -94,6 +113,8 @@
             toh.test.commands.suffix = ''
               client.wait_until_succeeds("contract-git push", timeout=300)
               client.wait_until_succeeds("contract-git clone | grep -qx ${value}", timeout=30)
+
+              ${failover}
             '';
           }
         ]
