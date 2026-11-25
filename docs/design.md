@@ -227,6 +227,23 @@ Made on 2026-11-21, while picking the observability stack.
     default, so a dashboard made on one machine is missing on the others, and
     the query UI of Thanos is enough for a look at a graph.
 
+Made on 2026-11-25, before the faults of step 8. They say what the fault tests
+check. First correct, then fast.
+
+- **High availability is failover and distribution.** When one machine goes
+  down, the service still answers and still has the same data.
+- **Every confirmed write survives a failover.** A write the service said yes to
+  is still there on the machine that takes over. For Patroni that means
+  synchronous replication. Asynchronous replication, which is faster but can
+  lose the last writes, may come up again later.
+- **Failover happens on its own.** The right outcome is that the service comes
+  back with no one doing anything. How fast is a tunable per service with a
+  shared default, which the fault tests wait for. Making it fast comes later.
+- **On a network split, one side keeps working and the other stops.** The side
+  with a majority of the machines goes on, and the side without one stops taking
+  writes. Anything else is either not highly available or a split brain, where
+  both sides take writes that cannot be merged.
+
 ## Architecture today
 
 This is how the code on `main` works, as read on 2026-11-16.
