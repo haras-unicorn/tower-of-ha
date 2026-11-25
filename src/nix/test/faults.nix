@@ -88,21 +88,25 @@
           # the value is still there, which the client runs, or the reader
           # where a client could answer from what it holds itself; a client
           # that may only read has no write, and holds then checks what was
-          # there before the faults, with the value None
+          # there before the faults, with the value None; a test without a
+          # client of its own passes None, and then one server that stays
+          # writes and another that stays checks
           def fault_kill_each(client, servers, target, redundant, write, holds, reader=None):
-            checker = reader or client
             written = [] if write else [None]
             for server in servers:
+              staying = [other for other in servers if other is not server]
+              writer = client or staying[0]
+              checker = reader or client or staying[-1]
               for living in servers:
                 living.wait_until_succeeds(redundant, timeout=${builtins.toString cfg.reviveTimeout})
               before = f"before-{server.name}"
               if write:
-                client.succeed(write(before))
+                writer.succeed(write(before))
                 written.append(before)
               fault_kill(server)
               after = f"after-{server.name}"
               if write:
-                client.wait_until_succeeds(write(after), timeout=${builtins.toString cfg.failoverTimeout})
+                writer.wait_until_succeeds(write(after), timeout=${builtins.toString cfg.failoverTimeout})
                 written.append(after)
               for value in written:
                 checker.wait_until_succeeds(holds(value), timeout=${builtins.toString cfg.failoverTimeout})
