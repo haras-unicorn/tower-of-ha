@@ -19,7 +19,8 @@ in
 
     # NOTE: python that kills every server of the contract once, see
     # fault_kill_each in src/nix/test/faults.nix; write and holds are python
-    # lambdas from a value to a command of the client
+    # lambdas from a value to a command of the client, and reader names the
+    # machine that runs holds instead of the client
     failover =
       {
         cfg,
@@ -27,6 +28,7 @@ in
         capability,
         write,
         holds,
+        reader ? "None",
       }:
       let
         servers = builtins.filter (lib.hasPrefix "server") (builtins.attrNames machines);
@@ -39,6 +41,7 @@ in
           """${cfg.redundant}""",
           ${write},
           ${holds},
+          reader=${reader},
         )
       '';
 
@@ -109,6 +112,9 @@ in
             amount = cfg.servers;
             module = cfg.server;
           };
+
+          # NOTE: the failover of a contract kills every server once
+          toh.test.faults.kills = lib.mkDefault cfg.servers;
 
           toh.test.dns.enable = dnsHelper;
           toh.test.dns.zones = builtins.mapAttrs (name: addresses: {

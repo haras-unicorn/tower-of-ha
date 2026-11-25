@@ -64,6 +64,7 @@ in
     server = {
       toh.services.cephfs.enable = true;
     };
+    test.toh.test.contracts.filesystem.redundant = selfLib.test.redundant.cephfs;
   };
 
   self.nixosTests.contracts-filesystem-cephfs = selfLib.test.makeNixosTest {

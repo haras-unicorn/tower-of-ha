@@ -10,10 +10,7 @@
       toh.services.envoy.enable = true;
       toh.services.patroni.enable = true;
     };
-    # NOTE: only the synchronous standby may take over, and Patroni names
-    # it a little after the cluster starts
-    test.toh.test.contracts.database.redundant =
-      "patronictl list | grep 'Sync Standby' | grep -q streaming";
+    test.toh.test.contracts.database.redundant = selfLib.test.redundant.patroni;
   };
 
   self.nixosTests.contracts-database-patroni = selfLib.test.makeNixosTest {

@@ -3,6 +3,19 @@
 # docs/design.md, under the decisions of 2026-11-25
 
 {
+  # NOTE: commands that succeed on a server once the service can lose any one
+  # server, for the redundant option of the contracts, joined with && where
+  # an implementation keeps its data in more than one of these
+  self.lib.test.redundant = {
+    # NOTE: only the synchronous standby may take over, and Patroni names it
+    # a little after the cluster starts
+    patroni = "patronictl list | grep 'Sync Standby' | grep -q streaming";
+
+    # NOTE: every placement group is clean again, so all its copies are
+    # there, and a metadata server waits to take over
+    cephfs = "ceph pg stat | grep -qE '^[0-9]+ pgs: [0-9]+ active[+]clean;' && ceph mds stat | grep -q up:standby";
+  };
+
   self.lib.test.testModules.faults =
     { lib, config, ... }:
     let
@@ -42,6 +55,15 @@
           '';
         };
 
+        kills = lib.mkOption {
+          type = lib.types.ints.unsigned;
+          default = 0;
+          description = ''
+            Machines the test kills and revives, each of which gets the time
+            of a failover and a revive on top of the global timeout
+          '';
+        };
+
         reviveTimeout = lib.mkOption {
           type = lib.types.ints.positive;
           default = 300;
@@ -63,21 +85,27 @@
           # writes does too, whichever it is; redundant succeeds on a server
           # once the service can lose any one server, and write and holds
           # give the commands that write a value and that succeed only while
-          # the value is still there, which the client runs
-          def fault_kill_each(client, servers, target, redundant, write, holds):
-            written = []
+          # the value is still there, which the client runs, or the reader
+          # where a client could answer from what it holds itself; a client
+          # that may only read has no write, and holds then checks what was
+          # there before the faults, with the value None
+          def fault_kill_each(client, servers, target, redundant, write, holds, reader=None):
+            checker = reader or client
+            written = [] if write else [None]
             for server in servers:
               for living in servers:
                 living.wait_until_succeeds(redundant, timeout=${builtins.toString cfg.reviveTimeout})
               before = f"before-{server.name}"
-              client.succeed(write(before))
-              written.append(before)
+              if write:
+                client.succeed(write(before))
+                written.append(before)
               fault_kill(server)
               after = f"after-{server.name}"
-              client.wait_until_succeeds(write(after), timeout=${builtins.toString cfg.failoverTimeout})
-              written.append(after)
+              if write:
+                client.wait_until_succeeds(write(after), timeout=${builtins.toString cfg.failoverTimeout})
+                written.append(after)
               for value in written:
-                client.wait_until_succeeds(holds(value), timeout=${builtins.toString cfg.failoverTimeout})
+                checker.wait_until_succeeds(holds(value), timeout=${builtins.toString cfg.failoverTimeout})
               fault_revive(server)
               server.wait_until_succeeds(
                 f"systemctl is-active {target}", timeout=${builtins.toString cfg.reviveTimeout}

@@ -9,6 +9,7 @@
     {
       lib,
       config,
+      machines,
       ...
     }:
     let
@@ -20,6 +21,15 @@
       directory = "/${app}";
       mountPath = "/mnt/${app}";
       value = "works";
+
+      # NOTE: a write counts once sync says the file is on the servers
+      failover = selfLib.test.contract.failover {
+        inherit cfg machines;
+        capability = "filesystem";
+        write = ''lambda value: f"contract-filesystem write-value {value}"'';
+        holds = ''lambda value: f"contract-filesystem read-value {value} | grep -x {value}"'';
+        reader = "reader";
+      };
 
       client =
         { pkgs, ... }:
@@ -41,6 +51,13 @@
                   ;;
                 read)
                   as_app cat ${mountPath}/value
+                  ;;
+                write-value)
+                  as_app tee "${mountPath}/$2" <<<"$2" >/dev/null
+                  as_app sync "${mountPath}/$2"
+                  ;;
+                read-value)
+                  as_app cat "${mountPath}/$2"
                   ;;
               esac
             '';
@@ -74,6 +91,8 @@
               reader.wait_until_succeeds("contract-filesystem mounted", timeout=300)
               client.succeed("contract-filesystem write")
               reader.wait_until_succeeds("contract-filesystem read | grep -qx ${value}", timeout=30)
+
+              ${failover}
             '';
           }
         ]

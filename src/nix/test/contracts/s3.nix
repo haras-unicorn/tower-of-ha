@@ -17,6 +17,13 @@
 
       clientMeta = machines.client.toh.meta;
       host = clientMeta.s3.host;
+
+      failover = selfLib.test.contract.failover {
+        inherit cfg machines;
+        capability = "s3";
+        write = ''lambda value: f"echo {value} | contract-s3 put - s3://${app}/{value}"'';
+        holds = ''lambda value: f"contract-s3 get s3://${app}/{value} - | grep -x {value}"'';
+      };
     in
     {
       options.toh.test.contracts.s3 = selfLib.test.contract.options "s3" cfg;
@@ -64,6 +71,8 @@
             toh.test.commands.suffix = ''
               client.wait_until_succeeds("echo ${value} | contract-s3 put - ${object}", timeout=300)
               client.wait_until_succeeds("contract-s3 get ${object} - | grep -qx ${value}", timeout=30)
+
+              ${failover}
             '';
           }
         ]

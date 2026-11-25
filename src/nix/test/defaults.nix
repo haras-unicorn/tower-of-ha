@@ -11,9 +11,14 @@
   };
 
   self.lib.test.testModules.defaults =
-    { lib, ... }:
+    { lib, config, ... }:
+    let
+      faults = config.toh.test.faults;
+    in
     {
-      globalTimeout = lib.mkDefault 300;
+      globalTimeout = lib.mkDefault (
+        300 + faults.kills * (faults.failoverTimeout + faults.reviveTimeout)
+      );
 
       # NOTE: `dev test` leaves out the tests that set this, unless it is
       # asked for them; a passthru attribute can be read without evaluating
