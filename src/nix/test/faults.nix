@@ -34,18 +34,65 @@
       # NOTE: containers have no crash() in the test driver, so the init of
       # the container gets SIGKILL from outside, which looks like a lost
       # machine to the others; the driver keeps the pid of that init in a
-      # cached property, which has to go so a revive finds the new one
+      # cached property, which has to go so a revive finds the new one; a
+      # container can fail to stop, so the kill waits only so long and then
+      # names the processes that are left and the ones that would collect
+      # the init
       kills.container = ''
         # NOTE: under names of their own, because the test commands may
         # import the same modules, and the linter refuses that twice
         import os as fault_os
         import signal as fault_signal
+        import time as fault_time
 
         def fault_kill(machine):
           with machine.nested("fault: the machine goes away at once"):
-            fault_os.kill(machine.get_systemd_process, fault_signal.SIGKILL)
+            init = machine.get_systemd_process
+            namespace = fault_os.readlink(f"/proc/{init}/ns/pid")
+            fault_os.kill(init, fault_signal.SIGKILL)
+            deadline = fault_time.monotonic() + ${builtins.toString cfg.shutdownTimeout}
+            while fault_left(namespace):
+              if fault_time.monotonic() > deadline:
+                left = "; ".join(fault_left(namespace))
+                parents = "; ".join(fault_parents(init))
+                raise Exception(
+                  f"{machine.name} did not go away, left: {left}, parents: {parents}"
+                )
+              fault_time.sleep(1)
             machine.wait_for_shutdown()
             machine.__dict__.pop("get_systemd_process", None)
+
+        def fault_left(namespace):
+          left = []
+          for pid in fault_os.listdir("/proc"):
+            if not pid.isdigit():
+              continue
+            try:
+              if fault_os.readlink(f"/proc/{pid}/ns/pid") != namespace:
+                continue
+              left.append(" ".join([pid] + [fault_proc(pid, name) for name in ["comm", "stat", "wchan", "stack"]]))
+            except OSError:
+              continue
+          return left
+
+        def fault_parents(pid):
+          parents = []
+          parent = fault_parent(pid)
+          while parent.isdigit() and int(parent) not in [0, fault_os.getpid()]:
+            parents.append(" ".join([parent] + [fault_proc(parent, name) for name in ["stat", "wchan"]]))
+            parent = fault_parent(parent)
+          return parents
+
+        def fault_parent(pid):
+          fields = fault_proc(pid, "stat").rsplit(")", 1)[-1].split()
+          return fields[1] if len(fields) > 1 else ""
+
+        def fault_proc(pid, name):
+          try:
+            with open(f"/proc/{pid}/{name}") as entry:
+              return " ".join(entry.read().split())
+          except OSError as error:
+            return f"({name}: {error.strerror})"
       '';
     in
     {
@@ -64,7 +111,17 @@
           default = 0;
           description = ''
             Machines the test kills and revives, each of which gets the time
-            of a failover and a revive on top of the global timeout
+            of a shutdown, a failover and a revive on top of the global
+            timeout
+          '';
+        };
+
+        shutdownTimeout = lib.mkOption {
+          type = lib.types.ints.positive;
+          default = 60;
+          description = ''
+            Seconds a killed container has to stop; after that the test fails
+            and names the processes that are left
           '';
         };
 

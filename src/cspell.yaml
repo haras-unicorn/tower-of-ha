@@ -28,6 +28,13 @@ ignoreWords:
   - asdict
   - rfile
   - wfile
+  - getpid
+  - isdigit
+  - listdir
+  - readlink
+  - rsplit
+  - strerror
+  - wchan
   - imap
   - socketserver
   - signum
