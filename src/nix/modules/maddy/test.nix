@@ -13,6 +13,7 @@
       toh.services.lldap.enable = true;
       toh.services.maddy.enable = true;
     };
+    test.toh.test.contracts.email.redundant = selfLib.test.redundant.patroni;
   };
 
   self.nixosTests.contracts-email-maddy = selfLib.test.makeNixosTest {

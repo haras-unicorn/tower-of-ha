@@ -16,6 +16,15 @@
 
       clientMeta = machines.client.toh.meta;
       email = clientMeta.email;
+
+      # NOTE: a mail counts once the submission says it took it, and every
+      # value is the subject of a mail of its own
+      failover = selfLib.test.contract.failover {
+        inherit cfg machines;
+        capability = "email";
+        write = ''lambda value: f"contract-email send-value {value}"'';
+        holds = ''lambda value: f"contract-email find-value {value} | grep -E '^[*] SEARCH [0-9]+'"'';
+      };
     in
     {
       options.toh.test.contracts.email = selfLib.test.contract.options "email" cfg;
@@ -76,6 +85,17 @@
                       find)
                         run --url "${imap}" --request 'SEARCH SUBJECT "${subject}"'
                         ;;
+                      send-value)
+                        printf 'From: %s\nTo: %s\nSubject: %s\n\n%s\n' \
+                          "${inbox.address}" "${inbox.address}" "$2" "$2" |
+                          run --url "${submission}" \
+                            --mail-from "${inbox.address}" \
+                            --mail-rcpt "${inbox.address}" \
+                            --upload-file - --crlf
+                        ;;
+                      find-value)
+                        run --url "${imap}" --request "SEARCH SUBJECT \"$2\""
+                        ;;
                     esac
                   '';
                 };
@@ -92,6 +112,8 @@
             toh.test.commands.suffix = ''
               client.wait_until_succeeds("contract-email send", timeout=300)
               client.wait_until_succeeds("contract-email find | grep -Eq '^\\* SEARCH [0-9]+'", timeout=60)
+
+              ${failover}
             '';
           }
         ]
