@@ -47,6 +47,17 @@
       options.toh.services = {
         valkey = {
           enable = lib.mkEnableOption "Valkey";
+
+          sentinel.failoverTimeout = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 60000;
+            description = ''
+              Milliseconds a sentinel gives a failover to finish. A sentinel
+              that took part in a failover starts no other failover of the
+              same primary for twice this long, so it is also how soon the
+              cluster survives the loss of the next primary.
+            '';
+          };
         };
       };
 
@@ -144,12 +155,14 @@
           # their own they never agree and never fail over; the redis module
           # has no option for that user, so this adds it to the runtime config
           # the way the module adds the password of the primary, in shell for
-          # the same reason as the module, replace-secret
+          # the same reason as the module, replace-secret; the module has no
+          # option for the failover timeout either, so it goes in here too
           systemd.services.redis-valkey-sentinel.serviceConfig.ExecStartPre = lib.mkAfter [
             (
               "+"
               + pkgs.writeShellScript "redis-valkey-sentinel-user" ''
                 conf=/run/redis-valkey-sentinel/nixos.conf
+                echo "sentinel failover-timeout ${bootstrapPrimaryName} ${builtins.toString cfg.sentinel.failoverTimeout}" >> "$conf"
                 echo "sentinel sentinel-user ${selfLib.valkey.users.sentinel}" >> "$conf"
                 echo "sentinel sentinel-pass @SENTINEL_PASS@" >> "$conf"
                 ${lib.getExe pkgs.replace-secret} '@SENTINEL_PASS@' ${lib.escapeShellArg sentinel.password} "$conf"
