@@ -21,6 +21,15 @@
             default = true;
           };
 
+          helpers = lib.mkOption {
+            type = lib.types.listOf textType;
+            default = [ ];
+            description = ''
+              Python definitions that the other test commands may use, like
+              the faults; they run first, after the machines start
+            '';
+          };
+
           prefix = lib.mkOption {
             type = textType;
             default = "";
@@ -124,6 +133,10 @@
                 ) commands
               );
 
+            helpers = builtins.concatStringsSep "\n" (
+              builtins.map (evaluateText machines (makeArgs machines)) cfg.helpers
+            );
+
             prefix = evaluateText machines (makeArgs machines) cfg.prefix;
 
             perNodeInCluster = builtins.concatStringsSep "\n" (
@@ -144,6 +157,12 @@
           in
           ''
             start_all()
+
+            #### Test commands helpers
+            print("Defining test commands helpers...")
+
+            ${helpers}
+
 
             #### Test commands prefix
             print("Running test commands prefix...")

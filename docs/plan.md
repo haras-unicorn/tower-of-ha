@@ -566,6 +566,18 @@ holds an etcd lease and the workers run on every machine (see the
 1. **Faults (L).** Kill a machine, split the network, skew the clock, fill a
    disk, restart in the wrong order. Each finding either hardens a module or
    goes into the docs as a known pitfall.
+   - Started on 2026-11-25, after the decisions on what the faults check (see
+     the [design](./design.md#decisions)). The full suite first showed seven
+     tests broken by the invariant checks of step 7.1: servers made copies of
+     app secrets they never use, and the store check took template lines for
+     secrets. Both are fixed.
+   - `src/nix/test/faults.nix` holds the shared faults, for now `fault_kill` and
+     `fault_revive`. A killed container gets SIGKILL on its init from outside,
+     because the test driver has no `crash()` for containers.
+   - The database contract kills every server once, so the one that takes the
+     writes goes too, and checks that every confirmed write is still there and
+     that writes work again. Patroni passes it with strict synchronous
+     replication and `pg_rewind`, both new.
 2. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be
    absolutely sure that what is being tested is the failure and not the test.

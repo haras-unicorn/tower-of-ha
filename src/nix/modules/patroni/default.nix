@@ -67,7 +67,15 @@
             restApiPort = patroniPort;
             settings = {
               bootstrap = {
-                dcs = { };
+                # NOTE: a commit returns only once a replica has it too, and
+                # without a replica the leader takes no writes, because every
+                # confirmed write survives a failover (docs/design.md); the
+                # old leader rewinds to join again as a replica
+                dcs = {
+                  synchronous_mode = true;
+                  synchronous_mode_strict = true;
+                  postgresql.use_pg_rewind = true;
+                };
                 initdb = [
                   "encoding=UTF8"
                   "data-checksums"

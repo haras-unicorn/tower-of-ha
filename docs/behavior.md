@@ -19,9 +19,9 @@ implements the contract.
 
 ## In short
 
-- Only three services have a failover test: Samba, Synapse and Prometheus. The
-  ones that hold the data of everything else (Patroni, Valkey, etcd, CephFS,
-  Garage) do not.
+- Only four services have a failover test: Samba, Synapse, Prometheus and, since
+  step 8, Patroni. The others that hold the data of everything else (Valkey,
+  etcd, CephFS, Garage) do not.
 - The weakest tests only show that units start: geoclue, NetworkManager, the
   Forgejo runner, and OpenBao beyond its contract. Backup has no test at all.
 - `services-patroni-init` runs the same script as `services-patroni`, so it
@@ -270,10 +270,10 @@ Tests: `contracts-database-patroni`, `services-patroni`,
   certificate, finds the table its init script made, writes a row and reads it
   back, and gets the locale it asked for. The health endpoint answers through
   the proxy, `patronictl list` works, and `toh psql` reads the table of inits.
-- **Holes:** `services-patroni-init` checks the same as `services-patroni`. A
-  write reaches the replicas.
-- **Failover:** none. Nothing stops the primary to see a replica take over and
-  the app reconnect through the proxy.
+- **Holes:** `services-patroni-init` checks the same as `services-patroni`.
+- **Failover:** since step 8, the database contract kills every server once, the
+  primary among them. Every write the app had confirmed is still there, and the
+  app writes again through the proxy. The killed server comes back.
 
 ## PKI
 
