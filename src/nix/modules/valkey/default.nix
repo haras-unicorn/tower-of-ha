@@ -139,6 +139,24 @@
             ];
           };
 
+          # NOTE: sentinels ask each other whether the primary is down, and
+          # the default user of the ACL may only ping, so without a user of
+          # their own they never agree and never fail over; the redis module
+          # has no option for that user, so this adds it to the runtime config
+          # the way the module adds the password of the primary, in shell for
+          # the same reason as the module, replace-secret
+          systemd.services.redis-valkey-sentinel.serviceConfig.ExecStartPre = lib.mkAfter [
+            (
+              "+"
+              + pkgs.writeShellScript "redis-valkey-sentinel-user" ''
+                conf=/run/redis-valkey-sentinel/nixos.conf
+                echo "sentinel sentinel-user ${selfLib.valkey.users.sentinel}" >> "$conf"
+                echo "sentinel sentinel-pass @SENTINEL_PASS@" >> "$conf"
+                ${lib.getExe pkgs.replace-secret} '@SENTINEL_PASS@' ${lib.escapeShellArg sentinel.password} "$conf"
+              ''
+            )
+          ];
+
           systemd.services.redis-valkey-sentinel = {
             wantedBy = [
               "toh-network-online.target"
