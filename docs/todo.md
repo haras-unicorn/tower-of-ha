@@ -47,6 +47,35 @@ Found while fixing the tests, not `TODO` comments.
   tries TLS from the first byte and the STARTTLS of Postgres, so SSH and DNS
   show up too, and UDP is not checked.
 
+## Step 8: Faults
+
+- **Valkey lost a confirmed write once.** In the first run of
+  `contracts-kv-valkey` with splits and freezes (2026-11-26, the tree of
+  98a5a4c), the value `during-split-server2` was gone in a later round, after
+  another failover. Its write had said OK while server2 was cut off. Two runs
+  after it passed. That run had no journals in its log, and the exact round of
+  the failed check is not written down anywhere.
+  - A likely cause, not checked: if server2 was the primary when it was cut off,
+    it still says OK to writes for up to `replicaMaxLag` seconds (2), until
+    `min-replicas-to-write` makes it refuse. The client reaches both sides, and
+    Envoy's role check takes about 6 seconds to notice, so the client can write
+    to the cut-off primary. That write never reaches a replica. Sentinel
+    promotes another server, and when the split heals, server2 becomes a replica
+    and drops the write. The `settle` sleep of the kv contract
+    (`src/nix/test/contracts/kv.nix`) only covers a kill, where the write had
+    the time to replicate before the primary went away.
+  - To reproduce: run `contracts-kv-valkey` (or only its split test, once the
+    faults are tests of their own) until it fails; it now prints the journals.
+    It can only happen in the round where the cut-off server is the primary, so
+    see which server is the primary first
+    (`toh valkey valkey info replication`). By hand: cut off the primary, write
+    at once through the proxy, wait for the failover, heal, and read.
+  - Ways to fix it, if that is the cause: confirm a write with `WAIT 1 <ms>`
+    after the `SET`, so only replicated writes count; or record in
+    `docs/behavior.md` that a split can lose the writes of `replicaMaxLag`
+    seconds, like a kill, and have the test leave out writes to a cut-off
+    primary.
+
 ## Step 10: ACL
 
 - `src/nix/meta/user.nix:1`: more than one user, with ACL.
