@@ -1,0 +1,16 @@
+--- a/server/etcdserver/server.go
++++ b/server/etcdserver/server.go
+@@ -1000,13 +1000,6 @@ func (s *EtcdServer) isActive() bool {
+ func (s *EtcdServer) ensureLeadership() bool {
+ 	lg := s.Logger()
+ 
+-	if s.isActive() {
+-		lg.Debug("The member is active, skip checking leadership",
+-			zap.Time("latestTickTs", s.r.getLatestTickTs()),
+-			zap.Time("now", time.Now()))
+-		return true
+-	}
+-
+ 	ctx, cancel := context.WithTimeout(s.ctx, s.Cfg.ReqTimeout())
+ 	defer cancel()
+ 	if err := s.linearizableReadNotify(ctx); err != nil {

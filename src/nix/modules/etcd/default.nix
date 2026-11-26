@@ -27,6 +27,26 @@
         + "=https://${machine.config.toh.meta.network.ip}"
         + ":${peerPortString}"
       ) machines;
+
+      # NOTE: before a leader revokes the leases that ran out, it checks that
+      # it still is the leader, but it skips the check while its clock ticks;
+      # a leader that was paused, by a freeze or a stalled machine, ticks
+      # again at once when it wakes up, so it revoked the leases that were
+      # kept alive at the new leader meanwhile, like the leader key of
+      # Patroni, and an old primary took that key; the patch always asks the
+      # cluster first
+      etcdServer = pkgs.etcd.passthru.deps.etcdserver.overrideAttrs (previous: {
+        patches = (previous.patches or [ ]) ++ [ ./revoke-leadership.patch ];
+      });
+
+      etcdPackage = pkgs.symlinkJoin {
+        name = "etcd-${pkgs.etcd.version}";
+        paths = [
+          etcdServer
+          pkgs.etcd.passthru.deps.etcdutl
+          pkgs.etcd.passthru.deps.etcdctl
+        ];
+      };
     in
     {
       options.toh.services = {
@@ -44,6 +64,7 @@
       config = lib.mkIf cfg.enable {
         services.etcd = {
           enable = true;
+          package = etcdPackage;
           name = config.toh.meta.machine.name;
           listenClientUrls = [
             "https://${config.toh.meta.network.ip}:${clientPortString}"
@@ -91,7 +112,7 @@
         };
 
         environment.systemPackages = [
-          pkgs.etcd
+          etcdPackage
         ];
 
         programs.rust-motd.settings = {
