@@ -39,9 +39,11 @@
     # a little after the cluster starts
     patroni = "patronictl list | grep 'Sync Standby' | grep -q streaming";
 
-    # NOTE: every placement group is clean again, so all its copies are
-    # there, and a metadata server waits to take over
-    cephfs = "ceph pg stat | grep -qE '^[0-9]+ pgs: [0-9]+ active[+]clean;' && ceph mds stat | grep -q up:standby";
+    # NOTE: every monitor is in the quorum again, every placement group is
+    # clean again, so all its copies are there, and a metadata server waits
+    # to take over; a monitor can take a minute after a split to join, and
+    # without it losing one more monitor loses the quorum
+    cephfs = "ceph quorum_status | jq -e '(.quorum | length) == (.monmap.mons | length)' && ceph pg stat | grep -qE '^[0-9]+ pgs: [0-9]+ active[+]clean;' && ceph mds stat | grep -q up:standby";
 
     # NOTE: a replica follows the primary, or the primary has a replica that
     # finished its first sync; needs the toh CLI on the server
@@ -220,9 +222,21 @@
               return " ".join(entry.read().split())
           except OSError as error:
             return f"({name}: {error.strerror})"
+
+        def fault_stuck(machine):
+          init = machine.get_systemd_process
+          return [
+            " ".join([str(pid)] + fault_stat(pid)[:1] + [fault_proc(pid, name) for name in ["comm", "wchan", "stack"]])
+            for pid in fault_pids(fault_namespace(machine))
+            if pid == init or fault_stat(pid)[:1] == ["D"] or "fuse" in fault_proc(pid, "wchan")
+          ]
       '';
 
-      processes.vm = "";
+      # NOTE: the processes of a vm are inside its own kernel, out of reach
+      processes.vm = ''
+        def fault_stuck(machine):
+          return []
+      '';
     in
     {
       options.toh.test.faults = {
@@ -291,6 +305,15 @@
           '';
         };
 
+        reportCommands = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = ''
+            Commands whose output goes into the log, from every server, when
+            a check after a fault fails, for what the journal does not show
+          '';
+        };
+
         reportTimeout = lib.mkOption {
           type = lib.types.ints.positive;
           default = 10;
@@ -324,9 +347,12 @@
         processes.${config.toh.test.kind}
         kills.${config.toh.test.kind}
         freezes.${config.toh.test.kind}
+        # NOTE: the JSON goes in as a JSON string, which python reads the
+        # same way, so quotes in a report command cannot end it early
         ''
-          fault_addresses = fault_json.loads('${builtins.toJSON addresses}')
-          fault_kinds = fault_json.loads('${builtins.toJSON cfg.kinds}')
+          fault_addresses = fault_json.loads(${builtins.toJSON (builtins.toJSON addresses)})
+          fault_kinds = fault_json.loads(${builtins.toJSON (builtins.toJSON cfg.kinds)})
+          fault_report_commands = fault_json.loads(${builtins.toJSON (builtins.toJSON cfg.reportCommands)})
 
           def fault_revive(machine):
             with machine.nested("fault: the machine comes back"):
@@ -420,9 +446,17 @@
 
           # NOTE: the console of a container reaches the log only when it
           # stops, so the journal of a server that still runs is read here; a
-          # server that is down or frozen does not answer in time
+          # server that is down or frozen does not answer in time; init and
+          # the processes that wait in the kernel, like on a mount that
+          # hangs, are read from outside, because they can hang what reads
+          # the journal too
           def fault_report(servers):
             for server in servers:
+              try:
+                stuck = "\n".join(fault_stuck(server)) or "(none)"
+              except Exception as error:
+                stuck = f"(unknown: {error})"
+              print(f"stuck processes of {server.name}:\n{stuck}")
               try:
                 _, journal = server.execute(
                   "journalctl --boot --no-pager --lines ${builtins.toString cfg.reportLines}${reportUnits}",
@@ -431,6 +465,12 @@
               except Exception as error:
                 journal = f"(no journal: {error})"
               print(f"journal of {server.name}:\n{journal}")
+              for command in fault_report_commands:
+                try:
+                  _, output = server.execute(command, timeout=${builtins.toString cfg.reportTimeout})
+                except Exception as error:
+                  output = f"(no output: {error})"
+                print(f"{command} on {server.name}:\n{output}")
         ''
       ];
     };

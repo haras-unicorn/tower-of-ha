@@ -11,10 +11,22 @@
       toh.services.openbao.enable = true;
       toh.services.patroni.enable = true;
     };
-    test.toh.test.contracts.secrets = {
-      # NOTE: OpenBao has no target of its own
-      online = "openbao.service";
-      redundant = selfLib.test.redundant.patroni;
+    test = {
+      toh.test.contracts.secrets = {
+        # NOTE: OpenBao has no target of its own
+        online = "openbao.service";
+        redundant = selfLib.test.redundant.patroni;
+      };
+      # NOTE: etcd logs every heartbeat it cannot send while a server is
+      # cut off, which would push OpenBao and its database out of the report
+      toh.test.faults.reportUnits = [
+        "openbao*"
+        "patroni.service"
+        "envoy.service"
+      ];
+      # NOTE: which connections each server still holds, with their timers,
+      # which shows one that waits on a server that was cut off
+      toh.test.faults.reportCommands = [ "ss -tnpo" ];
     };
   };
 

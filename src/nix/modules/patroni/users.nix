@@ -14,6 +14,8 @@
 
       runsPatroni = config.toh.services.patroni.enable;
 
+      connectTimeout = builtins.toString config.toh.services.patroni.connectTimeout;
+
       proxyAttrs = selfLib.services.endpoint.toAttrs config.toh.meta.proxies.postgresql.endpoint;
 
       mergeByUser =
@@ -298,6 +300,7 @@
                           PGSSLROOTCERT="${ca}"
                           PGSSLCERT="${crt}"
                           PGSSLKEY="${key}"
+                          PGCONNECT_TIMEOUT="${connectTimeout}"
                         ''
                         + (lib.optionalString (!isSuperuser) ''
                           PGDATABASE="${dbName}"
@@ -326,6 +329,7 @@
                             sslrootcert = ca;
                             sslcert = crt;
                             sslkey = key;
+                            connect_timeout = connectTimeout;
                           };
                         };
                       };

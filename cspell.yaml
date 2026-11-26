@@ -46,3 +46,8 @@ ignoreWords:
   - SIGSTOP
   - SIGCONT
   - SERVFAIL
+  - noheadings
+  - statfs
+  - tnpo
+  - PGCONNECT
+  - syscall

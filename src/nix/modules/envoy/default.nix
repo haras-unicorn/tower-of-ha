@@ -224,6 +224,11 @@
           # half of them are healthy, and a service like Valkey has only one
           # healthy backend, its master, out of many
           common_lb_config.healthy_panic_threshold.value = 0;
+          # NOTE: by default envoy keeps the open connections to a backend
+          # that fails its checks, so an app with a pool, like OpenBao on
+          # Postgres, keeps talking to an old primary that was cut off, and
+          # waits until TCP gives up, which takes many minutes
+          close_connections_on_host_health_failure = true;
           load_assignment = {
             cluster_name = name;
             endpoints = [ { lb_endpoints = builtins.map makeLbEndpoint services; } ];

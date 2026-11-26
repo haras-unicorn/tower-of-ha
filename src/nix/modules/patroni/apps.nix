@@ -81,6 +81,7 @@
               sslrootcert = userSecrets.ca;
               sslcert = userSecrets.crt;
               sslkey = userSecrets.key;
+              connect_timeout = builtins.toString cfg.connectTimeout;
             };
             ssl.ca = userSecrets.ca;
             ssl.crt = userSecrets.crt;

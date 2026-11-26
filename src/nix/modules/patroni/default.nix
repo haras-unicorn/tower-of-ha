@@ -43,6 +43,17 @@
               containers.
             '';
           };
+
+          connectTimeout = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 5;
+            description = ''
+              Seconds an app waits for one proxy address of the database to
+              answer before it tries the next. A machine that was cut off
+              drops what it gets without an answer, so without this an app
+              waits minutes on it.
+            '';
+          };
         };
       };
 

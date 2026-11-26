@@ -689,6 +689,25 @@ holds an etcd lease and the workers run on every machine (see the
        primary. It now refuses those queries while it reaches fewer than half of
        the relays (see the [design](./design.md#decisions)), and
        `services-coredns-relays` checks it.
+     - Later on 2026-11-26, every fault became a test of its own
+       (`self.lib.test.faultTests`, then `<name>-kill`, `-split` and `-freeze`),
+       because one test of all faults ran for over 30 minutes before it showed a
+       failure. A failed test now prints what the processes of every server wait
+       on, the journal of the units the test names and the output of the
+       commands it names. The Valkey loss seen in the first split run went to
+       the [to do](./todo.md), with how to look for it again.
+     - OpenBao on the new active machine hung for minutes after a split: it
+       opened database connections to the Envoy of the cut off machine, which
+       drops them without an answer, so each one waited out the retries of the
+       kernel. The URL of every database app now has a `connect_timeout`, the
+       tunable `toh.services.patroni.connectTimeout`, 5 seconds by default, and
+       `contracts-secrets-openbao-split` passes. Envoy also closes the open
+       connections to a backend that fails its checks now, so a pool does not
+       keep talking to an old primary; no run showed whether that was needed.
+     - CephFS counted as redundant again while the monitor of a machine that had
+       just come back was still joining, so splitting the next machine left no
+       quorum. `redundant` for CephFS now also waits for every monitor to be in
+       the quorum.
 
 2. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be

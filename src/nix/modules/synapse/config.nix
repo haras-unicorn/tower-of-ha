@@ -49,6 +49,7 @@
                   sslrootcert = dbInstance.ssl.ca;
                   sslcert = dbInstance.ssl.crt;
                   sslkey = dbInstance.ssl.key;
+                  connect_timeout = dbInstance.parameters.connect_timeout;
                 };
               };
               passwordPath = dbInstance.password;
