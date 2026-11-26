@@ -12,6 +12,7 @@ let ttl = r#'{{{TOH_COREDNS_RELAYS_TTL}}}'#
 # start and then whenever that changes, and tells systemd it is ready after
 # the first write, so CoreDNS never starts without its zones
 def main [] {
+  mkdir $"($directory)/network"
   mut answered = null
   mut serial = 0
   loop {
@@ -23,29 +24,43 @@ def main [] {
         ^systemd-notify --ready
       }
       print $"the relays that answer: ($live | str join ', ')"
+      if (cut off $live) {
+        print "fewer than half of the relays answer, so other machines get no answer"
+      }
       $answered = $live
     }
     sleep $interval
   }
 }
 
-# NOTE: an answer without relays helps no client, and no relay answering is
-# more likely a fault of this machine than of all of them, so then the answer
-# has every relay
 def "live relays" [] {
-  let live = $relays | where { |relay|
+  $relays | where { |relay|
     let url = $"http://($relay):($health_port)($health_path)"
     (do { ^curl --silent --fail --output /dev/null --max-time $timeout $url } | complete).exit_code == 0
   }
-  if ($live | is-empty) { $relays } else { $live }
+}
+
+# NOTE: a machine that reaches fewer than half of the relays is more likely
+# cut off than the others are gone, and it would send other machines only to
+# itself, so it gives them no answer and they ask another nameserver
+def "cut off" [live: list<string>] {
+  ($live | length) * 2 < ($relays | length)
 }
 
 # NOTE: queries from this machine get its own relay first, at localhost, and
-# queries from other machines never get localhost, which is not their relay
+# queries from other machines never get localhost, which is not their relay;
+# an answer without relays helps no program on this machine, so then it gets
+# every relay
 def "write zones" [live: list<string>, serial: int] {
-  let local = if $own_ip in $live { ["127.0.0.1"] | append $live } else { $live }
+  let reachable = if ($live | is-empty) { $relays } else { $live }
+  let local = if $own_ip in $reachable { ["127.0.0.1"] | append $reachable } else { $reachable }
   for zone in $zones {
-    write zone $zone $"($directory)/($zone).zone" $live $serial
+    let network = $"($directory)/network/($zone).zone"
+    if (cut off $live) {
+      rm --force $network
+    } else {
+      write zone $zone $network $live $serial
+    }
     write zone $zone $"($directory)/($zone).local.zone" $local $serial
   }
 }

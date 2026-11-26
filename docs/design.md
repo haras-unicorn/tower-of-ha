@@ -288,6 +288,14 @@ Made on 2026-11-26, during the faults of step 8.
   is on disk unless the client asks for a flush, and a kill then lost a file
   that the client had been told was written. `sync always` makes every write
   wait for CephFS, which is slower but keeps what was confirmed.
+- **A machine that is cut off refuses DNS for the services.** CoreDNS names the
+  relays whose proxy answers, as each machine sees them. A machine split off
+  from the others sees only its own, so it sent every client that still reached
+  it to itself, where nothing could take writes. Now a machine that reaches
+  fewer than half of the relays refuses the queries of other machines for the
+  service names, and their resolvers ask the next nameserver. Its own programs
+  still get an answer. Naming the other relays instead was simpler, but refusing
+  says what is true: this machine does not know.
 
 ## Architecture today
 

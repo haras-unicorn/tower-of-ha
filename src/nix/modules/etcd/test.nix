@@ -28,7 +28,8 @@
         ];
       };
 
-    toh.test.faults.kills = 3;
+    # NOTE: a kill, a split and a freeze of every node
+    toh.test.faults.amount = 9;
 
     toh.test.commands.enable = true;
     toh.test.commands.perNode = [
@@ -61,7 +62,7 @@
     toh.test.commands.suffix =
       { lib, nodes, ... }:
       ''
-        fault_kill_each(
+        fault_each(
           None,
           [${
             builtins.concatStringsSep ", " (

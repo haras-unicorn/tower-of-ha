@@ -40,11 +40,31 @@
   };
 
   self.lib.test.testModules.faults =
-    { lib, config, ... }:
+    {
+      lib,
+      config,
+      machines,
+      ...
+    }:
     let
       cfg = config.toh.test.faults;
 
       failoverTime = builtins.toString (cfg.failoverTimeout + cfg.failoverDelay);
+
+      # NOTE: tests that build their own network, like the VPN tests, give
+      # their machines no address of the test network, and cannot split
+      addresses =
+        if config.toh.test.network.enable then
+          builtins.mapAttrs (_: machine: machine.toh.meta.network.ip) machines
+        else
+          { };
+
+      # NOTE: under names of their own, because the test commands may import
+      # the same modules, and the linter refuses that twice
+      imports = ''
+        import json as fault_json
+        import time as fault_time
+      '';
 
       kills.vm = ''
         def fault_kill(machine):
@@ -60,16 +80,10 @@
       # names the processes that are left and the ones that would collect
       # the init
       kills.container = ''
-        # NOTE: under names of their own, because the test commands may
-        # import the same modules, and the linter refuses that twice
-        import os as fault_os
-        import signal as fault_signal
-        import time as fault_time
-
         def fault_kill(machine):
           with machine.nested("fault: the machine goes away at once"):
             init = machine.get_systemd_process
-            namespace = fault_os.readlink(f"/proc/{init}/ns/pid")
+            namespace = fault_namespace(machine)
             fault_os.kill(init, fault_signal.SIGKILL)
             deadline = fault_time.monotonic() + ${builtins.toString cfg.shutdownTimeout}
             while fault_left(namespace):
@@ -84,17 +98,10 @@
             machine.__dict__.pop("get_systemd_process", None)
 
         def fault_left(namespace):
-          left = []
-          for pid in fault_os.listdir("/proc"):
-            if not pid.isdigit():
-              continue
-            try:
-              if fault_os.readlink(f"/proc/{pid}/ns/pid") != namespace:
-                continue
-              left.append(" ".join([pid] + [fault_proc(pid, name) for name in ["comm", "stat", "wchan", "stack"]]))
-            except OSError:
-              continue
-          return left
+          return [
+            " ".join([str(pid)] + [fault_proc(pid, name) for name in ["comm", "stat", "wchan", "stack"]])
+            for pid in fault_pids(namespace)
+          ]
 
         def fault_parents(pid):
           parents = []
@@ -105,8 +112,77 @@
           return parents
 
         def fault_parent(pid):
-          fields = fault_proc(pid, "stat").rsplit(")", 1)[-1].split()
+          fields = fault_stat(pid)
           return fields[1] if len(fields) > 1 else ""
+      '';
+
+      freezes.vm = ''
+        def fault_freeze(machine):
+          with machine.nested("fault: the machine stops, like in a long pause"):
+            machine.send_monitor_command("stop")
+
+        def fault_thaw(machine):
+          with machine.nested("fault: the machine runs again"):
+            machine.send_monitor_command("cont")
+      '';
+
+      # NOTE: a container has no monitor to pause it, so every process of it
+      # gets SIGSTOP from outside until none of them runs, because a process
+      # may fork while the others stop; zombies cannot stop and do not run
+      freezes.container = ''
+        def fault_freeze(machine):
+          with machine.nested("fault: the machine stops, like in a long pause"):
+            namespace = fault_namespace(machine)
+            running = fault_running(namespace)
+            while running:
+              fault_signal_all(running, fault_signal.SIGSTOP)
+              fault_time.sleep(0.1)
+              running = fault_running(namespace)
+
+        def fault_thaw(machine):
+          with machine.nested("fault: the machine runs again"):
+            fault_signal_all(fault_pids(fault_namespace(machine)), fault_signal.SIGCONT)
+
+        def fault_running(namespace):
+          return [
+            pid for pid in fault_pids(namespace)
+            if fault_state(pid) not in ["T", "t", "Z", "X", ""]
+          ]
+
+        def fault_signal_all(pids, signal):
+          for pid in pids:
+            try:
+              fault_os.kill(pid, signal)
+            except ProcessLookupError:
+              continue
+
+        def fault_state(pid):
+          fields = fault_stat(pid)
+          return fields[0] if fields else ""
+      '';
+
+      # NOTE: what the kills and freezes of containers read from /proc
+      processes.container = ''
+        import os as fault_os
+        import signal as fault_signal
+
+        def fault_namespace(machine):
+          return fault_os.readlink(f"/proc/{machine.get_systemd_process}/ns/pid")
+
+        def fault_pids(namespace):
+          pids = []
+          for pid in fault_os.listdir("/proc"):
+            if not pid.isdigit():
+              continue
+            try:
+              if fault_os.readlink(f"/proc/{pid}/ns/pid") == namespace:
+                pids.append(int(pid))
+            except OSError:
+              continue
+          return pids
+
+        def fault_stat(pid):
+          return fault_proc(pid, "stat").rsplit(")", 1)[-1].split()
 
         def fault_proc(pid, name):
           try:
@@ -115,6 +191,8 @@
           except OSError as error:
             return f"({name}: {error.strerror})"
       '';
+
+      processes.vm = "";
     in
     {
       options.toh.test.faults = {
@@ -136,13 +214,23 @@
           '';
         };
 
-        kills = lib.mkOption {
+        amount = lib.mkOption {
           type = lib.types.ints.unsigned;
           default = 0;
           description = ''
-            Machines the test kills and revives, each of which gets the time
-            of a shutdown, a failover and a revive on top of the global
-            timeout
+            Faults the test makes, like killing, cutting off or freezing a
+            machine, each of which gets the time of a shutdown, a freeze, a
+            failover and a revive on top of the global timeout
+          '';
+        };
+
+        freezeTime = lib.mkOption {
+          type = lib.types.ints.positive;
+          default = 60;
+          description = ''
+            Seconds a frozen machine stays frozen at least, longer than the
+            leases and graces of the services, so the others notice and take
+            over before it runs again
           '';
         };
 
@@ -166,45 +254,90 @@
       };
 
       config.toh.test.commands.helpers = [
+        imports
+        processes.${config.toh.test.kind}
         kills.${config.toh.test.kind}
+        freezes.${config.toh.test.kind}
         ''
+          fault_addresses = fault_json.loads('${builtins.toJSON addresses}')
+
           def fault_revive(machine):
             with machine.nested("fault: the machine comes back"):
               machine.start()
 
-          # NOTE: every server goes away once, so the one that takes the
-          # writes does too, whichever it is; redundant succeeds on a server
-          # once the service can lose any one server, and write and holds
-          # give the commands that write a value and that succeed only while
-          # the value is still there, which the client runs, or the reader
-          # where a client could answer from what it holds itself; a client
-          # that may only read has no write, and holds then checks what was
-          # there before the faults, with the value None; a test without a
-          # client of its own passes None, and then one server that stays
-          # writes and another that stays checks
-          def fault_kill_each(client, servers, target, redundant, write, holds, reader=None):
+          # NOTE: the cut drops everything between the machine and the
+          # others, also what is already connected, and leaves the rest of
+          # the network alone, so a client may still reach both sides
+          def fault_split(machine, others):
+            with machine.nested("fault: the network splits the machine off"):
+              machine.succeed(*fault_cut_rules("-I", others))
+
+          def fault_join(machine, others):
+            with machine.nested("fault: the network split heals"):
+              machine.succeed(*fault_cut_rules("-D", others))
+
+          def fault_cut_rules(action, others):
+            rules = []
+            for other in others:
+              address = fault_addresses[other.name]
+              rules.append(f"iptables {action} INPUT -s {address} -j DROP")
+              rules.append(f"iptables {action} OUTPUT -d {address} -j DROP")
+            return rules
+
+          # NOTE: every server gets every fault once, so the one that takes
+          # the writes does too, whichever it is; redundant succeeds on a
+          # server once the service can lose any one server, and write and
+          # holds give the commands that write a value and that succeed only
+          # while the value is still there, which the client runs, or the
+          # reader where a client could answer from what it holds itself; a
+          # client that may only read has no write, and holds then checks
+          # what was there before the faults, with the value None; a test
+          # without a client of its own passes None, and then one server
+          # that stays writes and another that stays checks; every value is
+          # checked again at the end, once the cluster is whole, so a write
+          # that a split off or frozen server took and lost later shows up
+          def fault_each(client, servers, target, redundant, write, holds, reader=None):
+            faults = [
+              ("kill", lambda server, others: fault_kill(server), lambda server, others: fault_revive(server)),
+              ("split", fault_split, fault_join),
+              ("freeze", lambda server, others: fault_freeze(server), lambda server, others: fault_thaw(server)),
+            ]
             written = [] if write else [None]
+            for name, fault, heal in faults:
+              for server in servers:
+                staying = [other for other in servers if other is not server]
+                writer = client or staying[0]
+                checker = reader or client or staying[-1]
+                fault_wait_redundant(servers, redundant)
+                if write:
+                  writer.succeed(write(f"before-{name}-{server.name}"))
+                  written.append(f"before-{name}-{server.name}")
+                started = fault_time.monotonic()
+                fault(server, staying)
+                if write:
+                  writer.wait_until_succeeds(write(f"during-{name}-{server.name}"), timeout=${failoverTime})
+                  written.append(f"during-{name}-{server.name}")
+                fault_holds(checker, holds, written)
+                if name == "freeze":
+                  fault_time.sleep(max(0, started + ${builtins.toString cfg.freezeTime} - fault_time.monotonic()))
+                heal(server, staying)
+                server.wait_until_succeeds(
+                  f"systemctl is-active {target}", timeout=${builtins.toString cfg.reviveTimeout}
+                )
+                if write:
+                  writer.wait_until_succeeds(write(f"after-{name}-{server.name}"), timeout=${failoverTime})
+                  written.append(f"after-{name}-{server.name}")
+                fault_holds(checker, holds, written)
+            fault_wait_redundant(servers, redundant)
+            fault_holds(reader or client or servers[-1], holds, written)
+
+          def fault_wait_redundant(servers, redundant):
             for server in servers:
-              staying = [other for other in servers if other is not server]
-              writer = client or staying[0]
-              checker = reader or client or staying[-1]
-              for living in servers:
-                living.wait_until_succeeds(redundant, timeout=${builtins.toString cfg.reviveTimeout})
-              before = f"before-{server.name}"
-              if write:
-                writer.succeed(write(before))
-                written.append(before)
-              fault_kill(server)
-              after = f"after-{server.name}"
-              if write:
-                writer.wait_until_succeeds(write(after), timeout=${failoverTime})
-                written.append(after)
-              for value in written:
-                checker.wait_until_succeeds(holds(value), timeout=${failoverTime})
-              fault_revive(server)
-              server.wait_until_succeeds(
-                f"systemctl is-active {target}", timeout=${builtins.toString cfg.reviveTimeout}
-              )
+              server.wait_until_succeeds(redundant, timeout=${builtins.toString cfg.reviveTimeout})
+
+          def fault_holds(checker, holds, written):
+            for value in written:
+              checker.wait_until_succeeds(holds(value), timeout=${failoverTime})
         ''
       ];
     };

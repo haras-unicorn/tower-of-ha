@@ -675,6 +675,20 @@ holds an etcd lease and the workers run on every machine (see the
        them failed: `mkdir -p` stops with `ObjectExists` when another mount
        makes a parent at the same time. The pre-mount now tries until the
        directory is there.
+   - On 2026-11-26, the split and the freeze went into the same loop as the
+     kill, `fault_each`, so every contract and `services-etcd` kill, split off
+     and freeze each server once, in one test. A split drops everything between
+     the server and the other servers with iptables, and the client still
+     reaches both sides. A freeze stops every process of a container with
+     SIGSTOP, or pauses a VM, for at least `toh.test.faults.freezeTime`. At the
+     end, every value is checked again on the whole cluster. The kill option
+     `toh.test.faults.kills` is now `amount`, the number of faults. What the
+     splits and freezes found:
+     - A machine that was split off still answered DNS for the services with
+       only its own relay, so a client that asked it never reached the new
+       primary. It now refuses those queries while it reaches fewer than half of
+       the relays (see the [design](./design.md#decisions)), and
+       `services-coredns-relays` checks it.
 
 2. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be

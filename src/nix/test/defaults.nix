@@ -19,8 +19,14 @@
       globalTimeout = lib.mkDefault (
         300
         +
-          faults.kills
-          * (faults.shutdownTimeout + faults.failoverTimeout + faults.failoverDelay + faults.reviveTimeout)
+          faults.amount
+          * (
+            faults.shutdownTimeout
+            + faults.freezeTime
+            + faults.failoverTimeout
+            + faults.failoverDelay
+            + faults.reviveTimeout
+          )
       );
 
       # NOTE: `dev test` leaves out the tests that set this, unless it is

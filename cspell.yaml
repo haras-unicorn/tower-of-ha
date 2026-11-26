@@ -42,3 +42,7 @@ ignoreWords:
   - perses
   - getlocalsid
   - smbcacls
+  - pids
+  - SIGSTOP
+  - SIGCONT
+  - SERVFAIL

@@ -36,20 +36,27 @@
       relaysDirectory = "/run/coredns-relays";
       relaysUser = "coredns-relays";
 
-      # NOTE: the same zone twice, once for queries from this machine, which
-      # may get its own relay at localhost, and once for the others, see
-      # relays.nu
-      makeRelayZone = zone: ''
+      makeLocalRelayZone = zone: ''
         ${zone} {
           bind 127.0.0.1
           file ${relaysDirectory}/${zone}.local.zone {
             reload ${builtins.toString cfg.relays.interval}s
           }
         }
+      '';
 
-        ${zone} {
+      # NOTE: the zones twice, once for queries from this machine, which may
+      # get its own relay at localhost, and once for the others, see
+      # relays.nu; the zones for the others are loaded with auto, which
+      # drops a zone once its file is gone and then refuses its queries, so
+      # a machine that is cut off sends clients to another nameserver
+      relayZonesConfig = ''
+        ${builtins.concatStringsSep "\n" (builtins.map makeLocalRelayZone relayZones)}
+
+        ${builtins.concatStringsSep " " relayZones} {
           bind ${config.toh.meta.network.ip}
-          file ${relaysDirectory}/${zone}.zone {
+          auto {
+            directory ${relaysDirectory}/network ^(.*)\.zone$ {1}
             reload ${builtins.toString cfg.relays.interval}s
           }
         }
@@ -79,7 +86,10 @@
               default = 2;
               description = ''
                 Seconds between two health checks of every relay, after which
-                the answers name only the relays that answered.
+                the answers name only the relays that answered. While fewer
+                than half of the relays answer, the machine is likely cut off,
+                and it refuses the queries of other machines for the relay
+                zones, so they ask another nameserver.
               '';
             };
 
@@ -184,7 +194,7 @@
                 }
               }
 
-              ${builtins.concatStringsSep "\n" (builtins.map makeRelayZone relayZones)}
+              ${relayZonesConfig}
 
               . {
                 bind 127.0.0.1
