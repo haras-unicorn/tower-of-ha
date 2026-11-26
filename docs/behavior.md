@@ -19,9 +19,13 @@ implements the contract.
 
 ## In short
 
-- Since step 8, every service that holds data has a failover test: its tests
-  kill each server once and check that what was written is still there. DNS,
-  time, Prometheus and Alertmanager are left out on purpose.
+- Since step 8, every service that holds data has a fault test per fault, named
+  after its test with `-kill`, `-split` or `-freeze` at the end. Each one hits
+  every server in turn: it kills the machine, cuts it off from the others, or
+  stops it like in a long pause. Then it checks that the service still answers
+  and that what was written is still there. Where a service below says that its
+  test kills every server once, the split and the freeze do the same with their
+  fault. DNS, time, Prometheus and Alertmanager are left out on purpose.
 - The weakest tests only show that units start: geoclue, NetworkManager, the
   Forgejo runner, and OpenBao beyond its contract. Backup has no test at all.
 - `services-patroni-init` runs the same script as `services-patroni`, so it
