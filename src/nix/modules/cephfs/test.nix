@@ -72,7 +72,7 @@ in
       };
   };
 
-  self.nixosTests.contracts-filesystem-cephfs = selfLib.test.makeNixosTest {
+  self.lib.test.faultTests.contracts-filesystem-cephfs = {
     toh.test.contracts.filesystem = {
       enable = true;
       implementation.cephfs = { };

@@ -11,7 +11,7 @@
     };
   };
 
-  self.nixosTests.contracts-s3-garage = selfLib.test.makeNixosTest {
+  self.lib.test.faultTests.contracts-s3-garage = {
     toh.test.contracts.s3 = {
       enable = true;
       implementation.garage = { };

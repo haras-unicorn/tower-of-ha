@@ -13,7 +13,7 @@
     test.toh.test.contracts.database.redundant = selfLib.test.redundant.patroni;
   };
 
-  self.nixosTests.contracts-database-patroni = selfLib.test.makeNixosTest {
+  self.lib.test.faultTests.contracts-database-patroni = {
     toh.test.contracts.database = {
       enable = true;
       implementation.patroni = { };

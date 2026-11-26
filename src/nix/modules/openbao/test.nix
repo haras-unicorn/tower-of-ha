@@ -18,7 +18,7 @@
     };
   };
 
-  self.nixosTests.contracts-secrets-openbao = selfLib.test.makeNixosTest {
+  self.lib.test.faultTests.contracts-secrets-openbao = {
     toh.test.contracts.secrets = {
       enable = true;
       implementation.openbao = { };

@@ -540,13 +540,16 @@ self.lib.test.testModules.contracts-database-patroni =
     };
   };
 
-self.nixosTests.contracts-database-patroni = selfLib.test.makeNixosTest {
+self.lib.test.faultTests.contracts-database-patroni = {
   toh.test.contracts.database = {
     enable = true;
     implementation.patroni = { };
   };
 };
 ```
+
+`faultTests` (`src/nix/test/faults.nix`) makes one test per fault from it:
+`contracts-database-patroni-kill`, `-split` and `-freeze`.
 
 `server` is an internal `deferredModule` that the contract imports on each of
 its servers, so the contract keeps the names and number of its machines to

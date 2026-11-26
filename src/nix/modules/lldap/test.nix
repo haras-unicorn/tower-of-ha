@@ -14,7 +14,7 @@
     test.toh.test.contracts.ldap.redundant = selfLib.test.redundant.patroni;
   };
 
-  self.nixosTests.contracts-ldap-lldap = selfLib.test.makeNixosTest {
+  self.lib.test.faultTests.contracts-ldap-lldap = {
     toh.test.contracts.ldap = {
       enable = true;
       implementation.lldap = { };

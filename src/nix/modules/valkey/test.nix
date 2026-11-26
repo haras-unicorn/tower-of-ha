@@ -29,7 +29,7 @@
       };
   };
 
-  self.nixosTests.contracts-kv-valkey = selfLib.test.makeNixosTest {
+  self.lib.test.faultTests.contracts-kv-valkey = {
     toh.test.contracts.kv = {
       enable = true;
       implementation.valkey = { };

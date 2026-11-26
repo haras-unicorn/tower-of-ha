@@ -1,7 +1,5 @@
-{ selfLib, ... }:
-
 {
-  self.nixosTests.services-etcd = selfLib.test.makeNixosTest {
+  self.lib.test.faultTests.services-etcd = {
     toh.test.clusters.node.amount = 3;
     toh.test.clusters.node.module =
       { config, pkgs, ... }:
@@ -28,8 +26,8 @@
         ];
       };
 
-    # NOTE: a kill, a split and a freeze of every node
-    toh.test.faults.amount = 9;
+    # NOTE: one fault of every node, since every fault is a test of its own
+    toh.test.faults.amount = 3;
 
     toh.test.commands.enable = true;
     toh.test.commands.perNode = [

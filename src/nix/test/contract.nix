@@ -17,11 +17,10 @@ in
   self.lib.test.contract = {
     inherit app clientModule;
 
-    # NOTE: python that kills, splits off and freezes every server of the
-    # contract once, see fault_each in src/nix/test/faults.nix; write and
-    # holds are python
-    # lambdas from a value to a command of the client, and reader names the
-    # machine that runs holds instead of the client
+    # NOTE: python that makes the faults of the test once on every server of
+    # the contract, see fault_each in src/nix/test/faults.nix; write and
+    # holds are python lambdas from a value to a command of the client, and
+    # reader names the machine that runs holds instead of the client
     failover =
       {
         cfg,
@@ -123,10 +122,6 @@ in
             module = cfg.server;
           };
 
-          # NOTE: the failover of a contract makes every fault once on
-          # every server: a kill, a split and a freeze
-          toh.test.faults.amount = lib.mkDefault (3 * cfg.servers);
-
           toh.test.dns.enable = dnsHelper;
           toh.test.dns.zones = builtins.mapAttrs (name: addresses: {
             ${name} = addresses;
@@ -159,6 +154,11 @@ in
             };
           }
           (lib.mkIf picked testConfig)
+          # NOTE: the failover of a contract makes every fault of the test
+          # once on every server
+          (lib.mkIf picked {
+            toh.test.faults.amount = lib.mkDefault (builtins.length config.toh.test.faults.kinds * cfg.servers);
+          })
         ];
       };
   };

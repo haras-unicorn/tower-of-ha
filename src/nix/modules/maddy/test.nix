@@ -16,7 +16,7 @@
     test.toh.test.contracts.email.redundant = selfLib.test.redundant.patroni;
   };
 
-  self.nixosTests.contracts-email-maddy = selfLib.test.makeNixosTest {
+  self.lib.test.faultTests.contracts-email-maddy = {
     toh.test.contracts.email = {
       enable = true;
       implementation.maddy = { };

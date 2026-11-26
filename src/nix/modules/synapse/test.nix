@@ -33,7 +33,7 @@ in
       };
   };
 
-  self.nixosTests.contracts-chat-synapse = selfLib.test.makeNixosTest {
+  self.lib.test.faultTests.contracts-chat-synapse = {
     toh.test.contracts.chat = {
       enable = true;
       implementation.synapse = { };

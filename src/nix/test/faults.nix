@@ -2,7 +2,35 @@
 # machines the same way; what a test checks after a fault is in
 # docs/design.md, under the decisions of 2026-11-25
 
+{ lib, selfLib, ... }:
+
 {
+  # NOTE: the faults fault_each makes, in the order it makes them
+  self.lib.test.faultKinds = [
+    "kill"
+    "split"
+    "freeze"
+  ];
+
+  # NOTE: test modules that run fault_each, by test name; every one becomes
+  # a test per fault, like contracts-share-samba-split, so a failure shows up
+  # without waiting for the other faults, and one fault cannot leave
+  # something behind that breaks the next
+  self.lib.test.faultTests = { };
+
+  self.nixosTests = lib.concatMapAttrs (
+    name: module:
+    builtins.listToAttrs (
+      builtins.map (kind: {
+        name = "${name}-${kind}";
+        value = selfLib.test.makeNixosTest {
+          imports = [ module ];
+          toh.test.faults.kinds = [ kind ];
+        };
+      }) selfLib.test.faultKinds
+    )
+  ) selfLib.test.faultTests;
+
   # NOTE: commands that succeed on a server once the service can lose any one
   # server, for the redundant option of the contracts, joined with && where
   # an implementation keeps its data in more than one of these
@@ -50,6 +78,8 @@
       cfg = config.toh.test.faults;
 
       failoverTime = builtins.toString (cfg.failoverTimeout + cfg.failoverDelay);
+
+      reportUnits = lib.concatMapStrings (unit: " --unit '${unit}'") cfg.reportUnits;
 
       # NOTE: tests that build their own network, like the VPN tests, give
       # their machines no address of the test network, and cannot split
@@ -196,6 +226,14 @@
     in
     {
       options.toh.test.faults = {
+        kinds = lib.mkOption {
+          type = lib.types.listOf (lib.types.enum selfLib.test.faultKinds);
+          default = selfLib.test.faultKinds;
+          description = ''
+            Faults fault_each makes on every server, in this order
+          '';
+        };
+
         failoverTimeout = lib.mkOption {
           type = lib.types.ints.positive;
           default = 120;
@@ -243,6 +281,16 @@
           '';
         };
 
+        reportUnits = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = ''
+            Units, or patterns of units, whose journal goes into the log when
+            a check after a fault fails, so one that logs a lot does not
+            push out the others; empty for the whole journal
+          '';
+        };
+
         reportTimeout = lib.mkOption {
           type = lib.types.ints.positive;
           default = 10;
@@ -278,6 +326,7 @@
         freezes.${config.toh.test.kind}
         ''
           fault_addresses = fault_json.loads('${builtins.toJSON addresses}')
+          fault_kinds = fault_json.loads('${builtins.toJSON cfg.kinds}')
 
           def fault_revive(machine):
             with machine.nested("fault: the machine comes back"):
@@ -326,13 +375,14 @@
               raise
 
           def fault_rounds(client, servers, target, redundant, write, holds, reader):
-            faults = [
-              ("kill", lambda server, others: fault_kill(server), lambda server, others: fault_revive(server)),
-              ("split", fault_split, fault_join),
-              ("freeze", lambda server, others: fault_freeze(server), lambda server, others: fault_thaw(server)),
-            ]
+            faults = {
+              "kill": (lambda server, others: fault_kill(server), lambda server, others: fault_revive(server)),
+              "split": (fault_split, fault_join),
+              "freeze": (lambda server, others: fault_freeze(server), lambda server, others: fault_thaw(server)),
+            }
             written = [] if write else [None]
-            for name, fault, heal in faults:
+            for name in fault_kinds:
+              fault, heal = faults[name]
               for server in servers:
                 staying = [other for other in servers if other is not server]
                 writer = client or staying[0]
@@ -375,7 +425,7 @@
             for server in servers:
               try:
                 _, journal = server.execute(
-                  "journalctl --boot --no-pager --lines ${builtins.toString cfg.reportLines}",
+                  "journalctl --boot --no-pager --lines ${builtins.toString cfg.reportLines}${reportUnits}",
                   timeout=${builtins.toString cfg.reportTimeout},
                 )
               except Exception as error:

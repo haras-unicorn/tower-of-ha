@@ -21,7 +21,7 @@
       "${selfLib.test.redundant.patroni} && ${selfLib.test.redundant.valkey}";
   };
 
-  self.nixosTests.contracts-oidc-authelia = selfLib.test.makeNixosTest {
+  self.lib.test.faultTests.contracts-oidc-authelia = {
     toh.test.contracts.oidc = {
       enable = true;
       implementation.authelia = { };

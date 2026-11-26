@@ -32,7 +32,7 @@
       };
   };
 
-  self.nixosTests.contracts-git-forgejo = selfLib.test.makeNixosTest {
+  self.lib.test.faultTests.contracts-git-forgejo = {
     toh.test.contracts.git = {
       enable = true;
       implementation.forgejo = { };

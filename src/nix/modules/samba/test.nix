@@ -21,10 +21,17 @@
           redundant = selfLib.test.redundant.cephfs;
         };
         toh.test.faults.failoverDelay = selfLib.test.failoverDelay.cephfs machines;
+        # NOTE: smbd logs every failed connection, which would push the
+        # filesystem and the lease out of the report
+        toh.test.faults.reportUnits = [
+          "ceph*"
+          "*.mount"
+          "toh-lease-samba.service"
+        ];
       };
   };
 
-  self.nixosTests.contracts-share-samba = selfLib.test.makeNixosTest {
+  self.lib.test.faultTests.contracts-share-samba = {
     toh.test.contracts.share = {
       enable = true;
       implementation.samba = { };
