@@ -737,6 +737,12 @@ holds an etcd lease and the workers run on every machine (see the
        OpenBao had once fallen through to another one. Now a machine whose own
        relay answers gets only that one (see the
        [design](./design.md#decisions)).
+     - `contracts-email-maddy-freeze` could not send mail while a Garage machine
+       was frozen. A Garage read asks only as many nodes as its quorum needs,
+       the fastest first, and the frozen node still had a fast ping, so the read
+       waited for its RPC timeout of 30 seconds. Envoy ends a request that is
+       quiet for 30 seconds, so the read never got to the next node.
+       `toh.services.garage.rpcTimeout` is now 10 seconds.
 
 2. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be

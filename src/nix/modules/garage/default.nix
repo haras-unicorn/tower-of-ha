@@ -47,6 +47,18 @@
             default = 1024;
             description = "Storage capacity in MB to assign to each garage node";
           };
+
+          rpcTimeout = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 10;
+            description = ''
+              Seconds a Garage node waits for another one to answer before it
+              gives up on it. A read asks only as many nodes as it needs, the
+              fastest first, so a node that froze costs a read this long before
+              the next one is asked. Keep it well under the idle timeout of the
+              proxy, which ends a request that is quiet for that long.
+            '';
+          };
         };
       };
 
@@ -80,6 +92,7 @@
             settings = {
               replication_factor = replicationFactor;
               consistency_mode = "consistent";
+              rpc_timeout_msec = cfg.rpcTimeout * 1000;
 
               rpc_secret_file = rpcSecret;
               rpc_bind_addr = "${config.toh.meta.network.ip}:${builtins.toString rpcPort}";
