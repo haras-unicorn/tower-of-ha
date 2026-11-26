@@ -28,6 +28,16 @@
           "*.mount"
           "toh-lease-samba.service"
         ];
+        # NOTE: what every process waits on, and whether every ceph-fuse
+        # mount still answers, which the journal does not show; init once
+        # hung on a local socket after a split healed, so what it sends to
+        # and which local sockets back up are here too
+        toh.test.faults.reportCommands = [
+          "ps -eo pid,stat,wchan:32,args"
+          "cat /proc/1/syscall; ls -l /proc/1/fd"
+          "ss -xap | awk 'NR == 1 || $3 > 0'"
+          "findmnt --types fuse.ceph-fuse --output TARGET --noheadings | xargs -r -n1 timeout 5 stat --file-system 2>&1"
+        ];
       };
   };
 

@@ -296,6 +296,15 @@ Made on 2026-11-26, during the faults of step 8.
   service names, and their resolvers ask the next nameserver. Its own programs
   still get an answer. Naming the other relays instead was simpler, but refusing
   says what is true: this machine does not know.
+- **A CephFS mount that was evicted is mounted again.** When a machine is cut
+  off for longer than the metadata servers wait for its mounts, they evict it
+  and block it, so it cannot write over what the others did meanwhile. That
+  fencing stays. But a FUSE mount that was evicted fails on every access for
+  good, even after the split heals. So every machine runs a watchdog that lists
+  each mount on a timer. A mount that fails at once is mounted again, and what
+  needs it is started again. A mount that only takes long, like while the
+  metadata servers fail over, runs into the timeout and is left alone. The
+  kernel mount gets `recover_session=clean`, which does the same by itself.
 
 ## Architecture today
 

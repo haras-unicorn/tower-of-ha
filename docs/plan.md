@@ -708,6 +708,19 @@ holds an etcd lease and the workers run on every machine (see the
        just come back was still joining, so splitting the next machine left no
        quorum. `redundant` for CephFS now also waits for every monitor to be in
        the quorum.
+     - A machine that was split off for longer than a minute had its CephFS
+       mounts evicted, and they kept failing after the split healed, so Samba
+       never came back there. A watchdog now mounts an evicted mount again (see
+       the [design](./design.md#decisions)), with the tunables
+       `toh.services.cephfs.mountWatch.interval` and `timeout`.
+     - After a heal, the init of a container sometimes hung for good, and every
+       `systemctl` in it failed with "Transport endpoint is not connected". The
+       test driver of nixos-26.05 stops reading the notify socket of a container
+       once it booted, and the init blocks once that socket is full. nixpkgs
+       master reads it for as long as the container runs, and
+       `src/nix/test/notify.nix` does the same until that is in a release.
+       `contracts-share-samba-split`, `contracts-filesystem-cephfs-split` and
+       `contracts-oidc-authelia-split` pass.
 
 2. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be
