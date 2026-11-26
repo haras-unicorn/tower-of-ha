@@ -234,6 +234,24 @@
           '';
         };
 
+        reportLines = lib.mkOption {
+          type = lib.types.ints.positive;
+          default = 300;
+          description = ''
+            Lines of the journal of every server that go into the log when a
+            check after a fault fails
+          '';
+        };
+
+        reportTimeout = lib.mkOption {
+          type = lib.types.ints.positive;
+          default = 10;
+          description = ''
+            Seconds a server has to give its journal for the log, so one that
+            is down or frozen does not hold the test up
+          '';
+        };
+
         shutdownTimeout = lib.mkOption {
           type = lib.types.ints.positive;
           default = 60;
@@ -295,8 +313,19 @@
           # without a client of its own passes None, and then one server
           # that stays writes and another that stays checks; every value is
           # checked again at the end, once the cluster is whole, so a write
-          # that a split off or frozen server took and lost later shows up
+          # that a split off or frozen server took and lost later shows up;
+          # every write may fail a few times, because a server that was split
+          # off or frozen may still take its old role for a moment when it
+          # comes back, and only what was confirmed counts; when something
+          # fails, the journals of the servers go into the log
           def fault_each(client, servers, target, redundant, write, holds, reader=None):
+            try:
+              fault_rounds(client, servers, target, redundant, write, holds, reader)
+            except Exception:
+              fault_report(servers)
+              raise
+
+          def fault_rounds(client, servers, target, redundant, write, holds, reader):
             faults = [
               ("kill", lambda server, others: fault_kill(server), lambda server, others: fault_revive(server)),
               ("split", fault_split, fault_join),
@@ -310,7 +339,7 @@
                 checker = reader or client or staying[-1]
                 fault_wait_redundant(servers, redundant)
                 if write:
-                  writer.succeed(write(f"before-{name}-{server.name}"))
+                  writer.wait_until_succeeds(write(f"before-{name}-{server.name}"), timeout=${failoverTime})
                   written.append(f"before-{name}-{server.name}")
                 started = fault_time.monotonic()
                 fault(server, staying)
@@ -338,6 +367,20 @@
           def fault_holds(checker, holds, written):
             for value in written:
               checker.wait_until_succeeds(holds(value), timeout=${failoverTime})
+
+          # NOTE: the console of a container reaches the log only when it
+          # stops, so the journal of a server that still runs is read here; a
+          # server that is down or frozen does not answer in time
+          def fault_report(servers):
+            for server in servers:
+              try:
+                _, journal = server.execute(
+                  "journalctl --boot --no-pager --lines ${builtins.toString cfg.reportLines}",
+                  timeout=${builtins.toString cfg.reportTimeout},
+                )
+              except Exception as error:
+                journal = f"(no journal: {error})"
+              print(f"journal of {server.name}:\n{journal}")
         ''
       ];
     };
