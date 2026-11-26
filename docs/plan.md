@@ -743,6 +743,11 @@ holds an etcd lease and the workers run on every machine (see the
        waited for its RPC timeout of 30 seconds. Envoy ends a request that is
        quiet for 30 seconds, so the read never got to the next node.
        `toh.services.garage.rpcTimeout` is now 10 seconds.
+     - `contracts-secrets-openbao-split` cut off the new primary of Patroni
+       while the old one still rewound from it. The standby that took over had
+       no replica left, and in strict synchronous mode it commits nothing then,
+       so OpenBao never got its lock. The test had waited only for a synchronous
+       standby; `redundant.patroni` now waits for every replica to stream.
 
 2. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be

@@ -36,8 +36,10 @@
   # an implementation keeps its data in more than one of these
   self.lib.test.redundant = {
     # NOTE: only the synchronous standby may take over, and Patroni names it
-    # a little after the cluster starts
-    patroni = "patronictl list | grep 'Sync Standby' | grep -q streaming";
+    # a little after the cluster starts; in strict synchronous mode the one
+    # that takes over commits nothing until another replica streams from it,
+    # so every replica streams, and not one that still rewinds after a fault
+    patroni = "patronictl list --format json | jq -e 'any(.[]; .Role == \"Sync Standby\" and .State == \"streaming\") and all(.[]; .Role == \"Leader\" or .State == \"streaming\")'";
 
     # NOTE: every monitor is in the quorum again, every placement group is
     # clean again, so all its copies are there, and a metadata server waits

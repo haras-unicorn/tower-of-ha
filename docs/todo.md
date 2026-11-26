@@ -84,6 +84,11 @@ Found while fixing the tests, not `TODO` comments.
   `overrideAttrs` there. If the PR changes before it lands, fetch its new
   commit. The patch leaves a small race: a leader paused right after the check
   still revokes when it wakes.
+- **A rewind from a primary that is cut off hangs.** In a run of
+  `contracts-secrets-openbao-split`, a Patroni replica rewound from the new
+  primary, the test cut that primary off, and `pg_rewind` was still waiting on
+  it two minutes later. Patroni gives the rewind no timeout. Look at it with the
+  faults during recovery of step 8.1.
 
 ## NixOS 26.11
 
