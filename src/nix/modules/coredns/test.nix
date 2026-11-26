@@ -65,7 +65,7 @@
           node.wait_for_unit("envoy.service")
 
         node3.wait_until_succeeds("${answers asked} | grep -x ${lost}", timeout=60)
-        node2.succeed("${answers "127.0.0.1"} | grep -x 127.0.0.1")
+        node2.succeed("test \"$(${answers "127.0.0.1"})\" = 127.0.0.1")
         node3.fail("${answers asked} | grep -x 127.0.0.1")
 
         fault_kill(node1)

@@ -305,6 +305,16 @@ Made on 2026-11-26, during the faults of step 8.
   needs it is started again. A mount that only takes long, like while the
   metadata servers fail over, runs into the timeout and is left alone. The
   kernel mount gets `recover_session=clean`, which does the same by itself.
+- **A machine uses only its own relay while it answers.** Before, a machine got
+  its own relay first and the others after it, so a client fell through to
+  another machine when its own relay refused for a moment. Clients keep their
+  connections, and one to the relay of another machine hung for good when that
+  machine froze, because its kernel still acknowledged and so nothing ever timed
+  out. Envoy health checks the hops behind it, but nothing checks the hop from a
+  client to a relay. So CoreDNS answers the programs of a machine with only
+  `127.0.0.1` while the relay there answers, and with the other relays only
+  while it does not. A client that connects while its own relay is down can
+  still end up on another one.
 
 ## Architecture today
 

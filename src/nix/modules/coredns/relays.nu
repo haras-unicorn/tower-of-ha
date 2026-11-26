@@ -47,13 +47,22 @@ def "cut off" [live: list<string>] {
   ($live | length) * 2 < ($relays | length)
 }
 
-# NOTE: queries from this machine get its own relay first, at localhost, and
-# queries from other machines never get localhost, which is not their relay;
-# an answer without relays helps no program on this machine, so then it gets
-# every relay
+# NOTE: queries from this machine get only its own relay, at localhost, while
+# it answers; clients keep their connections, and one kept to the relay of
+# another machine hangs for good when that relay freezes, because its kernel
+# still acknowledges; only while its own relay does not answer does this
+# machine get the others; queries from other machines never get localhost,
+# which is not their relay; an answer without relays helps no program on this
+# machine, so then it gets every relay
 def "write zones" [live: list<string>, serial: int] {
   let reachable = if ($live | is-empty) { $relays } else { $live }
-  let local = if $own_ip in $reachable { ["127.0.0.1"] | append $reachable } else { $reachable }
+  let local = if $own_ip in $live {
+    ["127.0.0.1"]
+  } else if $own_ip in $reachable {
+    ["127.0.0.1"] | append $reachable
+  } else {
+    $reachable
+  }
   for zone in $zones {
     let network = $"($directory)/network/($zone).zone"
     if (cut off $live) {

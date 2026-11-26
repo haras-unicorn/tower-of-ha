@@ -729,6 +729,14 @@ holds an etcd lease and the workers run on every machine (see the
        ticks, and a paused process ticks again at once. A patch to etcd always
        does the check now, and the test passes with it; the report to etcd is in
        the [to do](./todo.md).
+     - `contracts-secrets-openbao-freeze` found no active OpenBao after a
+       freeze. OpenBao kept a database connection through the relay of the
+       frozen machine, whose kernel still acknowledged, so the connection hung
+       for good while it held the state lock of the new active node. CoreDNS
+       named every relay to the programs of a machine, its own first, and
+       OpenBao had once fallen through to another one. Now a machine whose own
+       relay answers gets only that one (see the
+       [design](./design.md#decisions)).
 
 2. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be
