@@ -563,9 +563,42 @@ holds an etcd lease and the workers run on every machine (see the
 
 ## Step 8: Chaos engineering
 
-1. **Faults (L).** Kill a machine, split the network, skew the clock, fill a
-   disk, restart in the wrong order. Each finding either hardens a module or
-   goes into the docs as a known pitfall.
+1. **Faults (L).** Break the cluster in the ways it has to survive on its own.
+   Each finding either hardens a module or goes into the docs as a known
+   pitfall. In every fault, no confirmed write is lost and no two machines take
+   writes for the same thing at once (no split brain). The faults:
+   - Kill each machine. Done, see below.
+   - Split the network: cut one machine off from the other two, once for each
+     machine, so the one with the leases and the primaries goes too. The cut off
+     machine stops taking writes and the other two carry on. Once the split
+     heals, it rejoins and catches up without pulling the cluster back to its
+     old data.
+   - Freeze a machine: stop all of its processes for longer than the leases
+     last, then let them run again. A primary that wakes up must not keep
+     writing as if it still were one. This is the split brain that a long pause
+     makes, without any network fault.
+   - Lose the majority: stop two machines. The last one refuses writes rather
+     than serve alone, and the cluster comes back once a second machine does.
+   - Restart in the wrong order: stop the whole cluster one machine at a time,
+     then boot it one machine at a time, once with the machine that stopped
+     first (and so has the oldest data) booting first and once with it booting
+     last. No old data takes over.
+   - Restart one machine after the other, like a deploy does. Writes work again
+     after each one, before the next restarts.
+   - Fail during recovery: kill a machine, bring it back, and kill another as
+     soon as the tests call the cluster redundant again. This checks that
+     `redundant` waits until the machine has caught up.
+
+   Left out on purpose, because monitoring covers them and a container cannot
+   fake them well:
+   - Clock skew. Containers share the clock of the host, chrony keeps it, and
+     the skipped VM test `services-chronyd-clock` checks that chrony sets it.
+     There is no alert for a clock that drifts yet, so one goes into this chunk.
+   - A full disk. The `DiskAlmostFull` alert of the node exporter warns first.
+   - A slow or lossy network. It costs speed and not correctness, and the kills
+     and splits already cover a machine that stops answering.
+
+   What happened:
    - Started on 2026-11-25, after the decisions on what the faults check (see
      the [design](./design.md#decisions)). The full suite first showed seven
      tests broken by the invariant checks of step 7.1: servers made copies of
@@ -639,6 +672,7 @@ holds an etcd lease and the workers run on every machine (see the
        them failed: `mkdir -p` stops with `ObjectExists` when another mount
        makes a parent at the same time. The pre-mount now tries until the
        directory is there.
+
 2. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be
    absolutely sure that what is being tested is the failure and not the test.
