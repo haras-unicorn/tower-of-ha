@@ -33,10 +33,19 @@
       # a leader that was paused, by a freeze or a stalled machine, ticks
       # again at once when it wakes up, so it revoked the leases that were
       # kept alive at the new leader meanwhile, like the leader key of
-      # Patroni, and an old primary took that key; the patch always asks the
-      # cluster first
+      # Patroni, and an old primary took that key; the patch asks the cluster
+      # first; it is the commit of https://github.com/etcd-io/etcd/pull/22850,
+      # for https://github.com/etcd-io/etcd/issues/22714, without its e2e
+      # test, which this build does not run
+      confirmLeadership = pkgs.fetchpatch {
+        name = "etcd-confirm-leadership.patch";
+        url = "https://github.com/etcd-io/etcd/commit/6cad9c7f7c31b396de7f2fe023bc61622f9a2f2b.patch";
+        includes = [ "server/etcdserver/server.go" ];
+        hash = "sha256-R0ivwgOJNG/hvqHNv0aQ3dJCVbw9pD3Uweyb+e1KPQI=";
+      };
+
       etcdServer = pkgs.etcd.passthru.deps.etcdserver.overrideAttrs (previous: {
-        patches = (previous.patches or [ ]) ++ [ ./revoke-leadership.patch ];
+        patches = (previous.patches or [ ]) ++ [ confirmLeadership ];
       });
 
       etcdPackage = pkgs.symlinkJoin {

@@ -75,12 +75,15 @@ Found while fixing the tests, not `TODO` comments.
     `docs/behavior.md` that a split can lose the writes of `replicaMaxLag`
     seconds, like a kill, and have the test leave out writes to a cut-off
     primary.
-- **The etcd patch.** `src/nix/modules/etcd/revoke-leadership.patch` makes a
-  leader of etcd that was paused ask the cluster whether it still leads before
-  it revokes the leases that ran out (see the plan, step 8.1). etcd `main` has
-  the same gap. Report it upstream with a reproduction, and drop the patch once
-  a release fixes it. The patch leaves a small race: a leader paused right after
-  the check still revokes when it wakes.
+- **The etcd patch.** `src/nix/modules/etcd/default.nix` patches etcd so that a
+  leader that was paused asks the cluster whether it still leads before it
+  revokes the leases that ran out (see the plan, step 8.1). The patch is the
+  commit of [etcd#22850](https://github.com/etcd-io/etcd/pull/22850), which
+  fixes [etcd#22714](https://github.com/etcd-io/etcd/issues/22714). Once an etcd
+  release in nixpkgs has that PR, delete the `fetchpatch` and the
+  `overrideAttrs` there. If the PR changes before it lands, fetch its new
+  commit. The patch leaves a small race: a leader paused right after the check
+  still revokes when it wakes.
 
 ## NixOS 26.11
 
