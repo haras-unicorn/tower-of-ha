@@ -75,6 +75,26 @@ Found while fixing the tests, not `TODO` comments.
     `docs/behavior.md` that a split can lose the writes of `replicaMaxLag`
     seconds, like a kill, and have the test leave out writes to a cut-off
     primary.
+- **The etcd patch.** `src/nix/modules/etcd/revoke-leadership.patch` makes a
+  leader of etcd that was paused ask the cluster whether it still leads before
+  it revokes the leases that ran out (see the plan, step 8.1). etcd `main` has
+  the same gap. Report it upstream with a reproduction, and drop the patch once
+  a release fixes it. The patch leaves a small race: a leader paused right after
+  the check still revokes when it wakes.
+
+## NixOS 26.11
+
+- `src/nix/test/notify.nix`: the test driver of nixpkgs master drains the notify
+  socket of a container itself. Once 26.11 has that driver, delete the file.
+  Until then it is harmless there, because it only reads a socket that is
+  already empty.
+- `src/nix/test/faults.nix`: check that `fault_kill` and `fault_revive` still
+  work. `fault_kill` drops the cached `get_systemd_process` of the driver, so a
+  revive waits for the pid of the new init. On master, that property reads
+  `_notify_ready` and `_notify_leader_pid`, which the drain thread sets and
+  nothing clears, also not `start()`. A revive could then get the pid of the
+  killed init at once, and every command after it would fail. If so, clear both
+  fields in `fault_kill` as well.
 
 ## Step 10: ACL
 

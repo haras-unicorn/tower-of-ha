@@ -721,6 +721,14 @@ holds an etcd lease and the workers run on every machine (see the
        `src/nix/test/notify.nix` does the same until that is in a release.
        `contracts-share-samba-split`, `contracts-filesystem-cephfs-split` and
        `contracts-oidc-authelia-split` pass.
+     - `contracts-database-patroni-freeze` lost confirmed writes: when the
+       machine that led both Patroni and etcd woke up, its etcd revoked the
+       lease of the new Patroni leader, the old primary took the free leader
+       key, and the others rewound onto its old timeline. etcd checks that it
+       still leads before it revokes leases, but skips the check while its clock
+       ticks, and a paused process ticks again at once. A patch to etcd always
+       does the check now, and the test passes with it; the report to etcd is in
+       the [to do](./todo.md).
 
 2. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be

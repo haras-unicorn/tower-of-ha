@@ -51,3 +51,5 @@ ignoreWords:
   - tnpo
   - PGCONNECT
   - syscall
+  - etcdserver
+  - etcdutl
