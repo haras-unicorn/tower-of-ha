@@ -11,6 +11,17 @@
       toh.services.cephfs.enable = true;
       toh.services.samba.enable = true;
     };
+    test =
+      { machines, ... }:
+      {
+        toh.test.contracts.share = {
+          # NOTE: Samba has no target of its own and joins the one of the
+          # filesystem it shares
+          online = "toh-filesystem-online.target";
+          redundant = selfLib.test.redundant.cephfs;
+        };
+        toh.test.faults.failoverDelay = selfLib.test.failoverDelay.cephfs machines;
+      };
   };
 
   self.nixosTests.contracts-share-samba = selfLib.test.makeNixosTest {
@@ -67,15 +78,19 @@
 
       toh.test.commands.perNodeInCluster.node = [
         ''command_node.wait_until_succeeds("systemctl is-active toh-filesystem-online.target", timeout=300)''
+        # NOTE: every machine keeps its own Samba passwords, so the user is
+        # added on every machine before any of them logs in through the proxy
+        ''
+          command_node.succeed("""
+            (echo ${password}; echo ${password}) | smbpasswd -a ${user} -s
+          """)
+        ''
         (
           node:
           let
             inherit (makeNodeAttrs node) name proxyArgs mntArgs;
           in
           ''
-            command_node.succeed("""
-              (echo ${password}; echo ${password}) | smbpasswd -a ${user} -s
-            """)
             command_node.wait_until_succeeds("""
               smbclient -L ${proxyArgs}
             """, timeout=120)

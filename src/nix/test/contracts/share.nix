@@ -22,6 +22,16 @@
 
       clientMeta = machines.client.toh.meta;
 
+      # NOTE: a file counts once smbclient put it, and every value is a file
+      # of its own
+      failover = selfLib.test.contract.failover {
+        inherit cfg machines;
+        capability = "share";
+        write = ''lambda value: f"contract-share write-value {value}"'';
+        holds = ''lambda value: f"contract-share read-value {value} | grep -x {value}"'';
+        reader = "reader";
+      };
+
       client =
         { config, pkgs, ... }:
         let
@@ -54,6 +64,14 @@
                 read)
                   smb 'get value' >/dev/null
                   cat value
+                  ;;
+                write-value)
+                  echo "$2" > "$2"
+                  smb "put $2"
+                  ;;
+                read-value)
+                  smb "get $2" >/dev/null
+                  cat "$2"
                   ;;
               esac
             '';
@@ -90,6 +108,8 @@
             toh.test.commands.suffix = ''
               client.wait_until_succeeds("contract-share write", timeout=300)
               reader.wait_until_succeeds("contract-share read | grep -qx ${value}", timeout=30)
+
+              ${failover}
             '';
           }
         ]

@@ -130,14 +130,11 @@ Found while fixing the tests, not `TODO` comments.
 
 Service work that fits no step so far.
 
-- **Samba does not come back when its machine is killed (being looked into).**
-  It is not the failover time of CephFS: with the metadata server untouched,
-  the next smbd waited about 60 seconds for CephFS to evict the dead machine's
-  mount, and then every login timed out on a mutex
-  (`check_sam_security_mutex_contract`) that some smbd on the new machine never
-  let go of. smbd keeps runtime state like its messaging sockets (`msg.sock`)
-  in the state directory on CephFS, which another machine then finds. The share
-  contract kills every server once but is not committed until it passes.
+- `src/nix/modules/samba/default.nix`: every Samba machine makes its own server
+  identity (the SID in `secrets.tdb`), since Samba's databases are local. Files
+  on CephFS belong to Unix users, so nothing should break, but a Windows client
+  may show other owners after a failover. Check it with a real Windows client,
+  and pin the SID from the config if it matters.
 - **A killed container sometimes never stops.** Its init stays a zombie that
   systemd-nspawn does not collect. The kill now fails after `shutdownTimeout`
   and names the parents, but why nspawn hangs is not known yet. It happened in

@@ -13,6 +13,8 @@
 
       mounts = config.toh.meta.filesystem.mounts;
 
+      sharedMounts = lib.filterAttrs (_: { share, ... }: share != null) mounts;
+
       mountShares = lib.mapAttrs' (
         path:
         { share, ... }:
@@ -24,7 +26,10 @@
           "directory mask" = share.directoryMask;
           "access based share enum" = "yes";
         }
-      ) (lib.filterAttrs (_: { share, ... }: share != null) mounts);
+      ) sharedMounts;
+
+      usersharesDirectory = "/var/lib/samba/usershares";
+      userdataDirectory = "/var/lib/samba/userdata";
 
       services = [
         "toh-lease-samba.service"
@@ -50,8 +55,14 @@
           };
         })
         (lib.mkIf cfg.enable {
-          toh.meta.filesystem.mounts."/var/lib/samba" = {
-            erase = true;
+          # NOTE: Samba keeps its databases (passwords, secrets, locks) in
+          # tdb files, which it only shares between machines through CTDB;
+          # on CephFS a takeover inherits them in whatever state the dead
+          # machine left, so they stay local and only the user shares and
+          # their files are shared
+          toh.meta.filesystem.mounts = {
+            ${usersharesDirectory} = { };
+            ${userdataDirectory} = { };
           };
 
           services.samba = {
@@ -75,7 +86,14 @@
                 "server max protocol" = "SMB3_11";
                 "client smb encrypt" = "required";
 
-                "usershare path" = "/var/lib/samba/usershares";
+                # NOTE: smbd answers a write before it is on disk unless the
+                # client asks for a flush, so a write could sit in the CephFS
+                # cache of a machine that dies right after; this syncs every
+                # write to CephFS first, which is slower but keeps it
+                "sync always" = "yes";
+                "strict sync" = "yes";
+
+                "usershare path" = usersharesDirectory;
                 "usershare max shares" = 255;
                 "usershare allow guests" = false;
                 "usershare template share" = "usershare";
@@ -100,11 +118,20 @@
             };
           };
 
-          # NOTE: smbd keeps its state in tdb files on CephFS, which only one
-          # smbd may use at a time
+          # NOTE: without CTDB, two smbd do not know each other's locks on the
+          # same files, so only one may serve the shares at a time
           toh.leases.samba.services = [ "samba-smbd" ];
 
-          systemd.services.samba-smbd.serviceConfig.Restart = "on-failure";
+          systemd.services.samba-smbd = {
+            serviceConfig.Restart = "on-failure";
+            # NOTE: the state of smbd is local, so without this it could serve
+            # the empty directories under the CephFS mounts of its shares
+            unitConfig.RequiresMountsFor = [
+              usersharesDirectory
+              userdataDirectory
+            ]
+            ++ builtins.attrNames sharedMounts;
+          };
 
           systemd.services.samba-dirs = {
             description = "Ensure Samba directories exist";
@@ -113,15 +140,18 @@
             before = [ "samba-smbd.service" ];
 
             unitConfig = {
-              RequiresMountsFor = "/var/lib/samba";
+              RequiresMountsFor = [
+                usersharesDirectory
+                userdataDirectory
+              ];
             };
 
             script = ''
-              mkdir -p /var/lib/samba/private /var/lib/samba/usershares /var/lib/samba/userdata
-              chown root:root /var/lib/samba/private /var/lib/samba/usershares
+              mkdir -p /var/lib/samba/private
+              chown root:root /var/lib/samba/private ${usersharesDirectory}
               chmod 700 /var/lib/samba/private
-              chmod 750 /var/lib/samba/userdata
-              chmod 1770 /var/lib/samba/usershares
+              chmod 750 ${userdataDirectory}
+              chmod 1770 ${usersharesDirectory}
             '';
           };
 

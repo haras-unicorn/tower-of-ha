@@ -72,10 +72,7 @@
         retrySeconds = lib.mkOption {
           type = lib.types.ints.positive;
           default = 5;
-          description = ''
-            Seconds between tries to set the Samba passwords of the apps,
-            which fail until the Samba directories exist.
-          '';
+          description = "Seconds between tries to set the Samba passwords of the apps.";
         };
       };
 
@@ -113,16 +110,12 @@
           }
         );
 
-        # NOTE: smbd keeps its passwords in a tdb file on CephFS, which only
-        # one machine may write at a time, so the lease holder sets them
-        toh.leases = lib.mkIf (cfg.enable && clusterApps != [ ]) {
-          samba.services = [ "samba-users" ];
-        };
-
+        # NOTE: every Samba machine keeps its own passwords, so every machine
+        # sets them, and a machine that takes over the lease has them already
         systemd.services.samba-users = lib.mkIf (cfg.enable && clusterApps != [ ]) {
           description = "Samba users of the apps";
-          after = [ "samba-dirs.service" ];
-          requires = [ "samba-dirs.service" ];
+          wantedBy = [ "samba.target" ];
+          partOf = [ "samba.target" ];
           before = [ "samba-smbd.service" ];
           unitConfig.StartLimitIntervalSec = 0;
           serviceConfig = {

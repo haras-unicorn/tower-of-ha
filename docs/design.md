@@ -275,6 +275,20 @@ Made on 2026-11-25, during the faults of step 8.
   for them on top of the shared failover time. Shorter waits come with the speed
   work.
 
+Made on 2026-11-26, during the faults of step 8.
+
+- **Samba keeps its own databases on each machine.** Samba shares its tdb files
+  (passwords, secrets, locks) between machines only through CTDB, which ToH does
+  not run. On CephFS, the machine that took over after a kill found them in
+  whatever state the dead one left, and every login then hung on a lock. So they
+  stay local, and every Samba machine sets the passwords of the apps itself.
+  Only the user shares and their files are on CephFS. One smbd still serves at a
+  time behind the lease, because two would not know each other's file locks.
+- **Samba writes to CephFS before it answers.** smbd confirms a write before it
+  is on disk unless the client asks for a flush, and a kill then lost a file
+  that the client had been told was written. `sync always` makes every write
+  wait for CephFS, which is slower but keeps what was confirmed.
+
 ## Architecture today
 
 This is how the code on `main` works, as read on 2026-11-16.

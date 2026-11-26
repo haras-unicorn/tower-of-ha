@@ -583,9 +583,9 @@ holds an etcd lease and the workers run on every machine (see the
      implementation says with `redundant` when it can lose a server. The S3,
      LDAP, email, secrets, database, kv, OIDC, git and chat contracts and
      `services-etcd` pass. The filesystem contract passes since the tests wait
-     for the graces of CephFS, and the share contract (Samba) still fails, see
-     [the todo](./todo.md#not-placed-yet). DNS, time, Prometheus and
-     Alertmanager are left out on purpose. What the kills found:
+     for the graces of CephFS, and the share contract (Samba) since 2026-11-26.
+     DNS, time, Prometheus and Alertmanager are left out on purpose. What the
+     kills found:
      - Sentinel will not fail over the same primary again for twice its failover
        timeout, 6 minutes by default, so a second kill waited that long. The
        timeout is the tunable `toh.services.valkey.sentinel.failoverTimeout`, 60
@@ -627,6 +627,18 @@ holds an etcd lease and the workers run on every machine (see the
        `reconnectTimeout`, with Ceph's defaults, and the tests of CephFS and of
        what lives on it wait for them on top of the failover time
        (`toh.test.faults.failoverDelay`).
+     - On 2026-11-26, Samba still failed: after a kill, every login on the new
+       machine hung on a lock in Samba's own databases, which were on CephFS
+       without CTDB. They are local now, and every Samba machine sets the app
+       passwords at boot and not only the lease holder (see the
+       [design](./design.md#decisions)). smbd also needs the mounts of its
+       shares now, which it got for free from the state on CephFS before.
+     - The next run lost a file that smbd had confirmed: it was still in the
+       CephFS cache of the killed machine. smbd now syncs every write first.
+     - Two mounts with a new common parent raced in their pre-mount, and one of
+       them failed: `mkdir -p` stops with `ObjectExists` when another mount
+       makes a parent at the same time. The pre-mount now tries until the
+       directory is there.
 2. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be
    absolutely sure that what is being tested is the failure and not the test.

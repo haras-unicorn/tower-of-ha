@@ -145,8 +145,15 @@
                   sleep 1
                 done
 
-                output=$(cephfs-shell "mkdir -p -m ${mode} '${directory}'" 2>&1) \
-                  || echo "$output" | grep -q 'ObjectExists'
+                # NOTE: mkdir -p stops with ObjectExists when another mount
+                # makes one of the parents at the same time, before it made
+                # the directory itself, so it runs until the directory is there
+                until cephfs-shell "stat '${directory}'" >/dev/null 2>&1; do
+                  if ! cephfs-shell "mkdir -p -m ${mode} '${directory}'"; then
+                    echo "Could not make '${directory}' yet, trying again..."
+                    sleep 1
+                  fi
+                done
               '';
               serviceConfig = {
                 Type = "oneshot";
