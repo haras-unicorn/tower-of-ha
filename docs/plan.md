@@ -566,7 +566,9 @@ holds an etcd lease and the workers run on every machine (see the
 1. **Faults (L).** Break the cluster in the ways it has to survive on its own.
    Each finding either hardens a module or goes into the docs as a known
    pitfall. In every fault, no confirmed write is lost and no two machines take
-   writes for the same thing at once (no split brain). The faults:
+   writes for the same thing at once (no split brain). The list is the goal, and
+   not every service has to go through every fault: where a fault says little
+   about a small service, its test may be pragmatic. The faults:
    - Kill each machine. Done, see below.
    - Split the network: cut one machine off from the other two, once for each
      machine, so the one with the leases and the primaries goes too. The cut off
@@ -593,7 +595,8 @@ holds an etcd lease and the workers run on every machine (see the
    fake them well:
    - Clock skew. Containers share the clock of the host, chrony keeps it, and
      the skipped VM test `services-chronyd-clock` checks that chrony sets it.
-     There is no alert for a clock that drifts yet, so one goes into this chunk.
+     There is no alert for a clock that drifts yet, which is in the
+     [to do](./todo.md).
    - A full disk. The `DiskAlmostFull` alert of the node exporter warns first.
    - A slow or lossy network. It costs speed and not correctness, and the kills
      and splits already cover a machine that stops answering.

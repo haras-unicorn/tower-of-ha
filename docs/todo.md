@@ -133,8 +133,11 @@ Service work that fits no step so far.
 - `src/nix/modules/samba/default.nix`: every Samba machine makes its own server
   identity (the SID in `secrets.tdb`), since Samba's databases are local. Files
   on CephFS belong to Unix users, so nothing should break, but a Windows client
-  may show other owners after a failover. Check it with a real Windows client,
-  and pin the SID from the config if it matters.
+  may show other owners after a failover. A Windows VM in the tests would need a
+  downloaded image and a license, so check it with Samba's own tools instead:
+  `net getlocalsid` on every Samba machine, and the owner of a file through
+  `smbcacls` from the client before and after a failover. Pin the SID from the
+  config if they differ, and try a real Windows client once by hand.
 - **A killed container sometimes never stops.** Its init stays a zombie that
   systemd-nspawn does not collect. The kill now fails after `shutdownTimeout`
   and names the parents, but why nspawn hangs is not known yet. It happened in
@@ -176,6 +179,10 @@ Service work that fits no step so far.
 - `src/nix/modules/cephfs/default.nix:1`: real disks for the OSDs.
 - `src/nix/modules/cephfs/default.nix:2`: more than one file system instance.
 - `src/nix/modules/chronyd/default.nix:3`: turn on NTS after the first sync.
+- `src/nix/modules/node-exporter/default.nix`: there is no alert for a clock
+  that drifts. Chrony keeps the clock, and the faults of step 8.1 leave clock
+  skew to monitoring, so a machine whose clock runs off should be an alert, for
+  example from the timex collector of the node exporter.
 - `src/nix/modules/coredns/default.nix:1`: DNSSEC and DNS over TLS.
 - `src/nix/modules/coredns/default.nix`: the node domain is served by the hosts
   plugin with `fallthrough` and nothing after it, so a name it does not have

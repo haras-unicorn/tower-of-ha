@@ -40,3 +40,5 @@ ignoreWords:
   - alertmanager
   - falco
   - perses
+  - getlocalsid
+  - smbcacls
