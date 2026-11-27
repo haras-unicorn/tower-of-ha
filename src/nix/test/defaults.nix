@@ -38,6 +38,11 @@
         virtualisation.diskSize = lib.mkIf config.toh.services.cephfs.enable (
           1024 + config.toh.services.cephfs.capacityInMB + 16
         );
+
+        # NOTE: the test network gives every machine a static address, like
+        # in the containers, which run no DHCP client; dhcpcd would listen on
+        # port 68, which the firewall does not open
+        networking.useDHCP = lib.mkDefault false;
       };
 
     containerDefaults =

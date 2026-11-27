@@ -31,6 +31,7 @@ ignoreWords:
   - nscd
   - resolv
   - resolvconf
+  - dhcpcd
   - openrouter
   - deepseek
   - direnv

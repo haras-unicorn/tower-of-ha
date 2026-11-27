@@ -838,6 +838,11 @@ holds an etcd lease and the workers run on every machine (see the
      of the unit that writes it. And every fault of CephFS waits out its graces,
      105 seconds, which three servers do not fit in 10 minutes; a test with
      faults now shortens them to 30 and 20, through `toh.test.faults.cephfs`.
+   - The VM tests of tier 3 broke the invariant of the firewall: NixOS runs
+     dhcpcd by default, which listens on port 68. The test network gives every
+     machine a static address, so the VMs of the tests turn DHCP off, like the
+     containers, which never ran it. With that, every test of the three tiers
+     passed in the sweep.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:
