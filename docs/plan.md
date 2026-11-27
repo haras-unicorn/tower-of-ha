@@ -812,6 +812,13 @@ holds an etcd lease and the workers run on every machine (see the
      whole suite first, since one run takes most of a night: the sweep of the
      hardening finds the tests that run out of time, and they get fixed as it
      goes.
+   - `services-alertmanager-matrix` ran out of its 5 minutes, and had failed
+     with six tests at a time before. Every bridge logged in to Synapse on every
+     start, also the ones before the chat had made its room, and all of them log
+     in as the same user. Synapse lets an account log in 5 times at once and
+     then about once every 5 minutes, so the bridges locked the user out. A
+     bridge now looks up the alias of the room first, which needs no login, and
+     logs in only once the room is there.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:

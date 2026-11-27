@@ -109,8 +109,8 @@
           default = 10;
           description = ''
             Seconds between starts of the bridge, which fails until the chat
-            has made its user and room. Every start logs in, so this stays
-            above the login rate limit of the chat.
+            has made its user and room. A start logs in only once the room
+            is there.
           '';
         };
       };

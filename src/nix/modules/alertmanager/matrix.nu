@@ -1,8 +1,11 @@
 def main [] {
   let settings = r#'{{{TOH_ALERTMANAGER_MATRIX}}}'# | from json
 
+  # NOTE: the room is made after the user, and a lookup of its alias needs
+  # no login, so a start before the chat is ready costs no login against
+  # the rate limit of the chat
+  let room_id = find-room $settings
   let token = login $settings
-  let room_id = find-room $settings $token
 
   let matrix = $settings.config.matrix | merge {
     "user-id": $settings.userId
@@ -34,11 +37,10 @@ def login [settings: record] {
   $response.body.access_token
 }
 
-def find-room [settings: record, token: string] {
+def find-room [settings: record] {
   let alias = $settings.room | url encode --all
   let response = (
     http get --full --allow-errors
-      --headers { Authorization: $"Bearer ($token)" }
       $"($settings.url)/_matrix/client/v3/directory/room/($alias)"
   )
 
