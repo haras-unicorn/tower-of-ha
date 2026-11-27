@@ -34,7 +34,7 @@
               };
 
             toh.test.commands.prefix = lib.mkBefore ''
-              ntp.wait_for_unit("chronyd.service")
+              ntp.wait_for_unit("chronyd.service", timeout=120)
             '';
           }
           (selfLib.test.ofKind testConfig.toh.test.kind {

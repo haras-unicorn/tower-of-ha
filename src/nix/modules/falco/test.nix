@@ -23,7 +23,7 @@
         };
 
       toh.test.commands.suffix = ''
-        machine.wait_for_unit("falco.service")
+        machine.wait_for_unit("falco.service", timeout=120)
         client.wait_until_succeeds(
           "curl --silent --fail"
           " 'http://${falco.toh.meta.network.ip}:${builtins.toString falco.toh.services.falco.port}/metrics'"
@@ -67,7 +67,7 @@
       };
 
       toh.test.commands.suffix = ''
-        node1.wait_for_unit("falco.service")
+        node1.wait_for_unit("falco.service", timeout=120)
         node1.wait_until_succeeds(
           "cat /etc/shadow > /dev/null"
           " && curl --silent --fail --get '${alerts.url}/api/v2/alerts'"

@@ -40,7 +40,7 @@
         lib.mkMerge [
           {
             toh.test.commands.prefix = lib.mkBefore ''
-              s3.wait_for_unit("toh-test-s3-online.target")
+              s3.wait_for_unit("toh-test-s3-online.target", timeout=120)
             '';
           }
           (selfLib.test.ofKind testConfig.toh.test.kind {

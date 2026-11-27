@@ -33,7 +33,7 @@
     toh.test.commands.suffix =
       { nodes, ... }:
       ''
-        machine.wait_for_unit("coredns.service")
+        machine.wait_for_unit("coredns.service", timeout=120)
         machine.succeed("getent hosts localhost.test.toh | grep -q '127.0.0.1'")
         machine.succeed("dig @${nodes.dns.toh.meta.network.ip} localhost.test.toh | grep -q '127.0.0.1'")
       '';
@@ -62,8 +62,8 @@
       in
       ''
         for node in [node1, node2, node3]:
-          node.wait_for_unit("coredns.service")
-          node.wait_for_unit("envoy.service")
+          node.wait_for_unit("coredns.service", timeout=120)
+          node.wait_for_unit("envoy.service", timeout=120)
 
         node3.wait_until_succeeds("${answers asked} | grep -x ${lost}", timeout=60)
         node2.succeed("test \"$(${answers "127.0.0.1"})\" = 127.0.0.1")
@@ -74,7 +74,7 @@
         node3.succeed("${answers asked} | grep -x ${nodes.node3.toh.meta.network.ip}")
 
         fault_revive(node1)
-        node1.wait_for_unit("envoy.service")
+        node1.wait_for_unit("envoy.service", timeout=120)
         node3.wait_until_succeeds("${answers asked} | grep -x ${lost}", timeout=60)
 
         fault_split(node1, [node2, node3])

@@ -195,17 +195,17 @@
           })
           {
             toh.test.commands.suffix = ''
-              relay.wait_for_unit("network-online.target")
-              node1.wait_for_unit("network-online.target")
-              node2.wait_for_unit("network-online.target")
+              relay.wait_for_unit("network-online.target", timeout=120)
+              node1.wait_for_unit("network-online.target", timeout=120)
+              node2.wait_for_unit("network-online.target", timeout=120)
 
-              relay.wait_until_succeeds("ip link show toh")
-              node1.wait_until_succeeds("ip link show toh")
-              node2.wait_until_succeeds("ip link show toh")
+              relay.wait_until_succeeds("ip link show toh", timeout=120)
+              node1.wait_until_succeeds("ip link show toh", timeout=120)
+              node2.wait_until_succeeds("ip link show toh", timeout=120)
 
-              relay.wait_until_succeeds("ip addr show toh | grep -q '${subnetConfig.prefix}.1'")
-              node1.wait_until_succeeds("ip addr show toh | grep -q '${subnetConfig.prefix}.11'")
-              node2.wait_until_succeeds("ip addr show toh | grep -q '${subnetConfig.prefix}.12'")
+              relay.wait_until_succeeds("ip addr show toh | grep -q '${subnetConfig.prefix}.1'", timeout=120)
+              node1.wait_until_succeeds("ip addr show toh | grep -q '${subnetConfig.prefix}.11'", timeout=120)
+              node2.wait_until_succeeds("ip addr show toh | grep -q '${subnetConfig.prefix}.12'", timeout=120)
 
               node1.succeed("ping -c 3 ${internet.relay}")
               node2.succeed("ping -c 3 ${internet.relay}")

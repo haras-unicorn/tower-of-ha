@@ -379,7 +379,9 @@ in
 
               retry(reached, timeout_seconds=timeout)
 
-            ${lib.concatMapStringsSep "\n" (name: ''${name}.wait_for_unit("http.service")'') serverNames}
+            ${lib.concatMapStringsSep "\n" (
+              name: ''${name}.wait_for_unit("http.service", timeout=120)''
+            ) serverNames}
 
             proxy_reaches(${pythonSet serverNames}, "Spreading at start failed", ${builtins.toString startTimeout})
 

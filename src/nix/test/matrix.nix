@@ -52,7 +52,7 @@ in
             toh.test.dns.zones = selfLib.dns.routeToIp [ cfg.domain ] machines.matrix.toh.meta.network.ip;
 
             toh.test.commands.prefix = lib.mkBefore ''
-              matrix.wait_for_unit("matrix-synapse.service")
+              matrix.wait_for_unit("matrix-synapse.service", timeout=120)
             '';
           }
           (selfLib.test.ofKind config.toh.test.kind {

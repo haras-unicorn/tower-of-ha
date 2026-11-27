@@ -24,8 +24,8 @@
     };
 
     toh.test.commands.suffix = ''
-      machine.wait_for_unit("avahi-daemon.service")
-      machine.wait_for_unit("geoclue.service")
+      machine.wait_for_unit("avahi-daemon.service", timeout=120)
+      machine.wait_for_unit("geoclue.service", timeout=120)
     '';
   };
 }

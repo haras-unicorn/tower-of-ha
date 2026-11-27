@@ -71,7 +71,7 @@
             );
 
             toh.test.commands.prefix = lib.mkBefore ''
-              dns.wait_for_unit("coredns.service")
+              dns.wait_for_unit("coredns.service", timeout=120)
             '';
           }
           (selfLib.test.ofKind testConfig.toh.test.kind {

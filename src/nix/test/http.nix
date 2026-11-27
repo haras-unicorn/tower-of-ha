@@ -113,7 +113,7 @@ in
                 pythonName = builtins.replaceStrings [ "-" ] [ "_" ] name;
               in
               lib.mkBefore ''
-                http_${pythonName}.wait_for_unit("http.service")
+                http_${pythonName}.wait_for_unit("http.service", timeout=120)
               ''
             ) servers
           );

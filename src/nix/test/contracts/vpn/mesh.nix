@@ -118,11 +118,12 @@
 
             toh.test.commands.enable = true;
             toh.test.commands.perNodeInCluster.node = [
-              ''command_node.wait_for_unit("network-online.target")''
-              ''command_node.wait_until_succeeds("ip link show toh")''
+              ''command_node.wait_for_unit("network-online.target", timeout=120)''
+              ''command_node.wait_until_succeeds("ip link show toh", timeout=120)''
               (node: ''
                 command_node.wait_until_succeeds(
-                  "ip addr show toh | grep -q '${node.toh.meta.network.ip}'"
+                  "ip addr show toh | grep -q '${node.toh.meta.network.ip}'",
+                  timeout=120,
                 )
               '')
               (

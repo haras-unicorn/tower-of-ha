@@ -20,7 +20,7 @@
     toh.test.commands.prefix = "import json";
 
     toh.test.commands.perNodeInCluster.node = [
-      ''command_node.wait_for_unit("static-web-server.socket")''
+      ''command_node.wait_for_unit("static-web-server.socket", timeout=120)''
       ''command_node.wait_until_succeeds("curl -sf https://element.service.toh/health", timeout=120)''
       ''command_node.succeed("curl -sf https://element.service.toh/ | grep -F '<title>Element</title>' > /dev/null")''
       (node: ''

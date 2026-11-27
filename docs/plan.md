@@ -843,6 +843,15 @@ holds an etcd lease and the workers run on every machine (see the
      machine a static address, so the VMs of the tests turn DHCP off, like the
      containers, which never ran it. With that, every test of the three tiers
      passed in the sweep.
+   - Every wait of a test script has a timeout now. About 30 waits for a unit or
+     an interface had none, and so the 15 minutes of the test driver, longer
+     than any budget; they wait 120 seconds now. The `wait_for_shutdown` of a
+     killed container comes after a loop with its own deadline, and stays. The
+     one-shot units that start with `TimeoutStartSec = "infinity"`, the
+     initializations of Forgejo, Garage, OpenBao and Patroni and the wait of
+     chronyd, stay too: they start again after a failure and stop with their
+     service, and a timeout there would only start them again, while the wait of
+     the test on their target already has one.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:

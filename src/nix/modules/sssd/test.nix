@@ -18,7 +18,7 @@
 
     toh.test.commands.perNodeInCluster.node = [
       ''command_node.wait_until_succeeds("systemctl is-active toh-ldap-online.target", timeout=300)''
-      ''command_node.wait_for_unit("sssd.service")''
+      ''command_node.wait_for_unit("sssd.service", timeout=120)''
       (
         node:
         let

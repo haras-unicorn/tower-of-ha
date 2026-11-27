@@ -63,7 +63,7 @@ let
         toh.test.commands.suffix =
           { nodes, ... }:
           ''
-            machine.wait_for_unit("ddns-updater.service")
+            machine.wait_for_unit("ddns-updater.service", timeout=120)
 
             http_ip.wait_until_succeeds("grep -q '${nodes.machine.toh.meta.network.ip}' /var/lib/http/log.jsonl", timeout=60)
             http_ip.wait_until_succeeds("grep -q '${nodes.machine.toh.meta.network.ip}' /var/lib/http/store.json", timeout=60)

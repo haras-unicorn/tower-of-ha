@@ -9,7 +9,7 @@ let
     };
     toh.test.commands.perNode = [
       ''
-        command_node.wait_for_unit("sshd.service")
+        command_node.wait_for_unit("sshd.service", timeout=120)
       ''
     ];
   };
