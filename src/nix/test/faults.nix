@@ -367,6 +367,35 @@
             services again
           '';
         };
+
+        cephfs = {
+          monitorDownGrace = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 30;
+            description = ''
+              The `monitorDownGrace` of CephFS in a test with faults, shorter
+              than the default, because every fault of every server waits it
+              out once and a test has to fit its budget
+            '';
+          };
+
+          reconnectTimeout = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 20;
+            description = ''
+              The `reconnectTimeout` of CephFS in a test with faults, shorter
+              than the default for the same reason
+            '';
+          };
+        };
+      };
+
+      # NOTE: the faults check that the cluster stays correct and not how
+      # fast it fails over with the default timings, so a test with faults
+      # shortens the graces it waits out on every fault
+      config.defaults = lib.mkIf (cfg.kinds != [ ]) {
+        toh.services.cephfs.monitorDownGrace = lib.mkDefault cfg.cephfs.monitorDownGrace;
+        toh.services.cephfs.reconnectTimeout = lib.mkDefault cfg.cephfs.reconnectTimeout;
       };
 
       config.toh.test.commands.helpers = [

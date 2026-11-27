@@ -827,6 +827,17 @@ holds an etcd lease and the workers run on every machine (see the
      test containers nscd now starts after resolvconf, so the restart finds it
      not running yet and leaves it alone. Tests that passed earlier in the sweep
      were not run again for it.
+   - `contracts-git-forgejo-split` and `-freeze` ran out of time, for three
+     reasons. On a new database every LLDAP creates its default groups at the
+     first start, and the ones that lose the race exited and stayed down; LLDAP
+     and its initialization now start again after a failure, and the
+     initialization, which waits for LLDAP without an end, has a timeout. Maddy
+     kept its secrets in its own runtime directory, which goes away whenever
+     Maddy stops, so after a restart it could not start again, and Forgejo,
+     which needs it, stayed down too; the file is now in the runtime directory
+     of the unit that writes it. And every fault of CephFS waits out its graces,
+     105 seconds, which three servers do not fit in 10 minutes; a test with
+     faults now shortens them to 30 and 20, through `toh.test.faults.cephfs`.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:

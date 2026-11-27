@@ -51,6 +51,16 @@
             default = cfg.enable;
           };
 
+          timeout = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 120;
+            description = ''
+              Seconds the initialization may take, waiting for LLDAP included,
+              before it fails and starts again after `retrySeconds`. Its script
+              waits for LLDAP without an end of its own.
+            '';
+          };
+
           userSchemas = lib.mkOption {
             type = lib.types.listOf (
               lib.types.submodule {
@@ -212,11 +222,15 @@
             GROUP_SCHEMAS_DIR = "${init}/group-schemas";
           };
           script = "${serviceCfg.package.src}/scripts/bootstrap.sh";
+          unitConfig.StartLimitIntervalSec = 0;
           serviceConfig = {
             User = owner;
             Group = group;
             Type = "oneshot";
             RemainAfterExit = true;
+            TimeoutStartSec = cfg.init.timeout;
+            Restart = "on-failure";
+            RestartSec = cfg.retrySeconds;
           };
         };
 

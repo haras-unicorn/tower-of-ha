@@ -39,6 +39,17 @@
       options.toh.services = {
         lldap = {
           enable = lib.mkEnableOption "LLDAP";
+
+          retrySeconds = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 5;
+            description = ''
+              Seconds before LLDAP starts again after it failed. On a new
+              database, every machine creates the default groups at its first
+              start, and the ones that lose the race fail; the next start finds
+              the groups there.
+            '';
+          };
         };
       };
 
@@ -111,10 +122,13 @@
             wantedBy = [ "toh-database-online.target" ];
             requires = [ "toh-database-online.target" ];
             after = [ "toh-database-online.target" ];
+            unitConfig.StartLimitIntervalSec = 0;
             serviceConfig = {
               DynamicUser = lib.mkForce false;
               User = lib.mkForce owner;
               Group = lib.mkForce group;
+              Restart = "on-failure";
+              RestartSec = cfg.retrySeconds;
             };
           };
 

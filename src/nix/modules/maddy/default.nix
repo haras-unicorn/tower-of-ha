@@ -14,7 +14,12 @@
 
       anyMachines = selfLib.cluster.anyServiceMachines config "maddy";
 
-      env = "/run/maddy/secrets.env";
+      # NOTE: not in /run/maddy, the runtime directory of maddy, which goes
+      # away whenever maddy stops, so the file was gone at the next start;
+      # this one is the runtime directory of maddy-env and stays while that
+      # stays active
+      envDirectory = "maddy-secrets";
+      env = "/run/${envDirectory}/secrets.env";
 
       # NOTE: because proxy is on 25 statically
       smtpPort = 30025;
@@ -275,9 +280,10 @@
             serviceConfig = {
               Type = "oneshot";
               RemainAfterExit = true;
+              RuntimeDirectory = envDirectory;
+              RuntimeDirectoryMode = "0711";
             };
             script = ''
-              mkdir -p ${builtins.dirOf env}
               echo "MADDY_LDAP_BIND_PASSWORD=$(cat ${ldapUser.password})" > ${env}
               echo "MADDY_DB_PASSWORD=$(cat ${dbInst.password})" >> ${env}
               echo "MADDY_S3_ACCESS_KEY=$(cat ${s3Bucket.keyId})" >> ${env}
