@@ -7,7 +7,7 @@ reading every test.
 Each service has three parts:
 
 - **Shows:** what the tests check that the service does.
-- **Holes:** behavior that no test checks yet. Step 8.2 fills these.
+- **Holes:** behavior that no test checks yet. Step 8.3 fills these.
 - **Failover:** whether a test stops a copy of the service and checks that the
   others take over. Where none does, the faults of step 8.1 cover it. High
   availability means both failover and distribution: when one machine goes down,

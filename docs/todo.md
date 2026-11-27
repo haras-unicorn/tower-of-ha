@@ -88,7 +88,7 @@ Found while fixing the tests, not `TODO` comments.
   `contracts-secrets-openbao-split`, a Patroni replica rewound from the new
   primary, the test cut that primary off, and `pg_rewind` was still waiting on
   it two minutes later. Patroni gives the rewind no timeout. Look at it with the
-  faults during recovery of step 8.1.
+  faults during recovery of step 8.4.
 
 ## NixOS 26.11
 

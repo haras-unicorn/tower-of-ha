@@ -579,17 +579,12 @@ holds an etcd lease and the workers run on every machine (see the
      last, then let them run again. A primary that wakes up must not keep
      writing as if it still were one. This is the split brain that a long pause
      makes, without any network fault.
-   - Lose the majority: stop two machines. The last one refuses writes rather
-     than serve alone, and the cluster comes back once a second machine does.
-   - Restart in the wrong order: stop the whole cluster one machine at a time,
-     then boot it one machine at a time, once with the machine that stopped
-     first (and so has the oldest data) booting first and once with it booting
-     last. No old data takes over.
-   - Restart one machine after the other, like a deploy does. Writes work again
-     after each one, before the next restarts.
-   - Fail during recovery: kill a machine, bring it back, and kill another as
-     soon as the tests call the cluster redundant again. This checks that
-     `redundant` waits until the machine has caught up.
+
+   Changed on 2026-11-27: the faults after these three moved to chunk 4, after
+   the tiers and the hardening. By then the suite had 91 tests and ran for about
+   an hour, and a fault test that hung waited out a global timeout of up to 40
+   minutes, so every new fault made it slower still. The new faults come into a
+   suite with time budgets.
 
    Left out on purpose, because monitoring covers them and a container cannot
    fake them well:
@@ -772,6 +767,34 @@ holds an etcd lease and the workers run on every machine (see the
    absolutely sure that what is being tested is the failure and not the test.
    Fill the behavior holes found in step 7 too, listed in
    [what the tests show](./behavior.md).
+
+   Decided on 2026-11-27, every test also runs within a budget:
+   - The global timeout of a test comes from its tier: 5 minutes for tier 1 and
+     10 for tiers 2 and 3, and no longer from the sum of the worst cases of its
+     faults. A test that needs more says why in a `NOTE`, and one that runs much
+     faster may set less.
+   - Everything a test waits on has a timeout well inside the budget, so a hang
+     fails early and the report of the faults still runs.
+   - `dev test` prints how long each test took, so a sweep shows which tests
+     come close to their budget.
+   - A fault test may shorten the timings of a service, like the graces of
+     CephFS or the freeze time, to fit. The faults check that the cluster stays
+     correct, and not how fast it is with the defaults.
+   - Every fault still goes to every server, in one test per fault.
+
+4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
+   the same rules for what holds after every fault:
+   - Lose the majority: stop two machines. The last one refuses writes rather
+     than serve alone, and the cluster comes back once a second machine does.
+   - Restart in the wrong order: stop the whole cluster one machine at a time,
+     then boot it one machine at a time, once with the machine that stopped
+     first (and so has the oldest data) booting first and once with it booting
+     last. No old data takes over.
+   - Restart one machine after the other, like a deploy does. Writes work again
+     after each one, before the next restarts.
+   - Fail during recovery: kill a machine, bring it back, and kill another as
+     soon as the tests call the cluster redundant again. This checks that
+     `redundant` waits until the machine has caught up.
 
 ## Step 9: CLI
 
