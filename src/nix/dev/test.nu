@@ -32,13 +32,17 @@ def main [
       { name: $name, status: "left out" }
     } else {
       print $"== ($name)"
+      let started = date now
       let passed = try {
         ^nix build --no-link --print-build-logs $"($tests).($name)"
         true
       } catch {
         false
       }
-      { name: $name, status: (if $passed { "passed" } else { "failed" }) }
+      let status = if $passed { "passed" } else { "failed" }
+      let seconds = ((date now) - $started) / 1sec | math round
+      print $"-- ($name): ($status) in ($seconds)s"
+      { name: $name, status: $status, seconds: $seconds }
     }
   }
 
@@ -53,6 +57,16 @@ def main [
     } catch {
       print "no log found"
     }
+  }
+
+  let ran = $results | where status != "left out"
+  if not ($ran | is-empty) {
+    print "\n== how long each test took, longest first"
+    $ran
+      | sort-by seconds --reverse
+      | each {|test| $"  ($test.seconds)s ($test.name) ($test.status)" }
+      | str join "\n"
+      | print
   }
 
   print ""

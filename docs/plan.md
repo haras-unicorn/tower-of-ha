@@ -802,6 +802,11 @@ holds an etcd lease and the workers run on every machine (see the
      correct, and not how fast it is with the defaults.
    - Every fault still goes to every server, in one test per fault.
 
+   What happened:
+   - Started on 2026-11-27. `dev test` prints how long every test took, once it
+     ends and again at the end, longest first, so a sweep shows where the time
+     goes before the budgets are set.
+
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:
    - Lose the majority: stop two machines. The last one refuses writes rather
