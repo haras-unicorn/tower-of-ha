@@ -33,6 +33,10 @@
   };
 
   self.lib.test.faultTests.contracts-git-forgejo = {
+    # NOTE: the budget of a fault test from step 8.3 of the plan, set here
+    # until the tiers set it for every test
+    globalTimeout = 600;
+
     toh.test.contracts.git = {
       enable = true;
       implementation.forgejo = { };

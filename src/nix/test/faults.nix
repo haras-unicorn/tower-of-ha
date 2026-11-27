@@ -162,26 +162,43 @@
 
       # NOTE: a container has no monitor to pause it, so every process of it
       # gets SIGSTOP from outside until none of them runs, because a process
-      # may fork while the others stop; zombies cannot stop and do not run
+      # may fork while the others stop; zombies cannot stop and do not run; a
+      # process that waits in the kernel stops only once it leaves it, which
+      # one that waits on a FUSE mount whose daemon stopped never does, so
+      # once it got its SIGSTOP it counts as stopped, because it stops before
+      # it runs again; a freeze that still finds processes running after
+      # freezeTimeout fails and names them
       freezes.container = ''
         def fault_freeze(machine):
           with machine.nested("fault: the machine stops, like in a long pause"):
             namespace = fault_namespace(machine)
-            running = fault_running(namespace)
+            deadline = fault_time.monotonic() + ${builtins.toString cfg.freezeTimeout}
+            signaled = set()
+            running = fault_running(namespace, signaled)
             while running:
+              if fault_time.monotonic() > deadline:
+                left = "; ".join(
+                  " ".join([str(pid)] + [fault_proc(pid, name) for name in ["comm", "stat", "wchan"]])
+                  for pid in running
+                )
+                raise Exception(f"{machine.name} did not stop, running: {left}")
               fault_signal_all(running, fault_signal.SIGSTOP)
+              signaled.update(running)
               fault_time.sleep(0.1)
-              running = fault_running(namespace)
+              running = fault_running(namespace, signaled)
 
         def fault_thaw(machine):
           with machine.nested("fault: the machine runs again"):
             fault_signal_all(fault_pids(fault_namespace(machine)), fault_signal.SIGCONT)
 
-        def fault_running(namespace):
+        def fault_running(namespace, signaled):
           return [
             pid for pid in fault_pids(namespace)
-            if fault_state(pid) not in ["T", "t", "Z", "X", ""]
+            if not fault_stopped(fault_state(pid), pid in signaled)
           ]
+
+        def fault_stopped(state, signaled):
+          return state in ["T", "t", "Z", "X", ""] or (state == "D" and signaled)
 
         def fault_signal_all(pids, signal):
           for pid in pids:
@@ -285,6 +302,15 @@
             Seconds a frozen machine stays frozen at least, longer than the
             leases and graces of the services, so the others notice and take
             over before it runs again
+          '';
+        };
+
+        freezeTimeout = lib.mkOption {
+          type = lib.types.ints.positive;
+          default = 30;
+          description = ''
+            Seconds the processes of a frozen container have to stop; after
+            that the test fails and names the processes that still run
           '';
         };
 

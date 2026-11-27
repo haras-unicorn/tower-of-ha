@@ -570,15 +570,15 @@ holds an etcd lease and the workers run on every machine (see the
    not every service has to go through every fault: where a fault says little
    about a small service, its test may be pragmatic. The faults:
    - Kill each machine. Done, see below.
-   - Split the network: cut one machine off from the other two, once for each
-     machine, so the one with the leases and the primaries goes too. The cut off
-     machine stops taking writes and the other two carry on. Once the split
-     heals, it rejoins and catches up without pulling the cluster back to its
-     old data.
-   - Freeze a machine: stop all of its processes for longer than the leases
-     last, then let them run again. A primary that wakes up must not keep
-     writing as if it still were one. This is the split brain that a long pause
-     makes, without any network fault.
+   - Split the network. Done, see below. Cut one machine off from the other two,
+     once for each machine, so the one with the leases and the primaries goes
+     too. The cut off machine stops taking writes and the other two carry on.
+     Once the split heals, it rejoins and catches up without pulling the cluster
+     back to its old data.
+   - Freeze a machine. Done, see below. Stop all of its processes for longer
+     than the leases last, then let them run again. A primary that wakes up must
+     not keep writing as if it still were one. This is the split brain that a
+     long pause makes, without any network fault.
 
    Changed on 2026-11-27: the faults after these three moved to chunk 4, after
    the tiers and the hardening. By then the suite had 91 tests and ran for about
@@ -743,6 +743,18 @@ holds an etcd lease and the workers run on every machine (see the
        no replica left, and in strict synchronous mode it commits nothing then,
        so OpenBao never got its lock. The test had waited only for a synchronous
        standby; `redundant.patroni` now waits for every replica to stream.
+     - On 2026-11-27, `contracts-git-forgejo-freeze` hung for over 30 minutes in
+       the freeze of the last server, until its global timeout. A process that
+       waits in the kernel, like on the CephFS mount whose FUSE daemon was
+       already stopped, cannot stop until it leaves the kernel, and the freeze
+       waited for it to. It now counts as stopped once it has its SIGSTOP, and a
+       freeze fails after `toh.test.faults.freezeTimeout`, naming what still
+       runs. The test passes in 8 minutes, and its fault tests get the 10
+       minutes of step 8.3 already.
+   - Done on 2026-11-27, with the kill, the split and the freeze, and the other
+     faults moved to chunk 4 (see above). In the last sweep, every fault test
+     passed except `contracts-kv-valkey-freeze`, which failed with six tests at
+     a time and passed on its own.
 
 2. **Test tiers (M).** Decided on 2026-11-27. On that day the suite had 91 tests
    and ran for about an hour with six at a time, and most of the work left does
