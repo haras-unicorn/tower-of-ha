@@ -29,6 +29,8 @@ ignoreWords:
   - nixfmt
   - nixpkgs
   - nscd
+  - resolv
+  - resolvconf
   - openrouter
   - deepseek
   - direnv

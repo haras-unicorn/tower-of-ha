@@ -89,15 +89,6 @@ Found while fixing the tests, not `TODO` comments.
   primary, the test cut that primary off, and `pg_rewind` was still waiting on
   it two minutes later. Patroni gives the rewind no timeout. Look at it with the
   faults during recovery of step 8.4.
-- **nscd fails to start at boot, now and then.** The flake from the plan's
-  parked list ("A flake when containers start") showed up twice more, in
-  `services-etcd-split` on 2026-11-26 and in `services-etcd` on 2026-11-27, and
-  both passed on the next run. Both times, nscd on node1 starts, is stopped and
-  started again within a few milliseconds of boot, and the second start fails
-  with "Failed to spawn executor: No such file or directory". Every
-  `toh-*-online` target depends on it, so the machine never comes up. Look at
-  what restarts nscd that early, with the hardening of step 8.3, since a test
-  that fails on its own boot is a flaky test.
 
 ## NixOS 26.11
 

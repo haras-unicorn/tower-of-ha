@@ -819,6 +819,14 @@ holds an etcd lease and the workers run on every machine (see the
      then about once every 5 minutes, so the bridges locked the user out. A
      bridge now looks up the alias of the room first, which needs no login, and
      logs in only once the room is there.
+   - `services-cephfs` and `services-etcd` sometimes never came up, the flake
+     parked as "A flake when containers start". Each time it was nscd: NixOS has
+     resolvconf restart nscd whenever it writes `resolv.conf`, at boot that came
+     while nscd was still starting, and in a container the second start
+     sometimes failed to spawn. Every `toh-*-online` target needs nscd. In the
+     test containers nscd now starts after resolvconf, so the restart finds it
+     not running yet and leaves it alone. Tests that passed earlier in the sweep
+     were not run again for it.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:
@@ -892,7 +900,9 @@ live only in the test modules, so invariant 6 does not hold yet.
   targets of that machine then fail, and later the test driver loses it
   ("Transport endpoint is not connected"). Seen in maddy and Patroni on
   2026-11-18; both passed on a re-run. Find out whether it comes from ToH or
-  from the nixpkgs container tests, and fix it here or in nixpkgs.
+  from the nixpkgs container tests, and fix it here or in nixpkgs. The three
+  seen on 2026-11-26 and 2026-11-27 were nscd, restarted by resolvconf while it
+  started, fixed in step 8.3; the ones of 2026-11-18 have no logs left.
 - **Simplify the services.** Much of the service code repeats itself. Move the
   shared parts into `self.lib`, with unit tests there, and keep the modules
   thin.

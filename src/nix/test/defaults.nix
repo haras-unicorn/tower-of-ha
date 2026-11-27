@@ -60,6 +60,13 @@
           ])
         ];
 
+        # NOTE: resolvconf restarts nscd whenever it writes resolv.conf, and
+        # at boot it did that while nscd was still starting; in a container
+        # that second start sometimes failed to spawn, and then no target of
+        # the machine came up; started after resolvconf, nscd is not running
+        # yet when the restart comes, so it is left alone
+        systemd.services.nscd.after = [ "resolvconf.service" ];
+
         # NOTE: containers have no /dev/watchdog, and a watchdog bound in
         # from the host would reset the host
         toh.services.patroni.softwareWatchdog = false;
