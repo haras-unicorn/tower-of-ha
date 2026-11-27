@@ -749,7 +749,25 @@ holds an etcd lease and the workers run on every machine (see the
        so OpenBao never got its lock. The test had waited only for a synchronous
        standby; `redundant.patroni` now waits for every replica to stream.
 
-2. **Test hardening (L).** Ensure each and every test has builtin retries and
+2. **Test tiers (M).** Decided on 2026-11-27. On that day the suite had 91 tests
+   and ran for about an hour with six at a time, and most of the work left does
+   not touch the faults. So every test sets the required option `toh.test.tier`,
+   which `dev test` reads from `passthru.tier`:
+   - Tier 1: the happy path of a service or contract, kept fast. CI runs it on
+     every change, as the check that nothing broke badly.
+   - Tier 2: the faults of step 8.1, so every test that `faultTests` makes.
+   - Tier 3: the VM tests. The tier replaces `passthru.skipped` and `--skipped`.
+
+   Every test sets its tier by hand, VM tests too; it does not follow from
+   `toh.test.kind`. `dev test --tier <n>` runs the tests of tier `n` and below,
+   tier 1 by default. `--all <regex>` runs every tier of the tests whose names
+   match, whatever `--tier` says. So work on one area runs, for example,
+   `dev test --all cli` for all the tests of that area and tier 1 of the rest.
+   Releases run `--tier 3`. Steps 9 to 11 tier their tests the same way. Done
+   when every test sets a tier, `dev test` has both flags, CI runs tier 1, and
+   `AGENTS.md` and the docs speak of tiers and not of skipped tests.
+
+3. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be
    absolutely sure that what is being tested is the failure and not the test.
    Fill the behavior holes found in step 7 too, listed in

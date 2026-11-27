@@ -49,6 +49,11 @@ freed when its test ends. `dev test --jobs <n>` runs `n` tests at once and
 unless `--skipped` is given. Before the totals, `dev test` prints the last
 `--tail` lines of the log of every failed test.
 
+A run of many tests takes longer than an agent's tool call may last. So the
+agent runs one or two tests at a time, and the human runs bigger sweeps with
+`dev test` and passes on the names of the failed tests; their logs are in
+`nix log`.
+
 The tests are also memory hungry to run: each one boots several machines with
 databases, filesystems and networks. A test that runs out of time under swapping
 usually passes on its own. Tests run as containers; one that sets
