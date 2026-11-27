@@ -28,6 +28,7 @@ ignoreWords:
   - pkgs
   - nixfmt
   - nixpkgs
+  - nscd
   - openrouter
   - deepseek
   - direnv
