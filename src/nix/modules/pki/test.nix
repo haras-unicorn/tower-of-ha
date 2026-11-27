@@ -2,6 +2,7 @@
 
 {
   self.nixosTests.pki = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     containers.machine = {
       toh.pki.installCa = true;
     };

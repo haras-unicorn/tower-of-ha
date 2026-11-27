@@ -2,6 +2,7 @@
 
 {
   self.nixosTests.services-journald = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     containers.machine = {
       toh.services.journald.enable = true;
     };

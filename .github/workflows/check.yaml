@@ -45,7 +45,7 @@
               },
               { "run": "nix develop --command dev check" },
               { "run": "nix flake check" },
-              { "run": "nix develop --command dev test" },
+              { "run": "nix develop --command dev test --tier 1" },
             ],
         },
     },

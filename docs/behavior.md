@@ -19,6 +19,9 @@ implements the contract.
 
 ## In short
 
+- Every test has a tier. Tier 1 checks the happy path and runs on every change,
+  tier 2 holds the fault tests, and tier 3 the VM tests, which both run before a
+  release.
 - Since step 8, every service that holds data has a fault test per fault, named
   after its test with `-kill`, `-split` or `-freeze` at the end. Each one hits
   every server in turn: it kills the machine, cuts it off from the others, or
@@ -68,7 +71,7 @@ No test. The module says it is incomplete.
 ## CephFS
 
 Tests: `contracts-filesystem-cephfs`, `services-cephfs`,
-`services-cephfs-mount`, and the skipped VM test `services-cephfs-kernel-mount`.
+`services-cephfs-mount`, and the VM test `services-cephfs-kernel-mount`.
 
 - **Shows:** the cluster is healthy apart from clock skew. A file written on one
   machine is read on every other, through the FUSE mount, and through the kernel
@@ -83,7 +86,7 @@ Tests: `contracts-filesystem-cephfs`, `services-cephfs`,
 
 ## chronyd
 
-Tests: `contracts-time-chronyd`, `services-chronyd`, and the skipped VM test
+Tests: `contracts-time-chronyd`, `services-chronyd`, and the VM test
 `services-chronyd-clock`.
 
 - **Shows:** every serving machine answers over NTP. `toh-time-synchronized` and
@@ -169,7 +172,7 @@ Test: `services-etcd`.
 
 ## Falco
 
-Tests: `services-falco`, and the skipped VM test `services-falco-alerts`.
+Tests: `services-falco`, and the VM test `services-falco-alerts`.
 
 - **Shows:** its metrics can be read over the network. In the VM, reading
   `/etc/shadow` becomes an alert in Alertmanager.

@@ -16,6 +16,7 @@ let
 in
 {
   self.nixosTests.services-openssh = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     containers.machine = {
       toh.services.openssh.enable = true;
     };
@@ -27,6 +28,7 @@ in
   };
 
   self.nixosTests.services-openssh-cli-command = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     imports = [ cliCluster ];
     toh.test.commands.suffix =
       { nodes, lib, ... }:
@@ -45,6 +47,7 @@ in
   };
 
   self.nixosTests.services-openssh-cli-copy = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     imports = [ cliCluster ];
     toh.test.commands.suffix =
       { nodes, lib, ... }:

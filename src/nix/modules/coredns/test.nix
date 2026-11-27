@@ -10,6 +10,7 @@
   };
 
   self.nixosTests.contracts-dns-coredns = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.contracts.dns = {
       enable = true;
       implementation.coredns = { };
@@ -17,6 +18,7 @@
   };
 
   self.nixosTests.services-coredns = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.dns.enable = true;
     toh.test.dns.zones = {
       "test.toh" = {
@@ -42,6 +44,7 @@
   # first address still reaches a relay that is up; a machine that is split
   # off refuses other machines, so they ask a nameserver that is not
   self.nixosTests.services-coredns-relays = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.clusters.node.amount = 3;
     toh.test.clusters.node.module = {
       toh.services.coredns.enable = true;

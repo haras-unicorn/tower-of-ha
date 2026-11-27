@@ -589,9 +589,8 @@ holds an etcd lease and the workers run on every machine (see the
    Left out on purpose, because monitoring covers them and a container cannot
    fake them well:
    - Clock skew. Containers share the clock of the host, chrony keeps it, and
-     the skipped VM test `services-chronyd-clock` checks that chrony sets it.
-     There is no alert for a clock that drifts yet, which is in the
-     [to do](./todo.md).
+     the VM test `services-chronyd-clock` checks that chrony sets it. There is
+     no alert for a clock that drifts yet, which is in the [to do](./todo.md).
    - A full disk. The `DiskAlmostFull` alert of the node exporter warns first.
    - A slow or lossy network. It costs speed and not correctness, and the kills
      and splits already cover a machine that stops answering.
@@ -773,6 +772,15 @@ holds an etcd lease and the workers run on every machine (see the
    Releases run `--tier 3`. Steps 9 to 11 tier their tests the same way. Done
    when every test sets a tier, `dev test` has both flags, CI runs tier 1, and
    `AGENTS.md` and the docs speak of tiers and not of skipped tests.
+
+   What happened:
+   - Done on 2026-11-27. `src/nix/test/tiers.nix` holds the option and puts it
+     in `passthru.tier`, and every test sets it. `dev test` reads it, prints the
+     tests it leaves out with their tier, and counts them as left out.
+   - The contracts with faults and `services-etcd` had only their fault tests
+     since every fault became a test of its own, so they had no tier 1 test.
+     `faultTests` now also makes the test under the plain name, without faults,
+     like `contracts-git-forgejo`.
 
 3. **Test hardening (L).** Ensure each and every test has builtin retries and
    such so that it is not flaky. This is important because we want to be

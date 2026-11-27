@@ -2,6 +2,7 @@
 
 {
   self.nixosTests.test = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     containers.machine =
       { pkgs, ... }:
       {

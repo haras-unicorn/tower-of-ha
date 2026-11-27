@@ -622,8 +622,8 @@ What the tests ran into, and how they get around it:
 - the VPN needs `/dev/net/tun`, which the host passes into the build sandbox
   with `extra-sandbox-paths`; with it the test driver also links the containers
   to its virtual switch through TAP devices,
-- chrony cannot set the clock, so it runs with `-x`, and a VM test that
-  `dev test` skips sets the real clock,
+- chrony cannot set the clock, so it runs with `-x`, and a VM test of tier 3
+  sets the real clock,
 - Ceph cannot make loop devices, so OSDs keep their data in a plain file,
 - `ceph-fuse` needs `/dev/fuse`, which the host passes into the build sandbox
   with `extra-sandbox-paths`.

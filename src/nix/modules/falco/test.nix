@@ -10,6 +10,7 @@
       falco = machines.machine;
     in
     {
+      toh.test.tier = 1;
       containers.machine = {
         toh.services.falco.enable = true;
         services.falco.settings.engine.kind = "nodriver";
@@ -35,16 +36,15 @@
 
   # NOTE: a vm, because the probe needs a kernel of its own; reading
   # /etc/shadow matches a stock rule, and the match has to arrive in
-  # alertmanager as an alert; `dev test` skips it because it is slower and
-  # needs kvm
+  # alertmanager as an alert
   self.nixosTests.services-falco-alerts = selfLib.test.makeNixosTest (
     { machineList, ... }:
     let
       alerts = (builtins.head machineList).toh.meta.alerts;
     in
     {
+      toh.test.tier = 3;
       toh.test.kind = "vm";
-      passthru.skipped = true;
 
       toh.test.clusters.node = {
         amount = 1;

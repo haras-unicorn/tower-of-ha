@@ -20,6 +20,7 @@ in
   };
 
   self.nixosTests.contracts-alerts-alertmanager = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.contracts.alerts = {
       enable = true;
       implementation.alertmanager = { };
@@ -36,6 +37,7 @@ in
       alert = "TohTest";
     in
     {
+      toh.test.tier = 1;
       toh.test.clusters.node = {
         amount = 3;
         module =

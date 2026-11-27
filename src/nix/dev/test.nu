@@ -1,11 +1,15 @@
 def main [
   --jobs (-j): int = 1
   --filter (-f): string = ""
-  --skipped
+  --tier: int = 1
+  --all (-a): string
   --tail (-t): int = 40
 ] {
   if $jobs < 1 {
     error make { msg: "--jobs must be at least 1" }
+  }
+  if $tier < 1 or $tier > 3 {
+    error make { msg: "--tier must be 1, 2 or 3" }
   }
 
   let flake = $"git+file://(pwd)"
@@ -20,15 +24,12 @@ def main [
   }
 
   let results = $selected | par-each --keep-order --threads $jobs {|name|
-    let skip = if $skipped {
-      false
-    } else {
-      ^nix eval --json $"($tests).($name).skipped" | from json
-    }
+    let test_tier = ^nix eval --json $"($tests).($name).tier" | from json
+    let every_tier = $all != null and $name =~ $all
 
-    if $skip {
-      print $"-- ($name): skipped"
-      { name: $name, status: "skipped" }
+    if $test_tier > $tier and not $every_tier {
+      print $"-- ($name): tier ($test_tier), left out"
+      { name: $name, status: "left out" }
     } else {
       print $"== ($name)"
       let passed = try {
@@ -42,7 +43,7 @@ def main [
   }
 
   let passed = $results | where status == "passed" | length
-  let skipped = $results | where status == "skipped" | length
+  let left_out = $results | where status == "left out" | length
   let failed = $results | where status == "failed" | get name
 
   for name in $failed {
@@ -55,7 +56,7 @@ def main [
   }
 
   print ""
-  print $"($passed) passed, ($failed | length) failed, ($skipped) skipped"
+  print $"($passed) passed, ($failed | length) failed, ($left_out) left out"
   if not ($failed | is-empty) {
     print ($failed | each {|name| $"  ($name)" } | str join "\n")
     exit 1

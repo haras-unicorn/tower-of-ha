@@ -38,6 +38,7 @@
   };
 
   self.nixosTests.services-openbao = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.clusters.node.amount = 3;
     toh.test.clusters.node.module = {
       toh.services.coredns.enable = true;

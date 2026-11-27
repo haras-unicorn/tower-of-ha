@@ -58,6 +58,7 @@ in
       );
     in
     {
+      toh.test.tier = 1;
       toh.test.clusters.node = {
         amount = 3;
         module = server;
@@ -170,6 +171,7 @@ in
       testRange = subnetRange first.toh.meta.network.subnet;
     in
     {
+      toh.test.tier = 1;
       toh.test.matrix = {
         enable = true;
         inherit domain;

@@ -21,6 +21,7 @@
   };
 
   self.nixosTests.services-patroni = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.clusters.node = {
       amount = 3;
       module = {
@@ -47,6 +48,7 @@
   };
 
   self.nixosTests.services-patroni-init = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.clusters.node = {
       amount = 3;
       module = {
@@ -73,6 +75,7 @@
   };
 
   self.nixosTests.services-patroni-cli = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.clusters.node = {
       amount = 3;
       module = {

@@ -305,7 +305,7 @@
           };
 
           test = {
-            description = "Run the NixOS tests (--jobs, --filter, --skipped, --tail).";
+            description = "Run the NixOS tests (--jobs, --filter, --tier, --all, --tail).";
             packages = [ testRunner ];
             commands = ''dev-test "$@"'';
           };
@@ -334,8 +334,9 @@
               { run = "nix develop --command dev check"; }
               { run = "nix flake check"; }
               # NOTE: not a flake check, because evaluating all the tests in
-              # one process takes tens of GB
-              { run = "nix develop --command dev test"; }
+              # one process takes tens of GB; the faults and the VM tests run
+              # before a release
+              { run = "nix develop --command dev test --tier 1"; }
             ];
           };
 

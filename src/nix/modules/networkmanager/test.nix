@@ -2,6 +2,7 @@
 
 {
   self.nixosTests.services-networkmanager = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     containers.machine = {
       toh.services.networkmanager.enable = true;
     };

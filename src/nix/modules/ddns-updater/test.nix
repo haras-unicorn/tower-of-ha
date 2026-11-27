@@ -77,6 +77,7 @@ let
 in
 {
   self.nixosTests.services-ddns-updater-duckdns = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     imports = [ providerTest ];
     toh.test.ddns-updater = {
       provider = "duckdns";
@@ -88,6 +89,7 @@ in
   };
 
   self.nixosTests.services-ddns-updater-cloudflare = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     imports = [ providerTest ];
     toh.test.ddns-updater = {
       provider = "cloudflare";

@@ -45,9 +45,16 @@ checks. Every test builds as `lib.<system>.nixosTests.<name>`, and `dev test`
 builds each one with its own `nix` process, so the memory of an evaluation is
 freed when its test ends. `dev test --jobs <n>` runs `n` tests at once and
 `--filter <regex>` picks the tests whose names match, for example
-`--filter 'ceph|samba'`. A test that sets `passthru.skipped = true` is left out
-unless `--skipped` is given. Before the totals, `dev test` prints the last
-`--tail` lines of the log of every failed test.
+`--filter 'ceph|samba'`. Before the totals, `dev test` prints the last `--tail`
+lines of the log of every failed test.
+
+Every test sets its tier in `toh.test.tier`, by hand: tier 1 checks the happy
+path, tier 2 makes the faults (every test that `self.lib.test.faultTests`
+makes), and tier 3 runs on VMs. `dev test --tier <n>` runs the tests of tier `n`
+and below, tier 1 by default, and `--all <regex>` runs every tier of the tests
+whose names match. So work on one area runs, for example,
+`dev test --all forgejo` for all its tests and tier 1 of the rest. CI runs tier
+1, and a release all three.
 
 A run of many tests takes longer than an agent's tool call may last. So the
 agent runs one or two tests at a time, and the human runs bigger sweeps with
@@ -61,7 +68,7 @@ usually passes on its own. Tests run as containers; one that sets
 tests of services that keep data on it, need `/dev/fuse` in the host's
 `extra-sandbox-paths`, and the VPN tests need `/dev/net/tun`. When a service
 needs something a container cannot give (the real clock, a kernel client), the
-container test fakes it or uses a workaround, and a skipped VM test covers the
+container test fakes it or uses a workaround, and a VM test of tier 3 covers the
 real thing.
 
 ## Generated files

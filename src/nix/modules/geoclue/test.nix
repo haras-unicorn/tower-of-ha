@@ -2,6 +2,7 @@
 
 {
   self.nixosTests.services-geoclue = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.cryl.cluster = [
       {
         geoclue = {

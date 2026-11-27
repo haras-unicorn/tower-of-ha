@@ -4,6 +4,7 @@ let
   test =
     network: mode:
     selfLib.test.makeNixosTest {
+      toh.test.tier = 1;
       toh.test.contracts.vpn = {
         enable = true;
         implementation.easytier = { };

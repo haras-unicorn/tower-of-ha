@@ -13,18 +13,27 @@
   ];
 
   # NOTE: test modules that run fault_each, by test name; every one becomes
-  # a test per fault, like contracts-share-samba-split, so a failure shows up
-  # without waiting for the other faults, and one fault cannot leave
-  # something behind that breaks the next
+  # a test without faults, the happy path, and a test per fault, like
+  # contracts-share-samba-split, so a failure shows up without waiting for
+  # the other faults, and one fault cannot leave something behind that
+  # breaks the next
   self.lib.test.faultTests = { };
 
   self.nixosTests = lib.concatMapAttrs (
     name: module:
-    builtins.listToAttrs (
+    {
+      ${name} = selfLib.test.makeNixosTest {
+        imports = [ module ];
+        toh.test.tier = 1;
+        toh.test.faults.kinds = [ ];
+      };
+    }
+    // builtins.listToAttrs (
       builtins.map (kind: {
         name = "${name}-${kind}";
         value = selfLib.test.makeNixosTest {
           imports = [ module ];
+          toh.test.tier = 2;
           toh.test.faults.kinds = [ kind ];
         };
       }) selfLib.test.faultKinds

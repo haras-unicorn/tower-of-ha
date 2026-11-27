@@ -123,6 +123,7 @@ in
       makeTest =
         balancing:
         selfLib.test.makeNixosTest {
+          toh.test.tier = 1;
           toh.test.contracts.proxy = {
             enable = true;
             implementation.${implementation} = { };

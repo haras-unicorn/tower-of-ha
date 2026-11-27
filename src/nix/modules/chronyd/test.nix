@@ -32,6 +32,7 @@ in
   };
 
   self.nixosTests.contracts-time-chronyd = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.contracts.time = {
       enable = true;
       implementation.chronyd = { };
@@ -39,6 +40,7 @@ in
   };
 
   self.nixosTests.services-chronyd = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.ntp.enable = true;
 
     containers.machine = machine;
@@ -80,11 +82,10 @@ in
   };
 
   # NOTE: containers share the clock of the host, so the container test runs
-  # chrony with -x; this test sets the clock of a vm, and `dev test` skips it
-  # because it is slower and needs kvm
+  # chrony with -x; this test sets the clock of a vm
   self.nixosTests.services-chronyd-clock = selfLib.test.makeNixosTest {
+    toh.test.tier = 3;
     toh.test.kind = "vm";
-    passthru.skipped = true;
     toh.test.ntp.enable = true;
 
     nodes.machine = machine;

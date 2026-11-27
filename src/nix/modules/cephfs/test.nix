@@ -80,6 +80,7 @@ in
   };
 
   self.nixosTests.services-cephfs = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.clusters.node = {
       amount = 3;
       module = {
@@ -91,6 +92,7 @@ in
   };
 
   self.nixosTests.services-cephfs-mount = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.clusters.node = {
       amount = 3;
       module = {
@@ -104,13 +106,13 @@ in
 
   # NOTE: kernels before 7.0 refuse the 32 byte keys newer ceph makes, and
   # the test vms run an older kernel, so this test makes cryl generate the
-  # old 16 byte keys; `dev test` skips it until the kernel catches up
+  # old 16 byte keys
   self.nixosTests.services-cephfs-kernel-mount = selfLib.test.makeNixosTest (
     { lib, pkgs, ... }:
     {
+      toh.test.tier = 3;
       # NOTE: ceph OSDs need disks and the mounts a kernel module
       toh.test.kind = "vm";
-      passthru.skipped = true;
 
       # NOTE: cryl has no option for the key type, so its ceph-authtool
       # is swapped for one that asks for aes; the cryl wrapper puts its

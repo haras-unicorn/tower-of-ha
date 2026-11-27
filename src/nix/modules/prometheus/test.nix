@@ -17,6 +17,7 @@ in
   };
 
   self.nixosTests.contracts-metrics-prometheus = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.contracts.metrics = {
       enable = true;
       implementation.prometheus = { };
@@ -33,6 +34,7 @@ in
       machines = builtins.toString (builtins.length machineList);
     in
     {
+      toh.test.tier = 1;
       toh.test.clusters.node = {
         amount = 3;
         module = server;

@@ -44,6 +44,7 @@
   };
 
   self.nixosTests.services-forgejo = selfLib.test.makeNixosTest {
+    toh.test.tier = 1;
     toh.test.clusters.node = {
       amount = 3;
       module = {
