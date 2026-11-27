@@ -26,9 +26,6 @@
         ];
       };
 
-    # NOTE: one fault of every node, since every fault is a test of its own
-    toh.test.faults.amount = 3;
-
     toh.test.commands.enable = true;
     toh.test.commands.perNode = [
       ''command_node.wait_until_succeeds("systemctl is-active toh-config-online.target", timeout=180)''

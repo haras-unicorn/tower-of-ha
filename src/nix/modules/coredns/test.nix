@@ -51,8 +51,6 @@
       toh.services.envoy.enable = true;
     };
 
-    toh.test.faults.amount = 2;
-
     toh.test.commands.enable = true;
     toh.test.commands.suffix =
       { nodes, ... }:

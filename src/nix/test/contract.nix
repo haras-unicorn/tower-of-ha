@@ -154,11 +154,6 @@ in
             };
           }
           (lib.mkIf picked testConfig)
-          # NOTE: the failover of a contract makes every fault of the test
-          # once on every server
-          (lib.mkIf picked {
-            toh.test.faults.amount = lib.mkDefault (builtins.length config.toh.test.faults.kinds * cfg.servers);
-          })
         ];
       };
   };

@@ -294,16 +294,6 @@
           '';
         };
 
-        amount = lib.mkOption {
-          type = lib.types.ints.unsigned;
-          default = 0;
-          description = ''
-            Faults the test makes, like killing, cutting off or freezing a
-            machine, each of which gets the time of a shutdown, a freeze, a
-            failover and a revive on top of the global timeout
-          '';
-        };
-
         freezeTime = lib.mkOption {
           type = lib.types.ints.positive;
           default = 60;

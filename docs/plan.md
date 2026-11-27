@@ -806,6 +806,12 @@ holds an etcd lease and the workers run on every machine (see the
    - Started on 2026-11-27. `dev test` prints how long every test took, once it
      ends and again at the end, longest first, so a sweep shows where the time
      goes before the budgets are set.
+   - The global timeout comes from the tier, through the tunable
+     `toh.test.budgets`. The sum it replaced was the only use of
+     `toh.test.faults.amount`, which is gone. The human chose not to measure the
+     whole suite first, since one run takes most of a night: the sweep of the
+     hardening finds the tests that run out of time, and they get fixed as it
+     goes.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:
