@@ -878,7 +878,8 @@ holds an etcd lease and the workers run on every machine (see the
      no longer do. Authelia turns away an OIDC client with a wrong secret, and
      logs in a user from LLDAP, with the session holding on every machine. Maddy
      carries a mail from one app to another and refuses an app that sends as
-     another.
+     another. ddns-updater sends a changed address again; how often it looks and
+     how long it waits between two updates are options now.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:

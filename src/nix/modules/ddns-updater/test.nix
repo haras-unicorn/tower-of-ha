@@ -8,6 +8,9 @@ let
 
       domainSecret = "ddns-updater-${cfg.provider}-domain";
 
+      # NOTE: an address of the documentation range, which nothing uses
+      changedIp = "203.0.113.7";
+
       secrets = {
         ${domainSecret} = cfg.domain;
       }
@@ -57,6 +60,9 @@ let
           toh.services.ddns-updater = {
             enable = true;
             ${cfg.provider}.enable = true;
+            # NOTE: short, so a changed address is sent again within the test
+            period = "10s";
+            cooldown = "10s";
           };
         };
 
@@ -71,6 +77,9 @@ let
             http_ddns.wait_until_succeeds("grep -q '${cfg.domain}' /var/lib/http/log.jsonl", timeout=180)
             http_ddns.wait_until_succeeds("grep -q '${cfg.domain}' /var/lib/http/store.json", timeout=60)
             http_ddns.wait_until_succeeds("grep -q '${nodes.machine.toh.meta.network.ip}' /var/lib/http/store.json", timeout=60)
+
+            http_ip.succeed("echo ${changedIp} > /var/lib/http/ip")
+            http_ddns.wait_until_succeeds("grep -q '${changedIp}' /var/lib/http/store.json", timeout=120)
           '';
       };
     };

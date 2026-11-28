@@ -44,7 +44,14 @@
           handler = ''
             host = headers.get('Host', ''').lower()
 
+            # NOTE: a test that changes the public address writes the new
+            # one into this file
+            override_file = os.path.join(os.path.dirname(STORE_FILE), 'ip')
+
             def get_client_ip():
+              if os.path.exists(override_file):
+                with open(override_file) as f:
+                  return f.read().strip()
               client_addr = self.client_address[0]
               if client_addr.startswith('::ffff:'):
                 return client_addr[7:]

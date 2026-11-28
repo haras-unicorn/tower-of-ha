@@ -123,8 +123,9 @@ Tests: `contracts-dns-coredns`, `services-coredns`, `services-coredns-relays`.
 Tests: `services-ddns-updater-duckdns`, `services-ddns-updater-cloudflare`.
 
 - **Shows:** it gets the public address from a fake IP service and sends it,
-  with the domain, to a fake DuckDNS or Cloudflare API.
-- **Holes:** a changed address is sent again.
+  with the domain, to a fake DuckDNS or Cloudflare API, and when the address
+  changes it sends the new one.
+- **Holes:** none.
 
 ## EasyTier
 

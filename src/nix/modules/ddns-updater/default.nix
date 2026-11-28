@@ -17,6 +17,18 @@
         ddns-updater = {
           enable = lib.mkEnableOption "ddns-updater";
 
+          period = lib.mkOption {
+            type = lib.types.str;
+            default = "5m";
+            description = "How often ddns-updater looks up the public address";
+          };
+
+          cooldown = lib.mkOption {
+            type = lib.types.str;
+            default = "5m";
+            description = "How long ddns-updater waits before it updates a record again";
+          };
+
           duckdns = {
             enable = lib.mkEnableOption "ddns-updater DuckDNS";
 
@@ -67,7 +79,8 @@
           # NOTE: bit of a hack to actually use the configured google server
           # or the test DNS server
           RESOLVER_ADDRESS = "${builtins.head config.networking.nameservers}:53";
-          PERIOD = "5m";
+          PERIOD = cfg.period;
+          UPDATE_COOLDOWN_PERIOD = cfg.cooldown;
         };
 
         users.groups.ddns-updater = { };
