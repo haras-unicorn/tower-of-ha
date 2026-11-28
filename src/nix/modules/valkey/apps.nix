@@ -83,6 +83,7 @@
           {
             name,
             prefix,
+            channels,
             database,
             permissions,
             group,
@@ -96,6 +97,7 @@
                 group
                 user
                 prefix
+                channels
                 database
                 permissions
                 ;
@@ -106,6 +108,7 @@
           {
             name,
             prefix,
+            channels,
             database,
             permissions,
             group,
@@ -119,6 +122,7 @@
                 group
                 user
                 prefix
+                channels
                 database
                 permissions
                 ;

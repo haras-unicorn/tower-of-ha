@@ -869,7 +869,9 @@ holds an etcd lease and the workers run on every machine (see the
      and every ACL user but those of Valkey itself is denied the dangerous ones.
      The ACL also keeps an app to its database now, which Valkey can since 9.1;
      before, Forgejo, Synapse and Authelia, which use a database of their own
-     and no prefix, could reach the keys of each other.
+     and no prefix, could reach the keys of each other. Channels have no
+     database, so an app has a channel prefix apart from its key prefix, and
+     Synapse keeps to the channels named after its server.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:

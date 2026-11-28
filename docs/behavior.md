@@ -359,8 +359,8 @@ Tests: `contracts-kv-valkey`, `services-valkey`.
   either the primary with a replica or a replica that follows it. The ACL keeps
   an app to its database and to the keys and channels of its prefix, and refuses
   it the commands that flush every key, read the config or rewrite users.
-- **Holes:** Synapse uses no prefix, so it may publish on every channel,
-  Sentinel's among them.
+- **Holes:** none. Synapse uses no key prefix, but its channels, which have no
+  database, are kept to the ones named after its server.
 - **Failover:** since step 8, the kv contract kills every server once, the
   primary among them. Sentinel picks a new primary, a server that comes back
   follows it, and every key the app wrote is still there. The app writes

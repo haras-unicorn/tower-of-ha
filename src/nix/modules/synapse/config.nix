@@ -122,7 +122,9 @@
           group = group;
           database = cfg.port;
           prefix = "all";
-          # NOTE: the workers talk to each other over channels
+          # NOTE: the workers talk to each other over channels named after
+          # the server
+          channels = config.toh.meta.chat.serverName;
           permissions = [
             selfLib.kv.permissions.read
             selfLib.kv.permissions.write

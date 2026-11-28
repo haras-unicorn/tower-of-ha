@@ -31,7 +31,7 @@
             description = "App registration for ToH KV store";
             type = lib.types.attrsOf (
               lib.types.submodule (
-                { name, ... }:
+                { name, config, ... }:
                 {
                   options = {
                     user = lib.mkOption {
@@ -56,6 +56,23 @@
                       ];
                       default = "all";
                       description = "Key prefix for the ACL user";
+                    };
+
+                    channels = lib.mkOption {
+                      type = lib.types.oneOf [
+                        lib.types.str
+                        (lib.types.enum [
+                          "all"
+                          "none"
+                        ])
+                      ];
+                      default = config.prefix;
+                      defaultText = lib.literalExpression "prefix";
+                      description = ''
+                        Channel prefix for the ACL user; channels have no
+                        database, so an app without a key prefix may still
+                        need one
+                      '';
                     };
 
                     database = lib.mkOption {

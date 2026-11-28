@@ -81,6 +81,18 @@
                       default = "${name}:";
                       description = "Key prefix for the ACL user";
                     };
+                    channels = lib.mkOption {
+                      type = lib.types.oneOf [
+                        lib.types.str
+                        (lib.types.enum [
+                          "all"
+                          "none"
+                        ])
+                      ];
+                      default = config.prefix;
+                      defaultText = lib.literalExpression "prefix";
+                      description = "Channel prefix for the ACL user";
+                    };
                     database = lib.mkOption {
                       type = lib.types.oneOf [
                         lib.types.ints.unsigned
@@ -249,6 +261,7 @@
                               active,
                               password,
                               prefix,
+                              channels,
                               database,
                               permissions,
                               denied,
@@ -258,13 +271,20 @@
                             let
                               activePart = if active then "on" else "off";
                               passwordPart = if password == null then "nopass" else ">{{{VALKEY_${lib.toUpper user}_PASS}}}";
-                              prefixPart =
+                              keysPart =
                                 if prefix == "all" then
-                                  "allkeys allchannels"
+                                  "allkeys"
                                 else if prefix == "none" then
-                                  "resetkeys resetchannels"
+                                  "resetkeys"
                                 else
-                                  "~${prefix}* &${prefix}*";
+                                  "~${prefix}*";
+                              channelsPart =
+                                if channels == "all" then
+                                  "allchannels"
+                                else if channels == "none" then
+                                  "resetchannels"
+                                else
+                                  "&${channels}*";
                               permissionPart = builtins.concatStringsSep " " (
                                 builtins.map (
                                   permission:
@@ -294,7 +314,8 @@
                                   user
                                   activePart
                                   passwordPart
-                                  prefixPart
+                                  keysPart
+                                  channelsPart
                                   databasePart
                                   permissionPart
                                   deniedPart
