@@ -886,7 +886,8 @@ holds an etcd lease and the workers run on every machine (see the
      password and turns away a wrong one. Alertmanager invites its users into
      the room of the alerts. A second chat app in that test ran into the login
      rate limit of Synapse, which every chat app will once there are three; the
-     test lifts the limit, and the to-do list has the fix.
+     test lifts the limit, and the to-do list has the fix. The Patroni init runs
+     each of its steps once in the cluster, in order, and not again.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:

@@ -300,7 +300,10 @@ Tests: `contracts-database-patroni`, `services-patroni`,
   certificate, finds the table its init script made, writes a row and reads it
   back, and gets the locale it asked for. The health endpoint answers through
   the proxy, `patronictl list` works, and `toh psql` reads the table of inits.
-- **Holes:** `services-patroni-init` checks the same as `services-patroni`.
+  The init runs its SQL scripts, systemd units and Nushell scripts once in the
+  whole cluster, in that order, and records its hash as completed; running it
+  again on another machine runs nothing.
+- **Holes:** resuming an init that failed halfway, from the step that failed.
 - **Failover:** since step 8, the database contract kills every server once, the
   primary among them. Every write the app had confirmed is still there, and the
   app writes again through the proxy. The killed server comes back.
