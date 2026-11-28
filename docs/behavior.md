@@ -186,12 +186,10 @@ Tests: `services-falco`, and the VM test `services-falco-alerts`.
 Tests: `contracts-git-forgejo`, `services-forgejo`.
 
 - **Shows:** an app makes a repository by pushing to it over HTTPS with its
-  password, and clones it back. `services-forgejo` only waits for
-  `toh-git-online` on every machine, with the runner on.
-- **Holes:**
-  - git over SSH, which Forgejo serves behind the proxy too,
-  - a login through Authelia,
-  - the runner registering and running a job.
+  password, and clones it back. In `services-forgejo` the app also adds an SSH
+  key through the API and clones the repository over SSH through the proxy, and
+  a workflow in the repository runs on one of the runners and succeeds.
+- **Holes:** a login through Authelia.
 - **Failover:** none.
 
 ## Garage

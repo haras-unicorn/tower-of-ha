@@ -183,21 +183,23 @@
           };
         };
 
+        # NOTE: the URL of a KV instance carries no database and always has
+        # parameters, so Forgejo gets its database as one more of them
         systemd.services.forgejo-config = {
           script = ''
             cat "${forgejoSettings}" > "${configFile}"
             cat >> "${configFile}" <<EOF
             [session]
             PROVIDER = redis
-            PROVIDER_CONFIG = "$(cat "${kvSessionInstance.url}")"
+            PROVIDER_CONFIG = "$(cat "${kvSessionInstance.url}")&db=${builtins.toString kvSessionInstance.database}"
 
             [cache]
             ADAPTER = redis
-            HOST = "$(cat "${kvCacheInstance.url}")"
+            HOST = "$(cat "${kvCacheInstance.url}")&db=${builtins.toString kvCacheInstance.database}"
 
             [queue]
             TYPE = redis
-            CONN_STR = $(cat "${kvQueueInstance.url}")
+            CONN_STR = $(cat "${kvQueueInstance.url}")&db=${builtins.toString kvQueueInstance.database}
 
             [database]
             DB_TYPE = ${forgejoDbType}

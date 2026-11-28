@@ -60,6 +60,24 @@
       options.toh.services.forgejo = {
         runner = {
           enable = lib.mkEnableOption "Forgejo Actions runner";
+
+          hostPackages = lib.mkOption {
+            type = lib.types.listOf lib.types.package;
+            default = [
+              pkgs.bash
+              pkgs.coreutils
+              pkgs.curl
+              pkgs.gawk
+              pkgs.gitMinimal
+              pkgs.gnused
+              pkgs.nodejs
+            ];
+            defaultText = lib.literalExpression "[ pkgs.bash pkgs.coreutils pkgs.curl pkgs.gawk pkgs.gitMinimal pkgs.gnused pkgs.nodejs ]";
+            description = ''
+              Packages on the path of the jobs, which run on the host: a shell
+              for the run steps and Node.js for JavaScript actions.
+            '';
+          };
         };
       };
 
@@ -101,6 +119,7 @@
           description = "Forgejo Actions Runner";
           after = [ "forgejo-runner-config.service" ];
           requires = [ "forgejo-runner-config.service" ];
+          path = cfg.hostPackages;
           environment = {
             HOME = stateDir;
           };

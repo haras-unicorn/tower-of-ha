@@ -889,7 +889,11 @@ holds an etcd lease and the workers run on every machine (see the
      test lifts the limit, and the to-do list has the fix. The Patroni init runs
      each of its steps once in the cluster, in order, and not again. The alerts
      of the node exporter fire. Synapse keeps its media and its federation when
-     the main process moves.
+     the main process moves. Forgejo serves git over SSH, and its runners run a
+     workflow. Two bugs were in the way: Forgejo never told Valkey its database,
+     so since the ACL keeps apps to theirs, its cache, sessions and queue were
+     refused and a push started no workflow; and the runner had no shell on the
+     path of its jobs, which now get `hostPackages`.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:
