@@ -164,9 +164,9 @@ Tests: `contracts-proxy-envoy` and its ten `balancing` variants.
 Test: `services-etcd`.
 
 - **Shows:** the health endpoint answers over TLS with a client certificate, and
-  all three members are started. The Samba and Synapse tests use its leases
-  (`toh.leases`) and move the holder.
-- **Holes:** a client without a certificate is turned away.
+  turns away a client without one. All three members are started. The Samba and
+  Synapse tests use its leases (`toh.leases`) and move the holder.
+- **Holes:** none.
 - **Failover:** since step 8, `services-etcd` kills each member once. A key one
   member writes is read on another, before and after each kill.
 

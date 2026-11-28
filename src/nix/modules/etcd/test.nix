@@ -47,6 +47,12 @@
               -f \
               ${clientUrl}/health
           """)
+          command_node.fail("""
+            curl \
+              --cacert ${cacrt} \
+              -f \
+              ${clientUrl}/health
+          """)
           command_node.succeed("test-etcd member list | grep -c 'started' | grep 3")
         ''
       )

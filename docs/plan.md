@@ -852,6 +852,11 @@ holds an etcd lease and the workers run on every machine (see the
      chronyd, stay too: they start again after a failure and stop with their
      service, and a timeout there would only start them again, while the wait of
      the test on their target already has one.
+   - The holes of [what the tests show](./behavior.md) are filled one service at
+     a time, the checks that something is turned away first, from 2026-11-28.
+     Backup and the CLI stay with step 9, OpenBao with its parked fixes, and
+     NetworkManager with what a container cannot show. Filled: etcd turns away a
+     client without a certificate.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:
