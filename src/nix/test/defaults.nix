@@ -25,9 +25,6 @@
         # them; ceph-fuse also mounts faster, so tests use it unless they
         # test the kernel client
         toh.services.cephfs.mountDriver = lib.mkDefault "fuse";
-
-        services.openssh.settings.PermitRootLogin = lib.mkForce "yes";
-        services.openssh.settings.PasswordAuthentication = lib.mkForce true;
       };
 
     nodeDefaults =

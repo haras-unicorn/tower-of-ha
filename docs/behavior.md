@@ -277,11 +277,12 @@ Tests: `contracts-secrets-openbao`, `services-openbao`.
 Tests: `services-openssh`, `services-openssh-cli-command`,
 `services-openssh-cli-copy`.
 
-- **Shows:** sshd is enabled without keyboard-interactive login.
-  `toh ssh command` and `toh ssh copy` work between two machines.
-- **Holes:** the test defaults turn on root login and password login, so no test
-  runs with the settings of the module. A test should see a password login
-  turned away with them.
+- **Shows:** sshd is enabled without root, password or keyboard-interactive
+  login, and a client that offers no key is turned away with only publickey
+  left. `toh ssh command` and `toh ssh copy` work between two machines.
+- **Holes:** none. Until now the test defaults turned on root and password
+  login, a leftover of a debugging backdoor that is gone, so every test now runs
+  sshd with the settings of the module.
 
 ## Patroni
 

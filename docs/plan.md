@@ -873,7 +873,9 @@ holds an etcd lease and the workers run on every machine (see the
      database, so an app has a channel prefix apart from its key prefix, and
      Synapse keeps to the channels named after its server. An LDAP app with
      read-only permission is refused the password of the admin and adding a
-     user.
+     user. sshd turns away a client without a key; the test defaults forced root
+     and password login on, for a debugging backdoor that is long gone, so they
+     no longer do.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:

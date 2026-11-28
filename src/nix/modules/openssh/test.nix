@@ -20,10 +20,20 @@ in
     containers.machine = {
       toh.services.openssh.enable = true;
     };
-    # NOTE: root login and password auth are forced by the test defaults
+    # NOTE: a client that offers no key is told which methods are left, and
+    # with the settings of the module that is only publickey
     toh.test.commands.suffix = ''
+      machine.wait_for_unit("sshd.service", timeout=120)
       machine.succeed("systemctl is-enabled sshd.service")
+      machine.succeed("grep 'PermitRootLogin no' /etc/ssh/sshd_config")
+      machine.succeed("grep 'PasswordAuthentication no' /etc/ssh/sshd_config")
       machine.succeed("grep 'KbdInteractiveAuthentication no' /etc/ssh/sshd_config")
+      output = machine.succeed(
+        "ssh -o BatchMode=yes -o PubkeyAuthentication=no"
+        " -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+        " root@127.0.0.1 true 2>&1 || true"
+      )
+      assert "Permission denied (publickey)" in output, output
     '';
   };
 

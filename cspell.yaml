@@ -38,6 +38,7 @@ ignoreWords:
   - SETUSER
   - maxmemory
   - FLUSHALL
+  - publickey
   - openrouter
   - deepseek
   - direnv
