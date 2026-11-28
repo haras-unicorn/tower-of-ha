@@ -41,6 +41,8 @@ ignoreWords:
   - publickey
   - geolocation
   - sssctl
+  - alertstate
+  - removeprefix
   - openrouter
   - deepseek
   - direnv

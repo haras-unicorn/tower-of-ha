@@ -256,11 +256,13 @@ Test: `services-networkmanager`.
 
 ## node exporter
 
-No test of its own. `services-prometheus` counts every machine in its `node`
-job.
+Test: `services-node-exporter`. `services-prometheus` also counts every machine
+in its `node` job.
 
-- **Holes:** its alerts (a disk or memory almost full, a failed unit) never fire
-  in a test.
+- **Shows:** its alerts fire: a disk or the memory almost full, with the ratios
+  set so every machine counts as almost full, and a unit that failed.
+- **Holes:** none for the alerts. Whether they reach the chat is the
+  Alertmanager test.
 
 ## OpenBao
 
