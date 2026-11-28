@@ -357,10 +357,10 @@ Tests: `contracts-kv-valkey`, `services-valkey`.
 - **Shows:** an app sets and gets a key under its prefix, over TLS with its own
   certificate and user. The CLI pings it on every machine, and every machine is
   either the primary with a replica or a replica that follows it. The ACL keeps
-  an app to the keys and channels of its prefix, and refuses it the commands
-  that flush every key, read the config or rewrite users.
-- **Holes:** Forgejo, Synapse and Authelia use no prefix but a database of their
-  own, and the ACL does not keep an app to its database yet.
+  an app to its database and to the keys and channels of its prefix, and refuses
+  it the commands that flush every key, read the config or rewrite users.
+- **Holes:** Synapse uses no prefix, so it may publish on every channel,
+  Sentinel's among them.
 - **Failover:** since step 8, the kv contract kills every server once, the
   primary among them. Sentinel picks a new primary, a server that comes back
   follows it, and every key the app wrote is still there. The app writes

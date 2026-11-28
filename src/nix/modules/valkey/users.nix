@@ -279,14 +279,13 @@
                                 ) permissions
                               );
                               deniedPart = builtins.concatStringsSep " " (builtins.map (category: "-@${category}") denied);
-                              # NOTE: actually use this with valkey 9.1
-                              # databasePart =
-                              #   if database == "all" then
-                              #     "alldbs"
-                              #   else if database == "none" then
-                              #     "resetdbs"
-                              #   else
-                              #     "db=${database}";
+                              databasePart =
+                                if database == "all" then
+                                  "alldbs"
+                                else if database == "none" then
+                                  "resetdbs"
+                                else
+                                  "db=${builtins.toString database}";
                             in
                             lib.optionalString generateSecrets (
                               builtins.concatStringsSep " " (
@@ -296,7 +295,7 @@
                                   activePart
                                   passwordPart
                                   prefixPart
-                                  # databasePart
+                                  databasePart
                                   permissionPart
                                   deniedPart
                                 ]

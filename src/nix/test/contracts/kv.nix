@@ -15,6 +15,9 @@
       prefix = "${app}:";
       key = "${prefix}value";
       value = "works";
+      # NOTE: any database but 0, where every connection starts, so the check
+      # that the app cannot reach another database has one to try
+      database = 1;
 
       # NOTE: refused with NOPERM; the client prints the refusal and may exit
       # with an error, so the exit code says nothing and the output is checked
@@ -81,6 +84,7 @@
                       --cert ${instance.ssl.crt} \
                       --key ${instance.ssl.key} \
                       -h ${kv.host} -p ${builtins.toString kv.port} \
+                      -n ${builtins.toString instance.database} \
                       --user ${instance.user} \
                       "$@"
                   '';
@@ -88,8 +92,7 @@
               in
               {
                 toh.meta.kv.apps.${app} = {
-                  inherit prefix;
-                  database = "none";
+                  inherit prefix database;
                   # NOTE: with channels, so the ACL and not the missing
                   # permission is what refuses the channel of another app
                   permissions = [
@@ -112,6 +115,8 @@
               ${refused "SET ${otherKey} ${value}"}
               ${refused "GET ${otherKey}"}
               ${refused "PUBLISH other:channel ${value}"}
+              ${refused "SELECT 0"}
+              ${refused "MOVE ${key} 0"}
               ${refused "ACL SETUSER ${app} allkeys"}
               ${refused "CONFIG GET maxmemory"}
               ${refused "FLUSHALL"}
