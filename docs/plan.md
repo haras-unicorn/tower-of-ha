@@ -871,7 +871,9 @@ holds an etcd lease and the workers run on every machine (see the
      before, Forgejo, Synapse and Authelia, which use a database of their own
      and no prefix, could reach the keys of each other. Channels have no
      database, so an app has a channel prefix apart from its key prefix, and
-     Synapse keeps to the channels named after its server.
+     Synapse keeps to the channels named after its server. An LDAP app with
+     read-only permission is refused the password of the admin and adding a
+     user.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:

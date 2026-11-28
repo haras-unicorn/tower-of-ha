@@ -222,8 +222,11 @@ Tests: `contracts-ldap-lldap`, `services-lldap`.
 
 - **Shows:** an app binds with its own name and password and finds itself. The
   health endpoint answers, the admin finds itself, and a user added on any
-  machine is found from every machine.
-- **Holes:** an app with read-only permission cannot change anything.
+  machine is found from every machine. An app with read-only permission is
+  refused the password of the admin and adding a user, the only changes LLDAP
+  takes over LDAP.
+- **Holes:** none. LLDAP lets every user change their own password, so an app
+  may too; the test does not try it, since the app binds with it.
 - **Failover:** since step 8, the LDAP contract kills every server once. The app
   still binds and finds itself each time.
 
