@@ -362,11 +362,11 @@ Tests: `contracts-chat-synapse`, `services-synapse`,
   Workers answer client and federation requests, and the main process does not.
   A user of the cluster and a user of an outside server read each other in one
   room, and the server well-known file names the cluster.
-- **Holes:** uploaded media is still there after a failover, which is why the
-  media store is on CephFS. Federation after a failover, which needs the same
-  signing key on every machine.
+- **Holes:** none past these.
 - **Failover:** yes. When the holder of the lease stops, the main process moves,
-  and Redis, replication and the workers work again.
+  and Redis, replication and the workers work again. Media uploaded before the
+  move can still be downloaded, and messages still go both ways with the outside
+  server, so every machine signs with the same key.
 
 ## Valkey
 

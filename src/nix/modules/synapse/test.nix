@@ -332,6 +332,44 @@ in
 
         send(matrix, theirs, room, "from-outside")
         reads(${first.toh.meta.machine.name}, ours, room, "from-outside")
+
+        # NOTE: the media is on CephFS and the signing key the same on every
+        # machine, so both hold when the main process moves
+        upload = json.loads(${first.toh.meta.machine.name}.succeed(
+          "curl --silent --fail --header @/root/authorization"
+          " --header 'Content-Type: text/plain' --data-binary media-works"
+          " '${chat.url}/_matrix/media/v3/upload?filename=check.txt'"
+        ))
+        media = upload["content_uri"].removeprefix("mxc://")
+
+        def holders():
+          return [
+            node for node in nodes
+            if node.execute("systemctl is-active matrix-synapse.service")[0] == 0
+          ]
+
+        before = holders()
+        assert len(before) == 1, f"{len(before)} nodes run the main process"
+        before[0].succeed("systemctl stop toh-lease-synapse.service")
+
+        def moved(last_try):
+          active = holders()
+          return len(active) == 1 and active[0] is not before[0]
+
+        retry(moved, timeout_seconds=300)
+
+        ${first.toh.meta.machine.name}.wait_until_succeeds(
+          "curl --silent --fail --header @/root/authorization"
+          f" '${chat.url}/_matrix/client/v1/media/download/{media}'"
+          " | grep -x media-works",
+          timeout=180,
+        )
+
+        send(${first.toh.meta.machine.name}, ours, room, "after-failover-from-the-cluster")
+        reads(matrix, theirs, room, "after-failover-from-the-cluster")
+
+        send(matrix, theirs, room, "after-failover-from-outside")
+        reads(${first.toh.meta.machine.name}, ours, room, "after-failover-from-outside")
       '';
     }
   );
