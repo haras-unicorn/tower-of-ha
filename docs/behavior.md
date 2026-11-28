@@ -153,10 +153,10 @@ Tests: `contracts-proxy-envoy` and its ten `balancing` variants.
   priority. It spreads requests over every backend, leaves out a stopped one and
   takes it back, for HTTP, HTTPS and TCP with TLS ended, ended and started
   again, or passed through, and with every kind of health check.
-  `services-prometheus` reads its stats on every machine.
-- **Holes:** the stats port serves only stats. The admin interface behind it can
-  change and stop the proxy, so a test should see that its other paths are
-  closed.
+  `services-prometheus` reads its stats on every machine. The stats port serves
+  only the stats: the paths of the admin interface behind it that read the
+  config or change and stop the proxy are closed to other machines.
+- **Holes:** none.
 - **Failover:** the balancing variants stop backends, not Envoy itself.
 
 ## etcd

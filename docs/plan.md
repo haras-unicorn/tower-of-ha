@@ -856,7 +856,8 @@ holds an etcd lease and the workers run on every machine (see the
      a time, the checks that something is turned away first, from 2026-11-28.
      Backup and the CLI stay with step 9, OpenBao with its parked fixes, and
      NetworkManager with what a container cannot show. Filled: etcd turns away a
-     client without a certificate.
+     client without a certificate; the stats port of Envoy closes the rest of
+     its admin interface.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:
