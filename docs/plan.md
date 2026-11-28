@@ -861,7 +861,12 @@ holds an etcd lease and the workers run on every machine (see the
      another. For that one, Garage named the secrets of an app after the user
      that owns them, so two apps of one user clashed; they are named after the
      app now, which changes nothing while every app owns its secrets under its
-     own name, as all of them do.
+     own name, as all of them do. The ACL of Valkey keeps an app to the keys and
+     channels of its prefix, and refuses it the commands that flush every key,
+     read the config or rewrite users. Those were open: apps got every command
+     by default, so one could give itself every key. Now they get reading,
+     writing, keyspace and connection commands by default, Synapse channels too,
+     and every ACL user but those of Valkey itself is denied the dangerous ones.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:

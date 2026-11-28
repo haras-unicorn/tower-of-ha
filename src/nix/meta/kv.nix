@@ -71,7 +71,12 @@
 
                     permissions = lib.mkOption {
                       type = lib.types.listOf (lib.types.enum (builtins.attrValues selfLib.kv.permissions));
-                      default = [ selfLib.kv.permissions.all ];
+                      default = [
+                        selfLib.kv.permissions.read
+                        selfLib.kv.permissions.write
+                        selfLib.kv.permissions.keyspace
+                        selfLib.kv.permissions.connection
+                      ];
                       description = "Permissions for ACL user";
                     };
                   };

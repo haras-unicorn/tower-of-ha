@@ -1,3 +1,5 @@
+{ selfLib, ... }:
+
 {
   self.nixosModules.services-synapse-config.flake = true;
   self.nixosModules.services-synapse-config.value =
@@ -120,6 +122,14 @@
           group = group;
           database = cfg.port;
           prefix = "all";
+          # NOTE: the workers talk to each other over channels
+          permissions = [
+            selfLib.kv.permissions.read
+            selfLib.kv.permissions.write
+            selfLib.kv.permissions.keyspace
+            selfLib.kv.permissions.connection
+            selfLib.kv.permissions.pubsub
+          ];
         };
 
         toh.meta.filesystem.mounts.${cfg.media.path} = {

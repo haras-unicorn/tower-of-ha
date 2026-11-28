@@ -97,6 +97,25 @@
                       default = null;
                       description = "Permissions for ACL user";
                     };
+                    denied = lib.mkOption {
+                      type = lib.types.listOf (
+                        lib.types.enum (
+                          builtins.attrValues (
+                            builtins.removeAttrs selfLib.kv.permissions [
+                              "all"
+                              "none"
+                              "health"
+                            ]
+                          )
+                        )
+                      );
+                      default = [ selfLib.kv.permissions.dangerous ];
+                      description = ''
+                        Command categories denied to the ACL user after its
+                        permissions; the default keeps it from flushing every
+                        key, changing the config or rewriting users
+                      '';
+                    };
                     password = lib.mkOption {
                       type = lib.types.nullOr lib.types.path;
                       default = "${certs}/${selfLib.valkey.password}";
@@ -232,6 +251,7 @@
                               prefix,
                               database,
                               permissions,
+                              denied,
                               generateSecrets,
                               ...
                             }:
@@ -258,6 +278,7 @@
                                     "+@${permission}"
                                 ) permissions
                               );
+                              deniedPart = builtins.concatStringsSep " " (builtins.map (category: "-@${category}") denied);
                               # NOTE: actually use this with valkey 9.1
                               # databasePart =
                               #   if database == "all" then
@@ -268,15 +289,18 @@
                               #     "db=${database}";
                             in
                             lib.optionalString generateSecrets (
-                              builtins.concatStringsSep " " [
-                                "user"
-                                user
-                                activePart
-                                passwordPart
-                                prefixPart
-                                # databasePart
-                                permissionPart
-                              ]
+                              builtins.concatStringsSep " " (
+                                builtins.filter (part: part != "") [
+                                  "user"
+                                  user
+                                  activePart
+                                  passwordPart
+                                  prefixPart
+                                  # databasePart
+                                  permissionPart
+                                  deniedPart
+                                ]
+                              )
                             )
                           ) usersList
                         );

@@ -33,6 +33,11 @@ ignoreWords:
   - resolvconf
   - dhcpcd
   - quitquitquit
+  - keyspace
+  - NOPERM
+  - SETUSER
+  - maxmemory
+  - FLUSHALL
   - openrouter
   - deepseek
   - direnv

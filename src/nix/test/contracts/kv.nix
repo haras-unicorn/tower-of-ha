@@ -16,6 +16,14 @@
       key = "${prefix}value";
       value = "works";
 
+      # NOTE: refused with NOPERM; the client prints the refusal and may exit
+      # with an error, so the exit code says nothing and the output is checked
+      refused = command: ''
+        output = client.succeed("contract-kv ${command} 2>&1 || true")
+        assert "NOPERM" in output, output
+      '';
+      otherKey = "other:value";
+
       clientMeta = machines.client.toh.meta;
       host = clientMeta.kv.host;
 
@@ -82,6 +90,15 @@
                 toh.meta.kv.apps.${app} = {
                   inherit prefix;
                   database = "none";
+                  # NOTE: with channels, so the ACL and not the missing
+                  # permission is what refuses the channel of another app
+                  permissions = [
+                    selfLib.kv.permissions.read
+                    selfLib.kv.permissions.write
+                    selfLib.kv.permissions.keyspace
+                    selfLib.kv.permissions.connection
+                    selfLib.kv.permissions.pubsub
+                  ];
                 };
 
                 environment.systemPackages = [ clients.${kv.protocol} ];
@@ -91,6 +108,13 @@
             toh.test.commands.suffix = ''
               client.wait_until_succeeds("contract-kv SET ${key} ${value} | grep -qx OK", timeout=300)
               client.wait_until_succeeds("contract-kv GET ${key} | grep -qx ${value}", timeout=30)
+              client.succeed("contract-kv PUBLISH ${prefix}channel ${value} | grep -qx 0")
+              ${refused "SET ${otherKey} ${value}"}
+              ${refused "GET ${otherKey}"}
+              ${refused "PUBLISH other:channel ${value}"}
+              ${refused "ACL SETUSER ${app} allkeys"}
+              ${refused "CONFIG GET maxmemory"}
+              ${refused "FLUSHALL"}
 
               ${failover}
             '';

@@ -309,6 +309,8 @@
             };
           };
 
+          # NOTE: the users of Valkey itself replicate, fail over and run the
+          # health check, which needs the commands denied to apps
           toh.services.valkey.users.${selfLib.valkey.users.master} = {
             user = valkeyUser;
             group = valkeyGroup;
@@ -316,6 +318,7 @@
             prefix = "all";
             database = "all";
             permissions = [ selfLib.kv.permissions.all ];
+            denied = [ ];
           };
 
           toh.services.valkey.users.${selfLib.valkey.users.sentinel} = {
@@ -325,6 +328,7 @@
             prefix = "all";
             database = "all";
             permissions = [ selfLib.kv.permissions.all ];
+            denied = [ ];
           };
 
           toh.services.valkey.users.${selfLib.valkey.users.superuser} = {
@@ -334,6 +338,7 @@
             prefix = "all";
             database = "all";
             permissions = [ selfLib.kv.permissions.all ];
+            denied = [ ];
           };
 
           toh.services.valkey.users.${selfLib.valkey.users.default} = {
@@ -343,6 +348,7 @@
             prefix = "none";
             database = "none";
             permissions = [ selfLib.kv.permissions.health ];
+            denied = [ ];
             password = null;
           };
 
