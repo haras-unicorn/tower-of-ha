@@ -236,8 +236,10 @@ Tests: `contracts-ldap-lldap`, `services-lldap`.
 Tests: `contracts-email-maddy`, `services-maddy`.
 
 - **Shows:** an app sends a mail to itself over submission with TLS and finds it
-  over IMAP. `services-maddy` lists the envelopes with the CLI.
-- **Holes:** a mail from one app to another.
+  over IMAP, and sends one to another app, which finds it in its own inbox. An
+  app that sends as another app is refused. `services-maddy` lists the envelopes
+  with the CLI.
+- **Holes:** none.
 - **Failover:** since step 8, the email contract kills every server once. Every
   mail sent before and after each kill is found over IMAP.
 
