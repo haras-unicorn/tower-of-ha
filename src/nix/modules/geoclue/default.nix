@@ -37,13 +37,12 @@
         i18n.defaultLocale = "en_US.UTF-8";
         services.automatic-timezoned.enable = true;
 
-        # NOTE: https://github.com/NixOS/nixpkgs/issues/293212#issuecomment-2319051915
-        # toh.meta.sops.secrets."geoclue-static-geolocation" = {
-        #   path = "/etc/geolocation";
-        #   owner = "geoclue";
-        #   group = "geoclue";
-        #   mode = "0440";
-        # };
+        toh.meta.sops.secrets."geoclue-static-geolocation" = {
+          path = "/etc/geolocation";
+          owner = "geoclue";
+          group = "geoclue";
+          mode = "0440";
+        };
 
         toh.meta.cryl.machine = [
           {

@@ -39,6 +39,8 @@ ignoreWords:
   - maxmemory
   - FLUSHALL
   - publickey
+  - geolocation
+  - sssctl
   - openrouter
   - deepseek
   - direnv

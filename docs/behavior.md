@@ -208,8 +208,10 @@ Tests: `contracts-s3-garage`, `services-garage`.
 
 Test: `services-geoclue`.
 
-- **Shows:** only that its units start.
-- **Holes:** it answers with the static location from its secret.
+- **Shows:** its units start, and the static location from its secret is in
+  `/etc/geolocation`, readable by geoclue.
+- **Holes:** it answers a client with that location. In a container the client
+  never gets an answer from geoclue over D-Bus, so this needs a VM test.
 
 ## journald
 
@@ -339,8 +341,10 @@ Tests: `contracts-share-samba`, `services-samba`.
 Test: `services-sssd`.
 
 - **Shows:** a user added to LLDAP on any machine is a system user on every
-  machine (`getent` and `id`).
-- **Holes:** logging in as that user with the LLDAP password.
+  machine (`getent` and `id`). PAM through SSSD lets that user in with the LLDAP
+  password and turns away a wrong one.
+- **Holes:** none past the login itself; the test uses a PAM service of its own,
+  because the login service of a test container lets root in without asking.
 
 ## Synapse
 
