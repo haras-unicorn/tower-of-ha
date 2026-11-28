@@ -15,6 +15,12 @@
       object = "s3://${app}/value";
       value = "works";
 
+      # NOTE: a second app on the client, whose key may not reach the bucket
+      # of the first, nor the key of the first its bucket; its secrets belong
+      # to the user of the first, so one client runs both
+      otherApp = "${app}-other";
+      otherObject = "s3://${otherApp}/value";
+
       clientMeta = machines.client.toh.meta;
       host = clientMeta.s3.host;
 
@@ -38,39 +44,59 @@
               { config, pkgs, ... }:
               let
                 s3 = config.toh.meta.s3;
-                bucket = s3.buckets.${app};
                 address = "${s3.host}:${builtins.toString s3.port}";
 
-                clients.s3 = pkgs.writeShellApplication {
-                  name = "contract-s3";
-                  runtimeInputs = [
-                    pkgs.s3cmd
-                    pkgs.util-linux
-                  ];
-                  text = ''
-                    AWS_ACCESS_KEY_ID="$(cat ${bucket.keyId})" \
-                      AWS_SECRET_ACCESS_KEY="$(cat ${bucket.secretKey})" \
-                      exec setpriv --reuid=${app} --regid=${app} --init-groups \
-                      s3cmd --ssl \
-                      --host=${address} \
-                      --host-bucket=${address} \
-                      --region=${s3.region} \
-                      "$@"
-                  '';
-                };
+                clients.s3 =
+                  { name, bucket }:
+                  pkgs.writeShellApplication {
+                    inherit name;
+                    runtimeInputs = [
+                      pkgs.s3cmd
+                      pkgs.util-linux
+                    ];
+                    text = ''
+                      AWS_ACCESS_KEY_ID="$(cat ${bucket.keyId})" \
+                        AWS_SECRET_ACCESS_KEY="$(cat ${bucket.secretKey})" \
+                        exec setpriv --reuid=${app} --regid=${app} --init-groups \
+                        s3cmd --ssl \
+                        --host=${address} \
+                        --host-bucket=${address} \
+                        --region=${s3.region} \
+                        "$@"
+                    '';
+                  };
               in
               {
                 toh.meta.s3.apps.${app} = { };
+                toh.meta.s3.apps.${otherApp} = {
+                  user = app;
+                  group = app;
+                };
 
                 toh.pki.installCa = true;
 
-                environment.systemPackages = [ clients.${s3.protocol} ];
+                environment.systemPackages = [
+                  (clients.${s3.protocol} {
+                    name = "contract-s3";
+                    bucket = s3.buckets.${app};
+                  })
+                  (clients.${s3.protocol} {
+                    name = "contract-s3-other";
+                    bucket = s3.buckets.${otherApp};
+                  })
+                ];
               };
           })
           {
             toh.test.commands.suffix = ''
               client.wait_until_succeeds("echo ${value} | contract-s3 put - ${object}", timeout=300)
               client.wait_until_succeeds("contract-s3 get ${object} - | grep -qx ${value}", timeout=30)
+              client.wait_until_succeeds("echo ${value} | contract-s3-other put - ${otherObject}", timeout=30)
+              client.fail("contract-s3-other get ${object} -")
+              client.fail("echo ${value} | contract-s3-other put - ${object}")
+              client.fail("contract-s3-other ls s3://${app}")
+              client.fail("contract-s3 get ${otherObject} -")
+              client.fail("contract-s3 ls s3://${otherApp}")
 
               ${failover}
             '';

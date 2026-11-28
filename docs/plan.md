@@ -857,7 +857,11 @@ holds an etcd lease and the workers run on every machine (see the
      Backup and the CLI stay with step 9, OpenBao with its parked fixes, and
      NetworkManager with what a container cannot show. Filled: etcd turns away a
      client without a certificate; the stats port of Envoy closes the rest of
-     its admin interface.
+     its admin interface; the key of one S3 app cannot reach the bucket of
+     another. For that one, Garage named the secrets of an app after the user
+     that owns them, so two apps of one user clashed; they are named after the
+     app now, which changes nothing while every app owns its secrets under its
+     own name, as all of them do.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:

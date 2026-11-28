@@ -195,9 +195,10 @@ Tests: `contracts-git-forgejo`, `services-forgejo`.
 
 Tests: `contracts-s3-garage`, `services-garage`.
 
-- **Shows:** an app puts and gets an object with its own key. Each machine puts
-  an object, and every machine gets all of them.
-- **Holes:** the key of one app cannot read the bucket of another.
+- **Shows:** an app puts and gets an object with its own key, and the key of a
+  second app can neither read, write nor list its bucket, nor the other way
+  round. Each machine puts an object, and every machine gets all of them.
+- **Holes:** none.
 - **Failover:** since step 8, the S3 contract kills every server once. Every
   object put before and after each kill can still be got.
 
