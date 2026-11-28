@@ -882,7 +882,8 @@ holds an etcd lease and the workers run on every machine (see the
      how long it waits between two updates are options now. geoclue gets its
      static location: the secret for it was commented out, so it never did.
      Whether geoclue answers with it is left to a VM test, since a container
-     never gets an answer over D-Bus.
+     never gets an answer over D-Bus. SSSD lets an LLDAP user log in with their
+     password and turns away a wrong one.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:
