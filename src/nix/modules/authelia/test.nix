@@ -61,5 +61,32 @@
         """, timeout=60)
       ''
     ];
+
+    # NOTE: Authelia's own API logs a user in without a browser; the session
+    # is in Valkey, so a login on one machine holds on every machine, and a
+    # wrong password comes last, since Authelia bans a user after a few
+    toh.test.commands.suffix = ''
+      node1.succeed("toh ldap user add tester testpass123 tester@email.service.toh --display-name tester")
+      session = node1.wait_until_succeeds("""
+        curl -f -o /dev/null -c - \
+          -H 'Content-Type: application/json' \
+          -d '{"username":"tester","password":"testpass123"}' \
+          https://authelia.service.toh/api/firstfactor \
+          | awk '$6 == "authelia_session" { print $7 }' | grep .
+      """, timeout=60).strip()
+      for node in [node1, node2, node3]:
+        node.succeed(f"""
+          curl -f -b 'authelia_session={session}' \
+            https://authelia.service.toh/api/user/info \
+            | grep -q '"display_name":"tester"'
+        """)
+      output = node1.succeed("""
+        curl -s -o /dev/null -w '%{http_code}' \
+          -H 'Content-Type: application/json' \
+          -d '{"username":"tester","password":"wrong"}' \
+          https://authelia.service.toh/api/firstfactor
+      """)
+      assert output == "401", output
+    '';
   };
 }

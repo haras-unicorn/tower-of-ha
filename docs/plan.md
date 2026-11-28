@@ -875,7 +875,8 @@ holds an etcd lease and the workers run on every machine (see the
      read-only permission is refused the password of the admin and adding a
      user. sshd turns away a client without a key; the test defaults forced root
      and password login on, for a debugging backdoor that is long gone, so they
-     no longer do.
+     no longer do. Authelia turns away an OIDC client with a wrong secret, and
+     logs in a user from LLDAP, with the session holding on every machine.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:

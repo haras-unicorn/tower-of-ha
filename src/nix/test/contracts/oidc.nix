@@ -64,7 +64,11 @@
 
                     endpoint="$(jq -r .pushed_authorization_request_endpoint \
                       <<<"$discovery")"
-                    secret="$(jq -Rr @uri < ${client.clientSecret})"
+                    if [ "$#" -gt 0 ]; then
+                      secret="$1"
+                    else
+                      secret="$(jq -Rr @uri < ${client.clientSecret})"
+                    fi
 
                     response="$(curl --fail --silent --show-error \
                       --config <(printf 'user = "%s:%s"\n' \
@@ -85,7 +89,7 @@
                   runtimeInputs = [ pkgs.util-linux ];
                   text = ''
                     exec setpriv --reuid=${app} --regid=${app} --init-groups \
-                      ${lib.getExe authorize}
+                      ${lib.getExe authorize} "$@"
                   '';
                 };
               in
@@ -100,6 +104,8 @@
           {
             toh.test.commands.suffix = ''
               client.wait_until_succeeds("contract-oidc", timeout=300)
+              output = client.succeed("contract-oidc wrong-secret 2>&1 || true")
+              assert "error: 401" in output, output
 
               ${failover}
             '';

@@ -52,12 +52,13 @@ Tests: `contracts-alerts-alertmanager`, `services-alertmanager-matrix`.
 
 Tests: `contracts-oidc-authelia`, `services-authelia`.
 
-- **Shows:** the discovery document names its issuer, and a registered client
-  with its secret can push an authorization request. The health endpoint answers
-  through the proxy on every machine.
-- **Holes:** a login. Authelia's own API takes a user name and password without
-  a browser, so a test can log in a user from LLDAP. Also: a client with a wrong
-  secret is turned away.
+- **Shows:** the discovery document names its issuer, a registered client with
+  its secret can push an authorization request, and with a wrong secret it is
+  turned away. The health endpoint answers through the proxy on every machine. A
+  user from LLDAP logs in through Authelia's own API on one machine, and the
+  session holds on every machine; a wrong password is turned away.
+- **Holes:** none. The login is Authelia's API and not a browser, so the OIDC
+  login of an app, with its redirect and consent, is not run.
 - **Failover:** since step 8, the OIDC contract kills every server once, and the
   client still pushes its authorization request each time.
 
