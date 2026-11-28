@@ -246,6 +246,15 @@ Service work that fits no step so far.
   gets a server failure and not an answer that the name does not exist. The DNS
   test helper had the same problem and serves zone files now. Synapse looking
   for SRV records failed on it.
+- `src/nix/modules/synapse/apps.nu`: every run logs in twice for every chat app,
+  and the bridges of the apps log in too, all through the login rate limit of
+  Synapse per address (`rc_login.address`, a burst of 5 and then one login in
+  about five minutes). With three apps, the first run already gets refused and
+  restarts until the limit lets it through, which takes many minutes. Found when
+  `services-alertmanager-matrix` got a second app, and the test lifts the limit
+  for now. Ways out: log in once per app and run, get tokens through the admin
+  API instead of logging in, or raise the limit for the addresses of the
+  cluster.
 - `src/nix/modules/synapse/default.nix`: outgoing federation goes from the
   machine straight to the other server and not through the proxy, unlike the
   plan where only proxies talk across machines.

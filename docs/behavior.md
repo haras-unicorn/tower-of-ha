@@ -42,9 +42,10 @@ Tests: `contracts-alerts-alertmanager`, `services-alertmanager-matrix`.
 
 - **Shows:** an alert that every copy of Prometheus fires is held once by the
   alerts API. An alert arrives as a message in the room of the `alerts` chat
-  app.
-- **Holes:** the invite of `toh.services.alertmanager.matrix.invite`, which the
-  plan already names.
+  app, and the users of `toh.services.alertmanager.matrix.invite` are invited
+  into it.
+- **Holes:** none for the room. The test lifts the login rate limit of Synapse,
+  see the to-do about logins of chat apps.
 - **Failover:** none. Nothing checks that an alert is still sent once after one
   copy stops.
 

@@ -28,8 +28,7 @@ in
   };
 
   # NOTE: the test reads the room as the user of the bridge, which is in the
-  # room already; it logs in once and retries only the reads, because a
-  # retried login counts against the login rate limit of Synapse
+  # room already
   self.nixosTests.services-alertmanager-matrix = selfLib.test.makeNixosTest (
     { machineList, ... }:
     let
@@ -45,9 +44,28 @@ in
           let
             chat = config.toh.meta.chat;
             user = chat.users.alerts;
+            invitee = "@${chat.users.reader.name}:${chat.serverName}";
           in
           {
             imports = [ base ];
+
+            # NOTE: someone to invite into the room of the alerts, a chat
+            # user that another app has
+            toh.meta.chat.apps.reader = { };
+            users.groups.reader = { };
+            users.users.reader = {
+              isSystemUser = true;
+              group = "reader";
+            };
+            toh.services.alertmanager.matrix.invite = [ invitee ];
+
+            # NOTE: synapse-apps, the bridge and the test all log in from the
+            # first machine, more often than the default burst of logins per
+            # address allows (see docs/todo.md)
+            services.matrix-synapse.settings.rc_login.address = {
+              per_second = 1000;
+              burst_count = 1000;
+            };
 
             toh.services.patroni.enable = true;
             toh.services.cephfs.enable = true;
@@ -72,6 +90,12 @@ in
                 text = ''
                   api=${chat.url}/_matrix/client/v3
 
+                  room() {
+                    alias="$(jq --null-input --raw-output --arg value '${user.room}' '$value | @uri')"
+                    curl --silent --fail --header @/root/authorization \
+                      "$api/directory/room/$alias" | jq --raw-output '.room_id | @uri'
+                  }
+
                   case "$1" in
                     login)
                       jq --null-input --rawfile password ${user.password} '{
@@ -84,13 +108,15 @@ in
                         > /root/authorization
                       ;;
                     read)
-                      alias="$(jq --null-input --raw-output --arg value '${user.room}' '$value | @uri')"
-                      room="$(curl --silent --fail --header @/root/authorization \
-                        "$api/directory/room/$alias" | jq --raw-output '.room_id | @uri')"
                       curl --silent --fail --header @/root/authorization \
-                        "$api/rooms/$room/messages?dir=b&limit=20" \
+                        "$api/rooms/$(room)/messages?dir=b&limit=20" \
                         | jq --raw-output \
                           '.chunk[] | select(.type == "m.room.message") | .content | .body, .formatted_body'
+                      ;;
+                    invited)
+                      curl --silent --fail --header @/root/authorization \
+                        "$api/rooms/$(room)/members?membership=invite" \
+                        | jq --raw-output '.chunk[].state_key'
                       ;;
                   esac
                 '';
@@ -109,6 +135,10 @@ in
         ${first.toh.meta.machine.name}.wait_until_succeeds("alerts-chat login", timeout=60)
         ${first.toh.meta.machine.name}.wait_until_succeeds(
           "alerts-chat read | grep -F ${alert} > /dev/null", timeout=300
+        )
+        ${first.toh.meta.machine.name}.wait_until_succeeds(
+          "alerts-chat invited | grep -Fx '@${first.toh.meta.chat.users.reader.name}:${first.toh.meta.chat.serverName}'",
+          timeout=60,
         )
       '';
     }

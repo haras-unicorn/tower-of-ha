@@ -883,7 +883,10 @@ holds an etcd lease and the workers run on every machine (see the
      static location: the secret for it was commented out, so it never did.
      Whether geoclue answers with it is left to a VM test, since a container
      never gets an answer over D-Bus. SSSD lets an LLDAP user log in with their
-     password and turns away a wrong one.
+     password and turns away a wrong one. Alertmanager invites its users into
+     the room of the alerts. A second chat app in that test ran into the login
+     rate limit of Synapse, which every chat app will once there are three; the
+     test lifts the limit, and the to-do list has the fix.
 
 4. **More faults (L).** Moved from chunk 1 on 2026-11-27, with the same goal and
    the same rules for what holds after every fault:
